@@ -4,6 +4,12 @@ EVERSIBLE - EVE Online IRC Bot
 >> https://github.com/Ghent/eversible
 
 
+AUTHORS
+  * Ghent
+  * mountainpenguin
+  * petllama
+
+
 PLANNED FEATURES
   * Server status with user statistics
   * Public/Private triggers
