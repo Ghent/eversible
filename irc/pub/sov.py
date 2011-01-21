@@ -15,16 +15,16 @@ def index(connection,event):
         corporationName = sovInfo["corporationName"]
         if factionName:
             outputMessage = """
-                \x02System\x02: %s (\x1fhttp://evemaps.dotlan.net/system/%s\x1f)
-                \x032Owner\x03:  %s (NPC)
+                \x02System\x02: %s :: \x1fhttp://evemaps.dotlan.net/system/%s\x1f
+                \x032Owner\x03:  %s
             """ % (solarSystemName, solarSystemName, factionName)
             for line in outputMessage.split("\n"):
                 connection.privmsg(event.target(), line.strip())
         else:
             outputMessage = """
-                \x02System\x02:   %s (\x1fhttp://evemaps.dotlan.net/system/%s\x1f)
+                \x02System\x02:   %s :: \x1fhttp://evemaps.dotlan.net/system/%s\x1f
                 \x039Owner\x03:    %s
-                \x035Alliance\x03: %s (%s)
+                \x035Alliance\x03: %s :: %s
             """ % (solarSystemName, solarSystemName, corporationName, allianceName, allianceTicker)
             for line in outputMessage.split("\n"):
                 connection.privmsg(event.target(), line.strip())
