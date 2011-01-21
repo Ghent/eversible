@@ -20,11 +20,46 @@ class API:
         self.DEBUG = debug
         self.DUMP = db.DUMP()
 
+    def Eve(self,Request, allianceID=None):
+        """
+            Methods related to EVE in general:
+            *********************************************
+            alliances : returns alliance info for a given
+                        allianceID (N)
+                        # currently outputs only allianceName
+                        # and allianceTicker
+            *********************************************
+            (N) = No API key required
+        """
+        if Request.lower() == "alliances":
+            requesturl = os.path.join(self.API_URL, "eve/AllianceList.xml.aspx")
+            xml = urllib2.urlopen(requesturl).read()
+            
+            if allianceID:
+                try:
+                    allianceName, allianceTicker = re.findall("\<row name=\"(.*?)\" shortName=\"(.*?)\" allianceID=\"%s\"" % (allianceID), xml)[0]
+                except IndexError:
+                    return None
+                else:
+                    return {
+                        "allianceID" : int(allianceID),
+                        "allianceName" : allianceName,
+                        "allianceTicker" : allianceTicker
+                    }
+            else:
+                return None
+            
+            
+            
+            
+            
     def Corporation(self, Request, corporationID=None):
         """
             Methods related to corporations:
             **********************************************
-            publicsheet : returns various corporation info (N) # as of 21/01/2011 returns only corporationName
+            publicsheet : returns various corporation info
+                          for a given corporationID (N)
+                          # currently outputs only corporationName
             **********************************************
             (N) = No API key required
         """
@@ -623,12 +658,14 @@ class API:
                 except IndexError:
                     return None
                 else:
+                    corporationName = self.Corporation("publicsheet", corporationID)["corporationName"]
                     return {
                         "solarSystemID" : solarSystemID,
                         "solarSystemName" : solarSystemName,
                         "allianceID" : allianceID,
                         "factionID" : factionID,
-                        "corporationID" : corporationID
+                        "corporationID" : corporationID,
+                        "corporationName" : corporationName
                     }
 
     def Server(self, Request):
