@@ -23,3 +23,8 @@ PLANNED FEATURES
 TECHNICAL FEATURES
   * SQLite3 Backend
   * YAML configuration
+
+
+REQUIREMENTS
+  * Python
+  * PyYAML
