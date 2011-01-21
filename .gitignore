@@ -1,2 +1,4 @@
 db/*/*.db
+etc/*.cfg
+!etc/eversible-dist.cfg
 *.pyc
