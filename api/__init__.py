@@ -64,20 +64,23 @@ class API:
             (N) = No API key required
         """
         if Request.lower() == "publicsheet":
-            requesturl = os.path.join(self.API_URL, "corp/CorporationSheet.xml.aspx")
-            if corporationID:
-                postdata = {
-                    "corporationID" : corporationID
+            if corporationID != "0":
+                requesturl = os.path.join(self.API_URL, "corp/CorporationSheet.xml.aspx")
+                if corporationID:
+                    postdata = {
+                        "corporationID" : corporationID
+                    }
+                else:
+                    return None
+                xml = urllib2.urlopen(requesturl, urllib.urlencode(postdata)).read()
+                corporationName = xml.split("<corporationName>")[1].split("</corporationName>")[0]
+                
+                #for now, just return corporationName
+                return {
+                    "corporationName" : corporationName
                 }
             else:
                 return None
-            xml = urllib2.urlopen(requesturl, urllib.urlencode(postdata)).read()
-            corporationName = xml.split("<corporationName>")[1].split("</corporationName>")[0]
-            
-            #for now, just return corporationName
-            return {
-                "corporationName" : corporationName
-            }
             
 #  <result>
 #    <corporationID>1102238026</corporationID>
@@ -658,15 +661,35 @@ class API:
                 except IndexError:
                     return None
                 else:
-                    corporationName = self.Corporation("publicsheet", corporationID)["corporationName"]
-                    return {
-                        "solarSystemID" : solarSystemID,
-                        "solarSystemName" : solarSystemName,
-                        "allianceID" : allianceID,
-                        "factionID" : factionID,
-                        "corporationID" : corporationID,
-                        "corporationName" : corporationName
-                    }
+                    if allianceID != "0" and corporationID != "0":
+                        corporationName = self.Corporation("publicsheet", corporationID)["corporationName"]
+                        allianceInfo = self.Eve("alliances", int(allianceID))
+                        allianceName = allianceInfo["allianceName"]
+                        allianceTicker = allianceInfo["allianceTicker"]
+                        return {
+                            "solarSystemID" : int(solarSystemID),
+                            "solarSystemName" : solarSystemName,
+                            "allianceID" : int(allianceID),
+                            "allianceName" : allianceName,
+                            "allianceTicker" : allianceTicker,
+                            "factionID" : None,
+                            "factionName" : None,
+                            "corporationID" : int(corporationID),
+                            "corporationName" : corporationName
+                        }
+                    else:
+                        factionName = self.DUMP.getFactionNameByID(factionID)
+                        return {
+                            "solarSystemID" : int(solarSystemID),
+                            "solarSystemName" : solarSystemName,
+                            "allianceID" : None,
+                            "allianceName" : None,
+                            "allianceTicker" : None,
+                            "factionID" : int(factionID),
+                            "factionName" : factionName,
+                            "corporationID" : None,
+                            "corporationName" : None
+                        }
 
     def Server(self, Request):
         """ Methods related to the server:
