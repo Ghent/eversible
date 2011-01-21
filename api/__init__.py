@@ -562,7 +562,21 @@ class API:
         if Request.lower() == "sov":
             requesturl = os.path.join(self.API_URL, "map/Sovereignty.xml.aspx")
             xml = urllib2.urlopen(requesturl).read()
-            print xml
+            solarSystemID_str = self.DUMP.getSystemIDByName(systemname.upper())
+            if solarSystemID_str:
+                solarSystemID = int(solarSystemID_str)
+                try:
+                    allianceID, factionID, solarSystemName, corporationID = re.findall("\<row solarSystemID=\"%i\" allianceID=\"(\d+)\" factionID=\"(\d+)\" solarSystemName=\"(.*?)\" corporationID=\"(\d+)\" \/\>" % (solarSystemID), xml)[0]
+                except IndexError:
+                    return None
+                else:
+                    return {
+                        "solarSystemID" : solarSystemID,
+                        "solarSystemName" : solarSystemName,
+                        "allianceID" : allianceID,
+                        "factionID" : factionID,
+                        "corporationID" : corporationID
+                    }
 
     def Server(self, Request):
         """ Methods related to the server:
