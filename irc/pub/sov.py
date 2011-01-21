@@ -22,9 +22,9 @@ def index(connection,event):
                 connection.privmsg(event.target(), line.strip())
         else:
             outputMessage = """
-                \x02System\x02:   %s :: \x1fhttp://evemaps.dotlan.net/system/%s\x1f
+                \x02System\x02:   %s \x02::\x02 \x1fhttp://evemaps.dotlan.net/system/%s\x1f
                 \x039Owner\x03:    %s
-                \x035Alliance\x03: %s :: %s
+                \x035Alliance\x03: %s \x02::\x02 %s
             """ % (solarSystemName, solarSystemName, corporationName, allianceName, allianceTicker)
             for line in outputMessage.split("\n"):
                 connection.privmsg(event.target(), line.strip())
