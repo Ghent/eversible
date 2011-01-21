@@ -18,7 +18,7 @@ VERSION = "0.0.1"
 NETWORK = "irc.bytesized-hosting.com"
 PORT = 6667
 CHANNEL = "#eve"
-NICK = "EVErsible"
+NICK = "EVErsible[G]"
 NAME = "MPrules"
 PASSWORD = "pybot"
 PREFIX = "."
@@ -46,13 +46,13 @@ class ModularBot(ircbot.SingleServerIRCBot):
         if event.arguments()[0].upper() == PASSWORD.upper():
             scan()
         elif event.arguments()[0].upper() == "VERSION":
-            connection.ctcp_reply(event.source().split("!")[0], "VERSION EveBot v%s - copyright mountainpenguin 2011" % VERSION)
+            connection.ctcp_reply(event.source().split("!")[0], "VERSION EVErsible v%s" % VERSION)
         elif event.arguments()[0].upper() == "TIME":
             connection.ctcp_reply(event.source().split("!")[0], "TIME " + time.asctime())
 
     def on_erroneusnickname(self, connection, event):
         if "is currently being held" in event.arguments()[1]:
-            connection.privmsg("NickServ", "RELEASE EveBot pybot")
+            connection.privmsg("NickServ", "RELEASE EVErsible pybot")
             connection.nick(NICK)
 
     def on_chanoprivsneeded(self, connection, event):
