@@ -13,12 +13,12 @@ import irc.lib.irclib as irclib
 if "-v" in sys.argv:
     irclib.DEBUG = True
 
-VERSION = "0.1"
+VERSION = "0.0.1"
 
 NETWORK = "irc.bytesized-hosting.com"
 PORT = 6667
 CHANNEL = "#eve"
-NICK = "EveBot"
+NICK = "EVErsible"
 NAME = "MPrules"
 PASSWORD = "pybot"
 PREFIX = "."

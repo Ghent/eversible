@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
-import EVE
+import api
+import db.queries
+
 API = EVE.API()
 
 def index(connection, event):

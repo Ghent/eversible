@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-import EVE
+import api
+import db.queries
 import traceback
 
 API = EVE.API()
