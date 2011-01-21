@@ -46,3 +46,11 @@ class DUMP:
             return row[0]
         else:
             return None
+        
+    def getFactionNameByID(self, factionID):
+        self.cursor.execute("SELECT factionID,factionName FROM chrFactions WHERE factionID='%s'" % factionID)
+        row = self.cursor.fetchone()
+        if row:
+            return row[1]
+        else:
+            return None
