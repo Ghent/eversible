@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 
 import api
-import db.queries
 
-API = EVE.API()
+API = api.API()
 
 def index(connection, event):
     serverstatus = API.Server("status")

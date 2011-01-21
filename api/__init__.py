@@ -9,6 +9,7 @@ import sys
 import time
 import json
 import sqlite3
+import db
 
 class API:
     def __init__(self, userid="6727784", apikey="F6CD5B6D6CFD4BC1B408012A27672C659C0A553445E643E2AC0DAA2EF818A86B", charid="1364641301", debug=False):
@@ -17,7 +18,7 @@ class API:
         self.API_KEY = apikey
         self.API_URL = "http://api.eve-online.com"
         self.DEBUG = debug
-        self.DUMP = DUMP()
+        self.DUMP = db.DUMP()
 
     def Char(self, Request):
         """ Methods related to a character:

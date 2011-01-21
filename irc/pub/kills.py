@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 
 import api
-import db.queries
-import traceback
 
-API = EVE.API()
+API = api.API()
 
 def index(connection, event):
     systemName = event.arguments()[0].split()[1]
