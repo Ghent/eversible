@@ -10,44 +10,6 @@ import time
 import json
 import sqlite3
 
-class DUMP:    
-    def __init__(self):
-        conn = sqlite3.connect("db/current.db")
-        self.cursor = conn.cursor()
-    
-    def getItemNameByID(self, ID):
-        self.cursor.execute("SELECT typeID,typeName FROM invTypes WHERE typeID='%s'" % ID)
-        row = self.cursor.fetchone()
-        if row:
-            return row[1]
-        else:
-            return None
-            
-    def getItemIDByName(self, name):
-        self.cursor.execute("SELECT typeID,typeName FROM invTypes WHERE typeName='%s'" % name)
-        row = self.cursor.fetchone()
-        if row:
-            return row[0]
-        else:
-            return None
-
-    def getSystemNameByID(self, systemID):
-        
-        self.cursor.execute("SELECT solarSystemID,solarSystemName FROM mapSolarSystems WHERE solarSystemID='%s'" % systemID)
-        row = self.cursor.fetchone()
-        if row:
-            return row[1]
-        else:
-            return None
-        
-    def getSystemIDByName(self, systemname):
-        self.cursor.execute("SELECT solarSystemID,solarSystemName FROM mapSolarSystems WHERE solarSystemName LIKE '%s'" % systemname)
-        row = self.cursor.fetchone()
-        if row:
-            return row[0]
-        else:
-            return None        
-        
 class API:
     def __init__(self, userid="6727784", apikey="F6CD5B6D6CFD4BC1B408012A27672C659C0A553445E643E2AC0DAA2EF818A86B", charid="1364641301", debug=False):
         self.USER_ID = userid
@@ -75,13 +37,13 @@ class API:
             **********************************************
             (L) = limited API key required
         """
-        
+
         basepostdata = {
             "apiKey" : self.API_KEY,
             "userID" : self.USER_ID,
             "characterID" : self.CHAR_ID
         }
-        
+
         if Request.lower() == "balance":
             requesturl = os.path.join(self.API_URL, "char/AccountBalance.xml.aspx")
             xml = urllib2.urlopen(requesturl, urllib.urlencode(basepostdata)).read()
@@ -91,7 +53,7 @@ class API:
                 "accountKey" : row.group("accountKey"),
                 "balance" : row.group("balance")
             }
-            
+
         elif Request.lower() == "assets":
             requesturl = os.path.join(self.API_URL, "char/AssetList.xml.aspx")
             xml = urllib2.urlopen(requesturl, urllib.urlencode(basepostdata)).read()
@@ -165,14 +127,13 @@ class API:
                     "_child_" : False,
                     "_contents_" : children
                 }
-                
             return assetDict
 
         elif Request.lower() == "charsheet":
             requesturl = os.path.join(self.API_URL, "char/CharacterSheet.xml.aspx")
             xml = urllib2.urlopen(requesturl, urllib.urlencode(basepostdata)).read()
             print xml
-            
+
         elif Request.lower() == "industry":
             requesturl = os.path.join(self.API_URL, "char/IndustryJobs.xml.aspx")
             xml = urllib2.urlopen(requesturl, urllib.urlencode(basepostdata)).read()
@@ -224,8 +185,7 @@ class API:
                 else:
                     industrydict[row["jobID"]] = row
             return industrydict
-            
-        
+
         elif Request.lower() == "kills":
             requesturl = os.path.join(self.API_URL, "char/Killlog.xml.aspx")
             xml = urllib2.urlopen(requesturl, urllib.urlencode(basepostdata)).read()
@@ -238,7 +198,6 @@ class API:
             victimRE = re.compile("\<victim characterID=\"(?P<characterID>\d+)\" characterName=\"(?P<characterName>.*?)\" corporationID=\"(?P<corporationID>\d+)\" corporationName=\"(?P<corporationName>.*?)\" allianceID=\"(?P<allianceID>\d+)\" allianceName=\"(?P<allianceName>.*?)\" .*?damageTaken=\"(?P<damageTaken>\d+)\" shipTypeID=\"(?P<shipTypeID>\d+)\" \/\>")
             attackRE = re.compile("\<row characterID=\"(?P<characterID>\d+)\" characterName=\"(?P<characterName>.*?)\" corporationID=\"(?P<corporationID>\d+)\" corporationName=\"(?P<corporationName>.*?)\" allianceID=\"(?P<allianceID>\d+)\" allianceName=\"(?P<allianceName>.*?)\" .*?damageDone=\"(?P<damageDone>\d+)\" finalBlow=\"(?P<finalBlow>\d+)\" weaponTypeID=\"(?P<weaponTypeID>\d+)\" shipTypeID=\"(?P<shipTypeID>\d+)\" \/\>")
             dropRE = re.compile("\<row typeID=\"(?P<typeID>\d+)\" flag=\"(?P<flag>\d+)\" qtyDropped=\"(?P<qtyDropped>\d+)\" qtyDestroyed=\"(?P<qtyDestroyed>\d+)\"")
-            
             killDict = {}
             for kill in kills:
                 try:
@@ -300,7 +259,6 @@ class API:
                             elif "</rowset>" in line:
                                 DROPS[dropno]["children"] = CARGO
                                 CARGO = False
-                    
                     #victim data
                     #{'corporationID': '1102238026', 'damageTaken': '286', 'characterName': 'mountainpenguin', 'allianceName': 'Intergalactic Exports Group', 'allianceID': '1076729448', 'shipTypeID': '670', 'corporationName': 'LazyBoyz Band of Recreational Flyers', 'characterID': '1364641301'}
                     victim_shipTypeName = self.DUMP.getItemNameByID(int(victimData["shipTypeID"]))
@@ -372,9 +330,6 @@ class API:
                     break
                 else:
                     maildict[row["messageID"]] = row
-            
-                    
-            
             mail_ids = maildict.keys()
             postdata = {
                 "apiKey" : self.API_KEY,
@@ -382,7 +337,7 @@ class API:
                 "characterID" : self.CHAR_ID,
                 "ids" : ",".join(mail_ids)
             }
-            
+
             requesturl = os.path.join(self.API_URL, "char/MailBodies.xml.aspx")
             xml = urllib2.urlopen(requesturl, urllib.urlencode(postdata)).read()
             rows = re.finditer("\<row messageID=\"(?P<messageID>\d+)\"\>\<!\[CDATA\[(?P<messageBody>.*?)\]\]\>\<\/row\>", xml)
@@ -396,7 +351,7 @@ class API:
                     messageBody = row["messageBody"]
                     maildict[messageID]["messageBody"] = messageBody
             return maildict
-            
+
         elif Request.lower() == "market":
             requesturl = os.path.join(self.API_URL, "char/MarketOrders.xml.aspx")
             xml = urllib2.urlopen(requesturl, urllib.urlencode(basepostdata)).read()
@@ -410,7 +365,7 @@ class API:
                 else:
                     returndict[row["orderID"]] = row
             return returndict
-                
+
         elif Request.lower() == "research":
             requesturl = os.path.join(self.API_URL, "char/Research.xml.aspx")
             xml = urllib2.urlopen(requesturl, urllib.urlencode(basepostdata)).read()
@@ -424,7 +379,7 @@ class API:
                 except:
                     value = None
                 return value
-            
+
             return {
                 "trainingEndTime" : getValue("trainingEndTime"),
                 "trainingStartTime" : getValue("trainingStartTime"),
@@ -448,7 +403,7 @@ class API:
             print xml
             #1000 results
             #can use beforeTransID=TransID to see more
-            
+
     def Account(self, Request):
         """ Methods related to an account:
             **********************************************
@@ -458,7 +413,7 @@ class API:
             (L) = limited API key required
             (F) = full API key required
         """
-                
+
         if self.DEBUG:
             print "Request:", Request
         if Request.lower() == "characters":
@@ -470,7 +425,7 @@ class API:
                 "userID" : self.USER_ID
             }
             xml = urllib2.urlopen(requesturl, urllib.urlencode(postdata)).read()
-            
+
             #parse xml
             result = xml.split("<result>")[1].split("</result>")[0]
             splitline = re.search("(\<rowset.*?\>)", result).group(1)
@@ -519,7 +474,7 @@ class API:
                             tempdict[name] = value
                             name = ""
                             value = ""
-                    
+
                     if char == " " and not STRING:
                         pass
                     elif char == "=" and not STRING:
@@ -545,7 +500,7 @@ class API:
             paidUntil = getTag("paidUntil")
             logonCount = int(getTag("logonCount"))
             logonMinutes = int(getTag("logonMinutes"))
-            
+
             createDate_unix = time.mktime(time.strptime(createDate, "%Y-%m-%d %H:%M:%S"))
             paidUntil_unix = time.mktime(time.strptime(paidUntil, "%Y-%m-%d %H:%M:%S"))
             #logged_on = ""
@@ -562,7 +517,7 @@ class API:
             #    logged_on += "%i hours " % hours
             #    logonMinutes -= hours * 60
             #logged_on += "%i minutes" % logonMinutes
-            
+
             return {
                 "createDate" : createDate_unix,
                 "paidUntil" : paidUntil_unix,
@@ -582,7 +537,7 @@ class API:
             requesturl = os.path.join(self.API_URL, "map/Jumps.xml.aspx")
             xml = urllib2.urlopen(requesturl).read()
             print xml
-            
+
         if Request.lower() == "kills":
             requesturl = os.path.join(self.API_URL, "map/Kills.xml.aspx")
             xml = urllib2.urlopen(requesturl).read()
@@ -602,13 +557,12 @@ class API:
                         "podKills" : int(podKills),
                         "npcKills" : int(factionKills)
                     }
-            
+
         if Request.lower() == "sov":
             requesturl = os.path.join(self.API_URL, "map/Sovereignty.xml.aspx")
             xml = urllib2.urlopen(requesturl).read()
             print xml
-        
-            
+
     def Server(self, Request):
         """ Methods related to the server:
             ************************************************
@@ -616,7 +570,7 @@ class API:
             ************************************************
             (N) = no API key required
         """
-        
+
         if self.DEBUG:
             print "Request:", Request
         if Request.lower() == "status":
