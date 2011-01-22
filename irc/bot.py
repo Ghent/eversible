@@ -8,6 +8,7 @@ import socket
 import imp
 import glob
 import traceback
+import time
 
 import irc.lib.ircbot as ircbot
 import irc.lib.irclib as irclib
@@ -39,12 +40,12 @@ def scan():
 class EVErsibleBot(ircbot.SingleServerIRCBot):
     def __init__(self, host, port, nick, realname, channel, botpass, prefix):
             ircbot.SingleServerIRCBot.__init__(self, [(host, port)], nick, realname)
-            self.channel = channel
-            self.botpass = botpass
-            self.prefix = prefix
+            self.CHANNEL = channel
+            self.BOTPASS = botpass
+            self.PREFIX = prefix
 
     def on_ctcp(self, connection, event):
-        if event.arguments()[0].upper() == self.botpass.upper():
+        if event.arguments()[0].upper() == self.BOTPASS.upper():
             scan()
         elif event.arguments()[0].upper() == "VERSION":
             connection.ctcp_reply(event.source().split("!")[0], "VERSION EVErsible v%s" % VERSION)
@@ -52,9 +53,7 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
             connection.ctcp_reply(event.source().split("!")[0], "TIME " + time.asctime())
 
     def on_erroneusnickname(self, connection, event):
-        if "is currently being held" in event.arguments()[1]:
-            connection.privmsg("NickServ", "RELEASE EVErsible pybot")
-            connection.nick(NICK)
+        pass
 
     def on_chanoprivsneeded(self, connection, event):
         connection.privmsg(event.arguments()[0], "ERROR: I need op for that command")
@@ -63,14 +62,14 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
         pass
 
     def on_welcome(self, connection, event):
-        connection.join(self.channel)
+        connection.join(self.CHANNEL)
 
     def on_privmsg(self, connection, event):
         print event.arguments()
 
     def on_pubmsg(self, connection, event):
         #check if prefix used
-        if event.arguments()[0][0] == self.prefix:
+        if event.arguments()[0][0] == self.PREFIX:
             if publicCommands.has_key(event.arguments()[0].split()[0][1:].upper()):
                 try:
                     publicCommands[event.arguments()[0].split()[0][1:].upper()].index(connection, event)
@@ -83,11 +82,7 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
         pass
 
     def on_kick(self, connection, event):
-        #update names when someone is kicked
-        kicked = event.arguments()[0].replace("@","").replace("+","").replace("!","").replace("%","").replace("~","").replace("&","")
-        #rejoin when kicked
-        if kicked == NICK:
-            connection.join(event.target())
+        pass
 
     def on_join(self, connection, event):
         #check for banregex
