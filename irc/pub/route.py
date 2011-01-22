@@ -11,12 +11,14 @@ def index(connection, event):
     except IndexError:
         connection.privmsg(event.target(), "Syntax is: .route [system name] [system name]")
     else:
-        response = API.Map("kills", systemFrom)
-	response2 = API.Map("kills", systemTo)
+        response = API.Map("sov", systemFrom)
+	response2 = API.Map("sov", systemTo)
         if not response:
             connection.privmsg(event.target(), "System '%s' is unknown to me" % systemFrom)
 	if not response2:
 	    connection.privmsg(event.target(), "System '%s' is unkonwn to me" % systemTo)
         else:
-            connection.privmsg(event.target(), "Route from %s To %s :" % (systemFrom, systemTo))
-	    connection.privmsg(event.target(), "http://evemaps.dotlan.net/route/%s:%s" % (systemFrom, systemTo))
+		systemNameFrom = response["solarSystemName"]
+		systemNameTo = response2["solarSystemName"] 
+		connection.privmsg(event.target(), "Route from %s To %s :" % (systemNameFrom, systemNameTo))
+	    	connection.privmsg(event.target(), "http://evemaps.dotlan.net/route/%s:%s" % (systemNameFrom, systemNameTo))
