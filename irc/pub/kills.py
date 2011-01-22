@@ -26,14 +26,13 @@ def index(connection, event):
             solarSystemName = response["solarSystemName"]
             
             systemInfo = DB.getSystemInfoByID(response["solarSystemID"])
-            security = round(systemInfo["security"],1)
-            #note: \x02\x02 is added to prevent security digits clashing with the colour codes
+            security = systemInfo["security"]
             if security >= 0.5:
                 sec = "\x033\x02\x02%.01f\x03" % security
             elif security < 0.5 and security > 0.0:
                 sec = "\x037\x02\x02%.01f\x03" % security
             else:
-                sec = "\x035\x02\x02%.01f\x03" % security
+                sec = "\x035\x02\x02%.02f\x03" % security
             
             
             connection.privmsg(event.target(), "\x02System\x02 : \x02%s\x02 (%s)" % (solarSystemName, sec))
