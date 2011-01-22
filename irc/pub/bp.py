@@ -40,4 +40,4 @@ def index(connection, event):
                noc, zyd, meg, mor)
         
         for line in message.split("\n"):
-            connection.privmsg(event.target(), line.split())
+            connection.privmsg(event.target(), line.strip())
