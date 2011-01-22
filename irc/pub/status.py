@@ -9,7 +9,7 @@ import api
 API = api.API()
 
 def index(connection, event):
-    locale.setlocale(locale.LC_ALL, "en_US")
+    #locale.setlocale(locale.LC_ALL, "en_US")
     serverstatus = API.Server("status")
     status = serverstatus["status"]
     online = serverstatus["online"]
