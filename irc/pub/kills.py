@@ -10,6 +10,7 @@ API = api.API()
 def index(connection, event):
     try:
         systemName = event.arguments()[0].split()[1]
+        print systemName
     except IndexError:
         connection.privmsg(event.target(), "Syntax is: kills [system name]")
     else:
@@ -20,4 +21,5 @@ def index(connection, event):
             shipKills = response["shipKills"]
             podKills = response["podKills"]
             npcKills = response["npcKills"]
-            connection.privmsg(event.target(), "In the last hour, there were %i ship kills, %i pod kills and %i NPC kills in system %s" % (shipKills, podKills, npcKills, systemName))
+            solarSystemName = response["solarSystemName"]
+            connection.privmsg(event.target(), "In the last hour, there were %i ship kills, %i pod kills and %i NPC kills in system %s" % (shipKills, podKills, npcKills, solarSystemName))
