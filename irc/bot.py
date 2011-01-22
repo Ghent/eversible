@@ -15,11 +15,7 @@ if "-v" in sys.argv:
 
 VERSION = "0.0.1"
 
-NETWORK = "irc.bytesized-hosting.com"
-PORT = 6667
 CHANNEL = "#eve"
-NICK = "EVErsible[G]"
-NAME = "MPrules"
 PASSWORD = "pybot"
 PREFIX = "."
 
@@ -105,7 +101,7 @@ class ModularBot(ircbot.SingleServerIRCBot):
         pass
 
 
-def start():
+def start(host, port, nick, realname):
     scan()
-    bot = ModularBot([(NETWORK, PORT)], NICK, NAME)
+    bot = ModularBot([(host, port)], nick, realname)
     bot.start()

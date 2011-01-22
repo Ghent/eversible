@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 # vim: filetype=python tabstop=4 expandtab:
 
+
 import ConfigParser
 from optparse import OptionParser
 
 import irc.bot
+
 
 """ Get comand line arguments """
 parser = OptionParser()
@@ -22,7 +24,12 @@ parser.add_option("-c", "--config", dest="configfile",
 config = ConfigParser.RawConfigParser()
 config.readfp(open(options.configfile))
 
+
 """ Start the IRC bot """
-irc.bot.start()
+irc.bot.start(config.get("irc", "host"),
+              config.getint("irc", "port"),
+              config.get("irc", "nick"),
+              config.get("irc", "name"))
+
 
 quit()
