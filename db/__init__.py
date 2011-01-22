@@ -4,13 +4,7 @@
 
 
 import os
-import urllib
-import urllib2
-import re
-import collections
 import sys
-import time
-import json
 import sqlite3
 
 class DUMP:
