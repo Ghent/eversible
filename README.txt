@@ -11,13 +11,27 @@ AUTHORS
 
 
 PLANNED FEATURES
-  * Server status with user statistics
+[  * = complete     ]
+[  - = not complete ]
   * Public/Private triggers
-  * Public/Private output on API events
-    * Sell/Buy Order changes
-    * Skill training completion
-    * EVE Mail received
-  * Multiple account/character support
+  - Public/Private output on API events
+  - Multiple account/character support
+
+  API INTERFACES
+    * EVE
+    * Dotlan
+
+  EVE INFORMATION
+    * Server status with user statistics
+    - Sell/Buy Order changes
+    - Skill training completion
+    - EVE Mail received notification
+    - Wormhole information
+    - Route planner
+    - Jump Route planner
+    * System information
+      * Kills
+      * Sovereignty
 
 
 TECHNICAL FEATURES
