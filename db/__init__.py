@@ -26,7 +26,7 @@ class DUMP:
     def getItemIDByName(self, name):
         self.cursor.execute("""SELECT typeID,typeName
                             FROM invTypes
-                            WHERE typeName='%s'
+                            WHERE typeName LIKE '%s'
                             """ % name)
         row = self.cursor.fetchone()
         if row:
@@ -113,3 +113,19 @@ class DUMP:
             }
         else:
             return None
+        
+    def getMaterialsByTypeID(self, typeID):
+        self.cursor.execute("""
+                            SELECT typeID,materialTypeID,quantity
+                            FROM invTypeMaterials
+                            WHERE typeID='%s'
+                            """ % typeID
+                            )
+        results = self.cursor.fetchall()
+        materials = {}
+        for result in results:
+            materialName = self.getItemNameByID(result[1])
+            quantity = result[2]
+            materials[materialName] = quantity
+        return materials
+            
