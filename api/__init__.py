@@ -635,7 +635,6 @@ class API:
 
         if Request.lower() == "kills":
             solarSystemID_str = self.DUMP.getSystemIDByName(systemname)
-            print solarSystemID_str
             if solarSystemID_str:
                 requesturl = os.path.join(self.API_URL, "map/Kills.xml.aspx")
                 xml = urllib2.urlopen(requesturl).read()
@@ -643,7 +642,13 @@ class API:
                 try:
                     shipKills, factionKills, podKills = re.findall("\<row solarSystemID=\"%i\" shipKills=\"(\d+)\" factionKills=\"(\d+)\" podKills=\"(\d+)\" \/\>" % (solarSystemID), xml)[0]
                 except IndexError:
-                    return None
+                    return {
+                        "solarSystemID" : solarSystemID,
+                        "solarSystemName" : self.DUMP.getSystemNameByID(solarSystemID),
+                        "shipKills" : 0,
+                        "podKills" : 0,
+                        "npcKills" : 0
+                    }
                 else:
                     return {
                         "solarSystemID" : solarSystemID,
