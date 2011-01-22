@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+#
+# vim: filetype=python tabstop=2 expandtab:
+
 
 import api
 API = api.API()
