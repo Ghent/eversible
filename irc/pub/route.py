@@ -4,9 +4,11 @@
 
 
 import api
+import db
 
 
 API = api.API()
+DB = db.DUMP()
 
 def index(connection, event):
     try:
@@ -16,17 +18,19 @@ def index(connection, event):
         connection.privmsg(event.target(),
             "Syntax is: .route [system name] [system name]")
     else:
-        responseSystemFrom = API.Map("sov", systemFrom)
-        responseSystemTo = API.Map("sov", systemTo)
-        if not responseSystemFrom:
+        #responseSystemFrom = API.Map("sov", systemFrom)
+        #responseSystemTo = API.Map("sov", systemTo)
+        responseSystemFromID = DB.getSystemIDByName("systemFrom")
+        responseSystemToID = DB.getSystemIDByName("systemTo")
+        if not responseSystemFromID:
             connection.privmsg(event.target(), "System '%s' is unknown to me"
                 % systemFrom)
-        elif not responseSystemTo:
+        elif not responseSystemToID:
             connection.privmsg(event.target(), "System '%s' is unkonwn to me"
                 % systemTo)
         else:
-            systemNameFrom = responseSystemFrom["solarSystemName"]
-            systemNameTo = responseSystemTo["solarSystemName"]
+            systemNameFrom = DB.getSystemNameByID(responseSystemFromID)
+            systemNameTo = DB.getSystemNameByID(responseSystemToID)
             connection.privmsg(event.target(),
                 "Route from %s To %s :"
                 % (systemNameFrom, systemNameTo))
