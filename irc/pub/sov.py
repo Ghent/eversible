@@ -23,7 +23,7 @@ def index(connection,event):
             if factionName:
                 outputMessage = """
                     \x02System\x02: \x02%s\x02 :: \x1fhttp://evemaps.dotlan.net/system/%s\x1f
-                    \x03Owner\x03:   %s
+                    \x03Owner\x03:  %s
                 """ % (solarSystemName, solarSystemName, factionName)
                 for line in outputMessage.split("\n"):
                     connection.privmsg(event.target(), line.strip())
