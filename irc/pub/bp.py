@@ -5,7 +5,7 @@ DUMP = db.DUMP()
 
 def index(connection, event):
     try:
-        itemName_user = event.arguments().split()[1]
+        itemName_user = event.arguments()[0].split()[1]
     except IndexError:
         connection.privmsg(event.target(), "Syntax is: bp [item name]")
     else:
