@@ -46,7 +46,7 @@ def index(connection, event):
             for line in outputMessage.split("\n"):
                 connection.privmsg(event.target(), line.strip())
 
-            if autopilot == "fast":
+            if autopilot == "safe":
                 connection.privmsg(event.target(),
                     "\x02Fast Map\x02: \x1fhttp://evemaps.dotlan.net/route/2:%s:%s\x1f"
                     % (systemNameFrom, systemNameTo))
