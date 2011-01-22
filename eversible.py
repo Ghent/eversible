@@ -29,7 +29,10 @@ config.readfp(open(options.configfile))
 irc.bot.start(config.get("irc", "host"),
               config.getint("irc", "port"),
               config.get("irc", "nick"),
-              config.get("irc", "name"))
+              config.get("irc", "name"),
+              config.get("irc", "channel"),
+              config.get("bot", "password"),
+              config.get("bot", "prefix"))
 
 
 quit()

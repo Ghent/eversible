@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# vim: filetype=python tabstop=4 expandtab:
 
 import sys
 import socket
@@ -14,10 +15,6 @@ if "-v" in sys.argv:
     irclib.DEBUG = True
 
 VERSION = "0.0.1"
-
-CHANNEL = "#eve"
-PASSWORD = "pybot"
-PREFIX = "."
 
 publicCommands = {}
 privateCommands = {}
@@ -36,10 +33,16 @@ def scan():
         handle = open(moduleSource)
         module = imp.load_module(name, handle, ("priv/" + moduleSource), (".py", "r", imp.PY_SOURCE))
         privateCommands[name] = module
-                
-class ModularBot(ircbot.SingleServerIRCBot):
+
+class EVErsibleBot(ircbot.SingleServerIRCBot):
+    def __init__(self, host, port, nick, realname, channel, botpass, prefix):
+            ircbot.SingleServerIRCBot.__init__(self, [(host, port)], nick, realname)
+            self.channel = channel
+            self.botpass = botpass
+            self.prefix = prefix
+
     def on_ctcp(self, connection, event):
-        if event.arguments()[0].upper() == PASSWORD.upper():
+        if event.arguments()[0].upper() == self.botpass.upper():
             scan()
         elif event.arguments()[0].upper() == "VERSION":
             connection.ctcp_reply(event.source().split("!")[0], "VERSION EVErsible v%s" % VERSION)
@@ -55,14 +58,17 @@ class ModularBot(ircbot.SingleServerIRCBot):
         connection.privmsg(event.arguments()[0], "ERROR: I need op for that command")
 
     def on_privnotice(self, connection, event):
-        connection.join(CHANNEL)
+        pass
+
+    def on_welcome(self, connection, event):
+        connection.join(self.channel)
 
     def on_privmsg(self, connection, event):
         print event.arguments()
-        
+
     def on_pubmsg(self, connection, event):
         #check if prefix used
-        if event.arguments()[0][0] == PREFIX:
+        if event.arguments()[0][0] == self.prefix:
             if publicCommands.has_key(event.arguments()[0].split()[0][1:].upper()):
                 try:
                     publicCommands[event.arguments()[0].split()[0][1:].upper()].index(connection, event)
@@ -70,7 +76,7 @@ class ModularBot(ircbot.SingleServerIRCBot):
                     tb = traceback.format_exc()
                     for line in tb.split("\n"):
                         connection.privmsg(event.target(), line)
-    
+
     def on_whoisuser(self, connection, event):
         pass
 
@@ -84,12 +90,12 @@ class ModularBot(ircbot.SingleServerIRCBot):
     def on_join(self, connection, event):
         #check for banregex
         pass
-    
+
     def on_namreply(self, connection, event):
         pass
 
     def on_part(self, connection, event):
-        pass       
+        pass
 
     def on_nick(self, connection, event):
         pass
@@ -101,7 +107,7 @@ class ModularBot(ircbot.SingleServerIRCBot):
         pass
 
 
-def start(host, port, nick, realname):
+def start(host, port, nick, realname, channel, botpass, prefix):
     scan()
-    bot = ModularBot([(host, port)], nick, realname)
+    bot = EVErsibleBot(host, port, nick, realname, channel, botpass, prefix)
     bot.start()
