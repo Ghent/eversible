@@ -22,9 +22,10 @@ PLANNED FEATURES
 
 TECHNICAL FEATURES
   * SQLite3 Backend
-  * YAML configuration
 
 
 REQUIREMENTS
   * Python
-  * PyYAML
+  * EVE Online Data Export (in SQLite3)
+    - http://www.eveonline.com/community/toolkit.asp
+    - http://zofu.no-ip.de/
