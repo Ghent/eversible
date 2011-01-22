@@ -29,6 +29,7 @@ PLANNED FEATURES
     - Wormhole information
     - Route planner
     - Jump Route planner
+    - Blueprint lookup
     * System information
       * Kills
       * Sovereignty
