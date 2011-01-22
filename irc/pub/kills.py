@@ -33,8 +33,10 @@ def index(connection, event):
             else:
                 sec = "\x035\x02\x02%.02f\x03" % security
             
+            regionName = systemInfo["regionName"]
+            constellationName = systemInfo["constellationName"]
             
-            connection.privmsg(event.target(), "\x02System\x02 : \x02%s\x02 (%s)" % (solarSystemName, sec))
+            connection.privmsg(event.target(), "\x02System\x02 : \x02%s\x02/%s/%s (%s)" % (solarSystemName, constellationName, regionName, sec))
             connection.privmsg(event.target(), "\x032Ships\x03  : %i" % shipKills)
             connection.privmsg(event.target(), "\x037Pods\x03   : %i" % podKills)
             connection.privmsg(event.target(), "\x034NPCs\x03   : %i" % npcKills)
