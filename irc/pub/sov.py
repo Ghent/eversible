@@ -22,7 +22,7 @@ def index(connection,event):
             allianceTicker = sovInfo["allianceTicker"]
             factionName = sovInfo["factionName"]
             corporationName = sovInfo["corporationName"]
-            
+
             systemInfo = DB.getSystemInfoByID(sovInfo["solarSystemID"])
             security = systemInfo["security"]
             if security >= 0.5:
@@ -31,25 +31,25 @@ def index(connection,event):
                 sec = "\x037\x02\x02%.4f\x03" % security
             else:
                 sec = "\x035\x02\x02%.4f\x03" % security
-                
+
             securityClass = systemInfo["securityClass"]
             constellationName = systemInfo["constellationName"]
             regionName = systemInfo["regionName"]
-                
+
             if factionName:
                 outputMessage = """
-                    \x02System\x02:  \x02%s\x02/%s/%s :: \x1fhttp://evemaps.dotlan.net/system/%s\x1f
-                    \x032Owner\x03:   %s
-                    \x02Security\x02: %s (%s)
+                    \x02System\x02:   \x02%s\x02/\x0310%s\x03/\x032%s\x03 :: \x1fhttp://evemaps.dotlan.net/system/%s\x1f
+                    \x02Owner\x02:    %s
+                    \x02Security\x02: %s \x0314(%s)\x03
                 """ % (solarSystemName, constellationName, regionName, solarSystemName, factionName, sec, securityClass)
                 for line in outputMessage.split("\n"):
                     connection.privmsg(event.target(), line.strip())
             else:
                 outputMessage = """
-                    \x02System\x02:   \x02%s\x02/%s/%s \x02::\x02 \x1fhttp://evemaps.dotlan.net/system/%s\x1f
-                    \x039Owner\x03:    %s
-                    \x035Alliance\x03: %s \x02[%s]\x02
-                    \x02Security\x02: %s (%s)
+                    \x02System\x02:   \x02%s\x02/\x0310%s\x03/\x032%s\x03 :: \x1fhttp://evemaps.dotlan.net/system/%s\x1f
+                    \x02Owner\x02:    %s
+                    \x02Alliance\x02: %s \x02[%s]\x02
+                    \x02Security\x02: %s \x0314(%s)\x03
                 """ % (solarSystemName, constellationName, regionName, solarSystemName, corporationName, allianceName, allianceTicker, sec, securityClass)
                 for line in outputMessage.split("\n"):
                     connection.privmsg(event.target(), line.strip())
