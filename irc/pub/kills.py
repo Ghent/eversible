@@ -22,7 +22,8 @@ def index(connection, event):
             podKills = response["podKills"]
             npcKills = response["npcKills"]
             solarSystemName = response["solarSystemName"]
-            if (shipKills, podKills, npcKills) == (0,0,0):
-                connection.privmsg(event.target(), "In the last hour, there were no kills in system %s" % (solarSystemName))
-            else:
-                connection.privmsg(event.target(), "In the last hour, there were %i ship kills, %i pod kills and %i NPC kills in system %s" % (shipKills, podKills, npcKills, solarSystemName))
+            connection.privmsg(event.target(), "\x02System\x02 : %s" % solarSystemName)
+            connection.privmsg(event.target(), "\x038Ships\x03  : %i" % shipKills)
+            connection.privmsg(event.target(), "\x037Pods\x03   : %i" % podKills)
+            connection.privmsg(event.target(), "\x034NPCs\x03   : %i" % npcKills)
+            #connection.privmsg(event.target(), "In the last hour, there were %i ship kills, %i pod kills and %i NPC kills in system %s" % (shipKills, podKills, npcKills, solarSystemName))
