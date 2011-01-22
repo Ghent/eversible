@@ -12,7 +12,6 @@ DB = db.DUMP()
 def index(connection, event):
     try:
         systemName = event.arguments()[0].split()[1]
-        print systemName
     except IndexError:
         connection.privmsg(event.target(), "Syntax is: kills [system name]")
     else:
