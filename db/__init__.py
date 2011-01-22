@@ -51,3 +51,20 @@ class DUMP:
             return row[1]
         else:
             return None
+        
+    def getSystemInfoByID(self, systemID):
+        self.cursor.execute("""
+                            SELECT solarSystemID,solarSystemName,security,securityClass
+                            FROM mapSolarSystems
+                            WHERE solarSystemID='%s'
+                            """ % systemID)
+        row = self.cursor.fetchone()
+        if row:
+            return {
+                "solarSystemID" : row[0],
+                "solarSystemName" : row[1],
+                "security" : row[2],
+                "securityClass" : row[3]
+            }
+        else:
+            return None
