@@ -12,12 +12,18 @@ DB = db.DUMP()
 
 def index(connection, event):
     try:
-        systemFrom, systemTo, autopilot = event.arguments()[0].split()[1:4]
+        systemFrom = event.arguments()[0].split()[1]
+        systemTo = event.arguments()[0].split()[2]
     except IndexError:
         connection.privmsg(event.target(),
             "Syntax is: .route [system name] [system name] [safe or fast]")
     else:
-        if not str.lower(autopilot) == "fast":
+        try:
+            autopilot = event.arguments()[0].split()[3]
+        except IndexError:
+            autopilot = "safe"
+        
+        if autopilot.lower() != "fast":
             autopilot = "safe"
 
         responseSystemFromID = DB.getSystemIDByName(systemFrom)
