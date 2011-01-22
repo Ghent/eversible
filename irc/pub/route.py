@@ -21,7 +21,7 @@ def index(connection, event):
         try:
             autopilot = event.arguments()[0].split()[3]
         except IndexError:
-            autopilot = "safe"
+            autopilot = "fast"
         
         if autopilot.lower() != "fast":
             autopilot = "safe"
