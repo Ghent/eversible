@@ -10,7 +10,6 @@ import re
 import collections
 import sys
 import time
-import json
 import db
 import cache
 
