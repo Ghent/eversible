@@ -14,7 +14,7 @@ class CACHE:
         url = requesturl + "?" + urllib.urlencode(postdata)
         table = requesturl.split("/")[3]
         requestname = requesturl.split("/")[4].split(".")[0]
-        
+
         try:
             self.cursor.execute("""
                             CREATE TABLE %s
@@ -24,8 +24,13 @@ class CACHE:
         except sqlite3.OperationalError:
             pass
         
-        binary_string = "".join(["%010s" % bin(ord(x)) for x in xml])
-        self.cursor.execute("INSERT INTO %s (requestName, url, expireTime, xml) VALUES('%s', '%s', %f, '%s')" % (table, requestname, url, expireTime, binary_string))
+        self.cursor.execute("""
+                            INSERT INTO %s
+                            (requestName, url, expireTime, xml)
+                            VALUES ("%s", "%s", %f, ?)
+                            """ % (table, requestname, url, expireTime),
+                            [buffer(xml)]
+                            )
         self.cursor.close()
         conn.close()
         
@@ -58,6 +63,5 @@ class CACHE:
                                        )
                     shutdown(None)
                 else:
-                    xml = "".join([chr(int(x,2)) for x in row[3].split()])
-                    shutdown(xml)
+                    xml = str(row[3])
         
