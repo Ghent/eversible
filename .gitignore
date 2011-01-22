@@ -2,5 +2,5 @@ db/*/*.db
 etc/*.cfg
 !etc/eversible-dist.cfg
 *.pyc
-!cache/cache.db
-!cache/cache.db.journal
+cache/cache.db
+cache/cache.db-journal
