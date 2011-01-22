@@ -7,7 +7,7 @@ EVERSIBLE - EVE Online IRC Bot
 AUTHORS
   * Ghent
   * mountainpenguin
-  * petllama
+  * petllama (aka Fr0gOfWar)
 
 
 PLANNED FEATURES
@@ -22,17 +22,17 @@ PLANNED FEATURES
     * Dotlan
 
   EVE INFORMATION
-    * Server status with user statistics
+    - Blueprint Lookup
+    - EVE Mail Received Notification
+    - Jump Route Planner
+    * Route Planner
     - Sell/Buy Order changes
-    - Skill training completion
-    - EVE Mail received notification
-    - Wormhole information
-    - Route planner
-    - Jump Route planner
-    - Blueprint lookup
-    * System information
+    * Server Status with user statistics
+    - Skill Training Completion
+    * System Information
       * Kills
       * Sovereignty
+     - Wormhole information
 
 
 TECHNICAL FEATURES
