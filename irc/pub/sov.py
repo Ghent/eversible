@@ -36,21 +36,22 @@ def index(connection,event):
             constellationName = systemInfo["constellationName"]
             regionName = systemInfo["regionName"]
 
+            connection.privmsg(event.target(), "\x02System\x02:   \x02%s\x02/\x0310%s\x03/\x032%s\x03 :: \x1fhttp://evemaps.dotlan.net/system/%s\x1f" %
+                               (solarSystemName, constellationName, regionName, solarSystemName)
+                               )
             if factionName:
                 outputMessage = """
-                    \x02System\x02:   \x02%s\x02/\x0310%s\x03/\x032%s\x03 :: \x1fhttp://evemaps.dotlan.net/system/%s\x1f
                     \x02Owner\x02:    %s
                     \x02Security\x02: %s \x0314(%s)\x03
-                """ % (solarSystemName, constellationName, regionName, solarSystemName, factionName, sec, securityClass)
+                """ % (factionName, sec, securityClass)
                 for line in outputMessage.split("\n"):
                     connection.privmsg(event.target(), line.strip())
             else:
                 outputMessage = """
-                    \x02System\x02:   \x02%s\x02/\x0310%s\x03/\x032%s\x03 :: \x1fhttp://evemaps.dotlan.net/system/%s\x1f
                     \x02Owner\x02:    %s
                     \x02Alliance\x02: %s \x02[%s]\x02
                     \x02Security\x02: %s \x0314(%s)\x03
-                """ % (solarSystemName, constellationName, regionName, solarSystemName, corporationName, allianceName, allianceTicker, sec, securityClass)
+                """ % (corporationName, allianceName, allianceTicker, sec, securityClass)
                 for line in outputMessage.split("\n"):
                     connection.privmsg(event.target(), line.strip())
         else:
