@@ -12,13 +12,14 @@ DB = db.DUMP()
 
 def index(connection, event):
     try:
-        systemFrom, systemTo = event.arguments()[0].split()[1:3]
+        systemFrom, systemTo, autopilot = event.arguments()[0].split()[1:4]
     except IndexError:
         connection.privmsg(event.target(),
-            "Syntax is: .route [system name] [system name]")
+            "Syntax is: .route [system name] [system name] [safe or fast]")
     else:
-        #responseSystemFrom = API.Map("sov", systemFrom)
-        #responseSystemTo = API.Map("sov", systemTo)
+        if not str.lower(autopilot) == "fast":
+            autopilot = "safe"
+
         responseSystemFromID = DB.getSystemIDByName(systemFrom)
         responseSystemToID = DB.getSystemIDByName(systemTo)
         if not responseSystemFromID:
@@ -29,10 +30,34 @@ def index(connection, event):
                 % systemTo)
         else:
             systemNameFrom = DB.getSystemNameByID(responseSystemFromID)
+            systemSecFrom = security(responseSystemFromID)
             systemNameTo = DB.getSystemNameByID(responseSystemToID)
-            connection.privmsg(event.target(),
-                "Route from %s To %s :"
-                % (systemNameFrom, systemNameTo))
-            connection.privmsg(event.target(),
-                "http://evemaps.dotlan.net/route/%s:%s"
-                % (systemNameFrom, systemNameTo))
+            systemSecTo = security(responseSystemToID)
+            outputMessage = """
+                \x02Origin\x02:   %s (%s)
+                \x02Endpoint\x02: %s (%s)
+            """ % (systemNameFrom, systemSecFrom, systemNameTo, systemSecTo)
+            for line in outputMessage.split("\n"):
+                connection.privmsg(event.target(), line.strip())
+
+            if autopilot == "fast":
+                connection.privmsg(event.target(),
+                    "\x02Fast Map\x02: \x1fhttp://evemaps.dotlan.net/route/2:%s:%s\x1f"
+                    % (systemNameFrom, systemNameTo))
+            else:
+                connection.privmsg(event.target(),
+                    "\x02Safe Map\x02: \x1fhttp://evemaps.dotlan.net/route/%s:%s\x1f"
+                    % (systemNameFrom, systemNameTo))
+
+def security(systemID):
+    systemInfo = DB.getSystemInfoByID(systemID)
+    security = systemInfo["security"]
+    if security >= 0.5:
+        sec = "\x033\x02\x02%.01f\x03" % security
+    elif security < 0.5 and security > 0.0:
+        sec = "\x037\x02\x02%.01f\x03" % security
+    else:
+        sec = "\x035\x02\x02%.02f\x03" % security
+
+    return sec
+
