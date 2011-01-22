@@ -25,7 +25,7 @@ def index(connection, event):
             connection.privmsg(event.target(), "System '%s' is unknown to me"
                 % systemFrom)
         elif not responseSystemToID:
-            connection.privmsg(event.target(), "System '%s' is unkonwn to me"
+            connection.privmsg(event.target(), "System '%s' is unknown to me"
                 % systemTo)
         else:
             systemNameFrom = DB.getSystemNameByID(responseSystemFromID)
