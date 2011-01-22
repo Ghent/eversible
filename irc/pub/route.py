@@ -12,16 +12,15 @@ DB = db.DUMP()
 
 def index(connection, event):
     try:
-        systemFrom = event.arguments()[0].split()[1]
-        systemTo = event.arguments()[0].split()[2]
+        systemFrom, systemTo = event.arguments()[0].split()[1:3]
     except IndexError:
         connection.privmsg(event.target(),
             "Syntax is: .route [system name] [system name]")
     else:
         #responseSystemFrom = API.Map("sov", systemFrom)
         #responseSystemTo = API.Map("sov", systemTo)
-        responseSystemFromID = DB.getSystemIDByName("systemFrom")
-        responseSystemToID = DB.getSystemIDByName("systemTo")
+        responseSystemFromID = DB.getSystemIDByName(systemFrom)
+        responseSystemToID = DB.getSystemIDByName(systemTo)
         if not responseSystemFromID:
             connection.privmsg(event.target(), "System '%s' is unknown to me"
                 % systemFrom)
