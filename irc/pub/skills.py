@@ -74,6 +74,7 @@ def index(connection,event):
                         Time -= (mins * 60)
                         
                     time_str += "%is" % Time
+                    return time_str
                     
                 started = convert_to_human(startTime)
                 ended = convert_to_human(endTime)
