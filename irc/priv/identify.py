@@ -13,7 +13,7 @@ def index(connection,event):
         connection.privmsg(sourceNick, "Correct syntax: identify [character name] [password]")
     else:
         USERS = users.DB()
-        if USERS.testIdentity(characterName, password, sourceHostname):
+        if USERS.testIdentity(characterName, password, sourceHostName):
             connection.privmsg(sourceNick, "You have successfully identified")
         else:
             connection.privmsg(sourceNick, "Incorrect character name or password")
