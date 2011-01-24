@@ -2,7 +2,6 @@
 cache/cache.db
 cache/cache.db-journal
 db/*/*.db
-db/current.db
 etc/*.cfg
 !etc/eversible-dist.cfg
 users/*.db
