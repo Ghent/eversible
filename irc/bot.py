@@ -66,8 +66,17 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
         connection.join(self.CHANNEL)
 
     def on_privmsg(self, connection, event):
-        print event.arguments()
-
+        if event.arguments()[0][0] == self.PREFIX:
+            if privateCommands.has_key(event.arguments()[0].split()[0][1:].upper()):
+                try:
+                    privateCommands[event.arguments()[0].split()[0][1:].upper()].index(connection,event)
+                except:
+                    tb = traceback.format_exc()
+                    print tb
+                    connection.privmsg(event.source().split("!")[0], "There was an error")
+                    #for line in tb.split("\n"):
+                    #   connection.privmsg(event.source().split("!")[0], line)
+                    
     def on_pubmsg(self, connection, event):
         #check if prefix used
         if event.arguments()[0][0] == self.PREFIX:
@@ -76,8 +85,10 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
                     publicCommands[event.arguments()[0].split()[0][1:].upper()].index(connection, event)
                 except:
                     tb = traceback.format_exc()
-                    for line in tb.split("\n"):
-                        connection.privmsg(event.target(), line)
+                    print tb
+                    connection.privmsg(event.target(), "There was an error")
+                    #for line in tb.split("\n"):
+                    #    connection.privmsg(event.target(), line)
 
     def on_whoisuser(self, connection, event):
         pass
