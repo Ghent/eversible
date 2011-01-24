@@ -68,4 +68,5 @@ class CACHE:
                     shutdown(None)
                 else:
                     xml = str(row[3])
+                    shutdown(xml)
         
