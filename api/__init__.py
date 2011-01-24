@@ -42,6 +42,7 @@ class API:
             xml = urllib2.urlopen(requesturl, urllib.urlencode(postdata)).read()
             self.CACHE.insertXML(requesturl, xml, self._getCachedUntil(xml), postdata)
         self._errorCheck(xml)
+        return xml
         
     def _errorCheck(self, xml):
         try:
