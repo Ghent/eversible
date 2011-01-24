@@ -81,6 +81,7 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
                         print tb
                         connection.privmsg(event.source().split("!")[0], "There was an error")
                     else:
+                        print tb
                         for line in tb.split("\n"):
                            connection.privmsg(event.source().split("!")[0], line)
                     
@@ -98,9 +99,12 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
                         print tb
                         connection.privmsg(event.target(), "There was an error")
                     elif self.DEBUG_LEVEL == 2:
+                        print tb
+                        connection.privmsg(event.target(), "There was an error")
                         for line in tb.split("\n"):
                             connection.privmsg(event.source().split("!")[0], line)
                     elif self.DEBUG_LEVEL == 3:
+                        print tb
                         for line in tb.split("\n"):
                             connection.privmsg(event.target(), line)
 
