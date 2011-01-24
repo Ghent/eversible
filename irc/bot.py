@@ -13,6 +13,8 @@ import time
 import irc.lib.ircbot as ircbot
 import irc.lib.irclib as irclib
 
+import users
+USERS = users.DB()
 
 if "-v" in sys.argv:
     irclib.DEBUG = True
@@ -94,7 +96,7 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
         pass
 
     def on_kick(self, connection, event):
-        pass
+        USERS.removeHostnameByNick(event.arguments()[0])
 
     def on_join(self, connection, event):
         #check for banregex
@@ -104,10 +106,10 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
         pass
 
     def on_part(self, connection, event):
-        pass
-
+        USERS.removeHostname(event.source())
+    
     def on_nick(self, connection, event):
-        pass
+        USERS.removeHostname(event.source())
 
     def on_quit(self, connection, event):
         pass

@@ -120,7 +120,22 @@ class DB:
                 }
         cursor.close()
         conn.close()
-                
+    
+    def removeHostnameByNick(self, nick):
+        conn = sqlite3.connect("users/eversible.db")
+        cursor = conn.cursor()
+        try:
+            cursor.execute("""
+                           DELETE
+                           FROM hostnames
+                           WHERE glob("%s!*",hostname)
+                           """ % nick)
+        except sqlite3.OperationalError:
+            pass
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
     def removeHostname(self, hostname):
         conn = sqlite3.connect("users/eversible.db")
         cursor = conn.cursor()
@@ -136,7 +151,7 @@ class DB:
         cursor.close()
         conn.close()
         
-    def testIdentity(self, characterName, password):
+    def testIdentity(self, characterName, password, hostname):
         conn = sqlite3.connect("users/eversible.db")
         cursor = conn.cursor()
         hashpassword = md5.new(password).hexdigest()
@@ -168,4 +183,3 @@ class DB:
                 return True
             else:
                 return False
-        
