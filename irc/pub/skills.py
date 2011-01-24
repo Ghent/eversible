@@ -76,8 +76,8 @@ def index(connection,event):
                     time_str += "%is" % Time
                     return time_str
                     
-                started = convert_to_human(startTime)
-                ended = convert_to_human(endTime)
+                started = convert_to_human(time.time() - startTime)
+                ended = convert_to_human(endTime - time.time())
                 
                 SPleft = skillqueue[i]["endSP"] - skillqueue[i]["startSP"]
                 
