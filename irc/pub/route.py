@@ -48,11 +48,11 @@ def index(connection, event):
 
             if autopilot == "safe":
                 connection.privmsg(event.target(),
-                    "\x02Fast Map\x02: \x1fhttp://evemaps.dotlan.net/route/2:%s:%s\x1f"
+                    "\x02Safe Map\x02: \x1fhttp://evemaps.dotlan.net/route/2:%s:%s\x1f"
                     % (systemNameFrom, systemNameTo))
             else:
                 connection.privmsg(event.target(),
-                    "\x02Safe Map\x02: \x1fhttp://evemaps.dotlan.net/route/%s:%s\x1f"
+                    "\x02Fast Map\x02: \x1fhttp://evemaps.dotlan.net/route/%s:%s\x1f"
                     % (systemNameFrom, systemNameTo))
 
 def security(systemID):
