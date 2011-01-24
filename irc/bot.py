@@ -13,6 +13,8 @@ import time
 import irc.lib.ircbot as ircbot
 import irc.lib.irclib as irclib
 
+import users
+USERS = users.DB()
 
 if "-v" in sys.argv:
     irclib.DEBUG = True
@@ -66,8 +68,17 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
         connection.join(self.CHANNEL)
 
     def on_privmsg(self, connection, event):
-        print event.arguments()
-
+        if event.arguments()[0][0] == self.PREFIX:
+            if privateCommands.has_key(event.arguments()[0].split()[0][1:].upper()):
+                try:
+                    privateCommands[event.arguments()[0].split()[0][1:].upper()].index(connection,event)
+                except:
+                    tb = traceback.format_exc()
+                    print tb
+                    connection.privmsg(event.source().split("!")[0], "There was an error")
+                    #for line in tb.split("\n"):
+                    #   connection.privmsg(event.source().split("!")[0], line)
+                    
     def on_pubmsg(self, connection, event):
         #check if prefix used
         if event.arguments()[0][0] == self.PREFIX:
@@ -76,14 +87,16 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
                     publicCommands[event.arguments()[0].split()[0][1:].upper()].index(connection, event)
                 except:
                     tb = traceback.format_exc()
-                    for line in tb.split("\n"):
-                        connection.privmsg(event.target(), line)
+                    print tb
+                    connection.privmsg(event.target(), "There was an error")
+                    #for line in tb.split("\n"):
+                    #    connection.privmsg(event.target(), line)
 
     def on_whoisuser(self, connection, event):
         pass
 
     def on_kick(self, connection, event):
-        pass
+        USERS.removeHostnameByNick(event.arguments()[0])
 
     def on_join(self, connection, event):
         #check for banregex
@@ -93,10 +106,10 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
         pass
 
     def on_part(self, connection, event):
-        pass
-
+        USERS.removeHostname(event.source())
+    
     def on_nick(self, connection, event):
-        pass
+        USERS.removeHostname(event.source())
 
     def on_quit(self, connection, event):
         pass
