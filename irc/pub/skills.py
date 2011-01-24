@@ -52,28 +52,22 @@ def index(connection,event):
                 endTime = skillqueue[i]["endTime"]
                 
                 def convert_to_human(Time):
-                    time_str = ""
-                    if Time >= 604800:
-                        weeks = Time / 604800
-                        time_str += "%iw " % weeks
-                        Time -= (weeks * 604800)
-                        
-                    if Time >= 86400:
-                        days = Time / 86400
-                        time_str += "%id " % days
-                        Time -= (days * 86400)
-                        
-                    if Time >= 3600:
-                        hours = Time / 3600
-                        time_str += "%ih " % hours
-                        Time -= (hours * 3600)
+                    mins, secs = divmod(Time, 60)
+                    hours, mins = divmod(mins, 60)
+                    days, hours = divmod(hours, 24)
+                    weeks, days = divmod(days, 7)
                     
-                    if Time >= 60:
-                        mins = Time / 60
+                    time_str = ""
+                    if weeks > 0:
+                        time_str += "%iw " % weeks
+                    if days > 0:
+                        time_str += "%id " % days
+                    if hours > 0:
+                        time_str += "%ih " % hours
+                    if mins > 0:
                         time_str += "%im " % mins
-                        Time -= (mins * 60)
-                        
-                    time_str += "%is" % Time
+                    if secs > 0:
+                        time_str += "%is" % secs
                     return time_str
                     
                 started = convert_to_human(time.time() - startTime)
