@@ -38,7 +38,10 @@ class API:
 
     def _getXML(self, requesturl, postdata={}):
         xml = self.CACHE.requestXML(requesturl, postdata)
+        if xml:
+            print "cached"
         if not xml:
+            print "not cached"
             xml = urllib2.urlopen(requesturl, urllib.urlencode(postdata)).read()
             self.CACHE.insertXML(requesturl, xml, self._getCachedUntil(xml), postdata)
         self._errorCheck(xml)
