@@ -25,8 +25,8 @@ def index(connection,event):
         try:
             API = api.API(userid=userID, apikey=apiKey, charid=characterID)
             skillqueue = API.Char("skillqueue")
-        except api.APIError as detail:
-            connection.privmsg(event.target(), "There was an error with the API: %s" % detail)
+        except api.APIError:
+            connection.privmsg(event.target(), "There was an error with the API: %s" % "too lazy to get this info right now")
         else:
             connection.privmsg(event.target(), "\x02Skills currently in training\x02:")
             
