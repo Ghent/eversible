@@ -39,7 +39,6 @@ class CACHE:
         conn.close()
         
     def requestXML(self, requesturl, postdata={}):
-        print requesturl, postdata
         def shutdown(returnable):
             conn.commit()
             self.cursor.close()
@@ -58,8 +57,6 @@ class CACHE:
             row = self.cursor.fetchone()
             if row:
                 expireTime = row[2]
-                print "Retrieved result, with expireTime: %s" % expireTime
-                print "Time now:", time.time()
                 if time.time() > expireTime:
                     #remove row
                     self.cursor.execute("""
