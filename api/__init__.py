@@ -13,16 +13,44 @@ import time
 import db
 import cache
 
+class APIError(Exception):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
+        
 class API:
-    def __init__(self, userid="6727784", apikey="F6CD5B6D6CFD4BC1B408012A27672C659C0A553445E643E2AC0DAA2EF818A86B", charid="1364641301", debug=False):
+    def __init__(self, userid=None, apikey=None, charid=None, characterName=None, debug=False):
         self.USER_ID = userid
-        self.CHAR_ID = charid
         self.API_KEY = apikey
         self.API_URL = "http://api.eve-online.com"
         self.DEBUG = debug
         self.DUMP = db.DUMP()
         self.CACHE = cache.CACHE()
+        if not charid and characterName:
+            #get CHAR_ID from API
+            chardict = self.Account("characters")
+            if chardict and characterName in chardict.keys():
+                self.CHAR_ID = chardict[characterName]["characterID"]
+        else:
+            self.CHAR_ID = charid
+        
 
+    def _getXML(self, requesturl, postdata={}):
+        xml = self.CACHE.requestXML(requesturl, postdata)
+        if not xml:
+            xml = urllib2.urlopen(requesturl, urllib.urlencode(postdata)).read()
+            self.CACHE.insertXML(requesturl, xml, self._getCachedUntil(xml), postdata)
+        self._errorCheck(xml)
+        
+    def _errorCheck(self, xml):
+        try:
+            error = re.findall("\<error code=\"(\d+)\"\>(.*?)\<\/error\>",xml)[0]
+        except IndexError:
+            return None
+        else:
+            raise APIError("%s : %s" % (error[0], error[1]))
+        
     def _getCachedUntil(self, xml):
         cachedUntil = time.mktime(time.strptime(re.findall("\<cachedUntil\>(.*?)\<\/cachedUntil\>", xml)[0], "%Y-%m-%d %H:%M:%S"))
         return cachedUntil
@@ -40,12 +68,7 @@ class API:
         """
         if Request.lower() == "alliances":
             requesturl = os.path.join(self.API_URL, "eve/AllianceList.xml.aspx")
-            xml = self.CACHE.requestXML(requesturl)
-            if not xml:
-                xml = urllib2.urlopen(requesturl).read()
-                cachedUntil = self._getCachedUntil(xml)
-                self.CACHE.insertXML(requesturl, xml, cachedUntil)
-            
+            xml = self._getXML(requesturl)
             if allianceID:
                 try:
                     allianceName, allianceTicker = re.findall("\<row name=\"(.*?)\" shortName=\"(.*?)\" allianceID=\"%s\"" % (allianceID), xml)[0]
@@ -79,10 +102,7 @@ class API:
                     }
                 else:
                     return None
-                xml = self.CACHE.requestXML(requesturl, postdata)
-                if not xml:
-                    xml = urllib2.urlopen(requesturl, urllib.urlencode(postdata)).read()
-                    self.CACHE.insertXML(requesturl, xml, self._getCachedUntil(xml), postdata)
+                xml = self._getXML(requesturl, postdata)
                 corporationName = xml.split("<corporationName>")[1].split("</corporationName>")[0]
                 
                 #for now, just return corporationName
@@ -148,10 +168,7 @@ class API:
 
         if Request.lower() == "balance":
             requesturl = os.path.join(self.API_URL, "char/AccountBalance.xml.aspx")
-            xml = self.CACHE.requestXML(requesturl, basepostdata)
-            if not xml:
-                xml = urllib2.urlopen(requesturl, urllib.urlencode(basepostdata)).read()
-                self.CACHE.insertXML(requesturl, xml, self._getCachedUntil(xml), basepostdata)
+            xml = self._getXML(requesurl, basepostdata)
             row = re.search("\<row accountID=\"(?P<accountID>\d+)\" accountKey=\"(?P<accountKey>\d+)\" balance=\"(?P<balance>\d+\.\d+)\" \/\>", xml)
             return {
                 "accountID" : row.group("accountID"),
@@ -161,10 +178,7 @@ class API:
 
         elif Request.lower() == "assets":
             requesturl = os.path.join(self.API_URL, "char/AssetList.xml.aspx")
-            xml = self.CACHE.requestXML(requesturl, basepostdata)
-            if not xml:
-                xml = urllib2.urlopen(requesturl, urllib.urlencode(basepostdata)).read()
-                self.CACHE.insertXML(requesturl, xml, self._getCachedUntil(xml), basepostdata)
+            xml = self._getXML(requesturl, basepostdata)
             assetDict = {}
             rows = re.findall("\<row itemID=\"(\d+)\" locationID=\"(\d+)\" typeID=\"(\d+)\" quantity=\"(\d+)\" flag=\"(\d+)\" singleton=\"(\d+)\" \/\>", xml)
             for row in rows:
@@ -239,19 +253,13 @@ class API:
 
         elif Request.lower() == "charsheet":
             requesturl = os.path.join(self.API_URL, "char/CharacterSheet.xml.aspx")
-            xml = self.CACHE.requestXML(requesturl, basepostdata)
-            if not xml:
-                xml = urllib2.urlopen(requesturl, urllib.urlencode(basepostdata)).read()
-                self.CACHE.insertXML(requesturl, xml, self._getCachedUntil(xml), basepostdata)
+            xml = self._getXML(requesturl, basepostdata)
             print xml
 
         elif Request.lower() == "industry":
             requesturl = os.path.join(self.API_URL, "char/IndustryJobs.xml.aspx")
-            xml = self.CACHE.requestXML(requesturl, basepostdata)
-            if not xml:
-                xml = urllib2.urlopen(requesturl, urllib.urlencode(basepostdata)).read()
-                self.CACHE.insertXML(requesturl, xml, self._getCachedUntil(xml), basepostdata)
-
+            xml = self._getXML(requesturl, basepostdata)
+            
             regex = re.compile(r"""
                               \<row\ jobID="(?P<jobID>\d+)"\ #unique ID
                               assemblyLineID="(?P<assemblyLineID>\d+)"\ #static if station assembly line
@@ -302,10 +310,7 @@ class API:
 
         elif Request.lower() == "kills":
             requesturl = os.path.join(self.API_URL, "char/Killlog.xml.aspx")
-            xml = self.CACHE.requestXML(requesturl, basepostdata)
-            if not xml:
-                xml = urllib2.urlopen(requesturl, urllib.urlencode(basepostdata)).read()
-                self.CACHE.insertXML(requesturl, xml, self._getCachedUntil(xml), basepostdata)
+            xml = self._getXML(requesturl, basepostdata)
             if "Kills exhausted" in xml:
                 return None
             #open("output.xml","w").write(xml)
@@ -437,10 +442,7 @@ class API:
 
         elif Request.lower() == "mail":
             requesturl = os.path.join(self.API_URL, "char/MailMessages.xml.aspx")
-            xml = self.CACHE.requestXML(requesturl, basepostdata)
-            if not xml:
-                xml = urllib2.urlopen(requesturl, urllib.urlencode(basepostdata)).read()
-                self.CACHE.insertXML(requesturl, xml, self._getCachedUntil(xml), basepostdata)
+            xml = self._getXML(requesturl, basepostdata)
             rows = re.finditer("\<row messageID=\"(?P<messageID>\d+)\" senderID=\"(?P<senderID>\d+)\" sentDate=\"(?P<sentDate>\d+-\d+-\d+ \d+:\d+:\d+)\" title=\"(?P<title>.*?)\" toCorpOrAllianceID=\"(?P<toCorpOrAllianceID>\d+)\" toCharacterIDs=\"(?P<toCharacterIDs>.*?)\" toListID=\"(?P<toListID>.*?)\" \/\>", xml)
             maildict = {}
             while True:
@@ -459,7 +461,7 @@ class API:
             }
 
             requesturl = os.path.join(self.API_URL, "char/MailBodies.xml.aspx")
-            xml = urllib2.urlopen(requesturl, urllib.urlencode(postdata)).read()
+            xml = self._getXML(requesturl, postdata)
             rows = re.finditer("\<row messageID=\"(?P<messageID>\d+)\"\>\<!\[CDATA\[(?P<messageBody>.*?)\]\]\>\<\/row\>", xml)
             while True:
                 try:
@@ -474,10 +476,7 @@ class API:
 
         elif Request.lower() == "market":
             requesturl = os.path.join(self.API_URL, "char/MarketOrders.xml.aspx")
-            xml = self.CACHE.requestXML(requesturl, basepostdata)
-            if not xml:
-                xml = urllib2.urlopen(requesturl, urllib.urlencode(basepostdata)).read()
-                self.CACHE.insertXML(requesturl, xml, self._getCachedUntil(xml), basepostdata)
+            xml = self._getXML(requesturl, basepostdata)
             rows = re.finditer("\<row orderID=\"(?P<orderID>\d+)\" charID=\"(?P<charID>\d+)\" stationID=\"(?P<stationID>\d+)\" volEntered=\"(?P<volEntered>\d+)\" volRemaining=\"(?P<volRemaining>\d+)\" minVolume=\"(?P<minVolume>\d+)\" orderState=\"(?P<orderState>\d+)\" typeID=\"(?P<typeID>\d+)\" range=\"(?P<range>\d+)\" accountKey=\"(?P<accountKey>\d+)\" duration=\"(?P<duration>\d+)\" escrow=\"(?P<escrow>\d+\.\d+)\" bid=\"(?P<bid>\d+)\" issued=\"(?P<issued>\d+-\d+-\d+ \d+:\d+:\d+)\" \/\>", xml)
             returndict = {}
             while True:
@@ -491,17 +490,11 @@ class API:
 
         elif Request.lower() == "research":
             requesturl = os.path.join(self.API_URL, "char/Research.xml.aspx")
-            xml = self.CACHE.requestXML(requesturl, basepostdata)
-            if not xml:
-                xml = urllib2.urlopen(requesturl, urllib.urlencode(basepostdata)).read()
-                self.CACHE.insertXML(requesturl, xml, self._getCachedUntil(xml), basepostdata)
+            xml = self._getXML(requesturl, basepostdata)
             print xml
         elif Request.lower() == "currentskill":
             requesturl = os.path.join(self.API_URL, "char/SkillInTraining.xml.aspx")
-            xml = self.CACHE.requestXML(requesturl, basepostdata)
-            if not xml:
-                xml = urllib2.urlopen(requesturl, urllib.urlencode(basepostdata)).read()
-                self.CACHE.insertXML(requesturl, xml, self._getCachedUntil(xml), basepostdata)
+            xml = self._getXML(requesturl, basepostdata)
             def getValue(id):
                 try:
                     value = re.search("\<%s\>(.*?)\<\/%s\>" % (id, id), xml).group(1)
@@ -521,20 +514,14 @@ class API:
 
         elif Request.lower() == "skillqueue":
             requesturl = os.path.join(self.API_URL, "char/SkillQueue.xml.aspx")
-            xml = self.CACHE.requestXML(requesturl, basepostdata)
-            if not xml:
-                xml = urllib2.urlopen(requesturl, urllib.urlencode(basepostdata)).read()
-                self.CACHE.insertXML(requesturl, xml, self._getCachedUntil(xml), basepostdata)
-            return xml
+            xml = self._getXML(requesturl, basepostdata)
+            print xml
             #regex = self.XML.getDefaultRegex(xml)[0]
             #return regex.search(xml).groupdict()
 
         elif Request.lower() == "transacts":
             requesturl = os.path.join(self.API_URL, "char/WalletTransactions.xml.aspx")
-            xml = self.CACHE.requestXML(requesturl, basepostdata)
-            if not xml:
-                xml = urllib2.urlopen(requesturl, urllib.urlencode(basepostdata)).read()
-                self.CACHE.insertXML(requesturl, xml, self._getCachedUntil(xml), basepostdata)
+            xml = self._getXML(requesturl, basepostdata)
             print xml
             #1000 results
             #can use beforeTransID=TransID to see more
@@ -555,10 +542,7 @@ class API:
                 "apiKey" : self.API_KEY,
                 "userID" : self.USER_ID
             }
-            xml = self.CACHE.requestXML(requesturl, postdata)
-            if not xml:
-                xml = urllib2.urlopen(requesturl, urllib.urlencode(postdata)).read()
-                self.CACHE.insertXML(requesturl, xml, self._getCachedUntil(xml), postdata)
+            xml = self._getXML(requesturl, postdata)
 
             #parse xml
             result = xml.split("<result>")[1].split("</result>")[0]
@@ -626,10 +610,7 @@ class API:
                 "apiKey" : self.API_KEY,
                 "userID" : self.USER_ID
             }
-            xml = self.CACHE.requestXML(requesturl, postdata)
-            if not xml:
-                xml = urllib2.urlopen(requesturl, urllib.urlencode(postdata)).read()
-                self.CACHE.insertXML(requesturl, xml, self._getCachedUntil(xml), postdata)
+            xml = self._getXML(requesturl, postdata)
             result = xml.split("<result>")[1].split("</result>")[0].strip()
             def getTag(tag):
                 return result.split("<%s>" % tag)[1].split("</%s>" % tag)[0].strip()
@@ -672,20 +653,14 @@ class API:
         """
         if Request.lower() == "jumps":
             requesturl = os.path.join(self.API_URL, "map/Jumps.xml.aspx")
-            xml = self.CACHE.requestXML(requesturl)
-            if not xml:
-                xml = urllib2.urlopen(requesturl).read()
-                self.CACHE.insertXML(requesturl, xml, self._getCachedUntil(xml))
+            xml = self._getXML(requesturl, postdata)
             print xml
 
         if Request.lower() == "kills":
             solarSystemID_str = self.DUMP.getSystemIDByName(systemname)
             if solarSystemID_str:
                 requesturl = os.path.join(self.API_URL, "map/Kills.xml.aspx")
-                xml = self.CACHE.requestXML(requesturl)
-                if not xml:
-                    xml = urllib2.urlopen(requesturl).read()
-                    self.CACHE.insertXML(requesturl, xml, self._getCachedUntil(xml))
+                xml = self._getXML(requesturl, postdata)
                 solarSystemID = int(solarSystemID_str)
                 try:
                     shipKills, factionKills, podKills = re.findall("\<row solarSystemID=\"%i\" shipKills=\"(\d+)\" factionKills=\"(\d+)\" podKills=\"(\d+)\" \/\>" % (solarSystemID), xml)[0]
@@ -710,10 +685,7 @@ class API:
             solarSystemID_str = self.DUMP.getSystemIDByName(systemname.upper())
             if solarSystemID_str:
                 requesturl = os.path.join(self.API_URL, "map/Sovereignty.xml.aspx")
-                xml = self.CACHE.requestXML(requesturl)
-                if not xml:
-                    xml = urllib2.urlopen(requesturl).read()
-                    self.CACHE.insertXML(requesturl, xml, self._getCachedUntil(xml))
+                xml = self._getXML(requesturl, postdata)
                 solarSystemID = int(solarSystemID_str)
                 try:
                     allianceID, factionID, solarSystemName, corporationID = re.findall("\<row solarSystemID=\"%i\" allianceID=\"(\d+)\" factionID=\"(\d+)\" solarSystemName=\"(.*?)\" corporationID=\"(\d+)\" \/\>" % (solarSystemID), xml)[0]
@@ -758,14 +730,9 @@ class API:
             (N) = no API key required
         """
 
-        if self.DEBUG:
-            print "Request:", Request
         if Request.lower() == "status":
             requesturl = os.path.join(self.API_URL, "server/ServerStatus.xml.aspx")
-            if self.DEBUG:
-                print "requesturl:", requesturl
             xml = urllib2.urlopen(requesturl).read()
-            print xml
             status = re.search("\<serverOpen\>(.*?)\<\/serverOpen\>", xml).group(1)
             if status == "True":
                 status = "Online"
