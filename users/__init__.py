@@ -12,7 +12,7 @@ class DB:
     
     def _dropDB(self):
         """For debugging purposes"""
-        conn = sqlite3.connect("users/database.db")
+        conn = sqlite3.connect("users/eversible.db")
         cursor = conn.cursor()
         cursor.execute("DROP TABLE hostnames")
         cursor.execute("DROP TABLE users")
@@ -28,7 +28,7 @@ class DB:
         print "characters.keys():", characters.keys()
         if characterName in characters.keys():
             charID = characters[characterName]["characterID"]
-            conn = sqlite3.connect("users/database.db")
+            conn = sqlite3.connect("users/eversible.db")
             cursor = conn.cursor()
             try:
                 cursor.execute("""
@@ -82,7 +82,7 @@ class DB:
             return (False,'Invalid details')
     
     def retrieveUserByHostname(self, hostname):
-        conn = sqlite3.connect("users/database.db")
+        conn = sqlite3.connect("users/eversible.db")
         cursor = conn.cursor()
         try:
             cursor.execute("""
@@ -122,7 +122,7 @@ class DB:
         conn.close()
                 
     def removeHostname(self, hostname):
-        conn = sqlite3.connect("users/database.db")
+        conn = sqlite3.connect("users/eversible.db")
         cursor = conn.cursor()
         try:
             cursor.execute("""
@@ -137,7 +137,7 @@ class DB:
         conn.close()
         
     def testIdentity(self, characterName, password):
-        conn = sqlite3.connect("users/database.db")
+        conn = sqlite3.connect("users/eversible.db")
         cursor = conn.cursor()
         hashpassword = md5.new(password).hexdigest()
         try:
