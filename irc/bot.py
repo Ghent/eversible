@@ -40,11 +40,12 @@ def scan():
         privateCommands[name] = module
 
 class EVErsibleBot(ircbot.SingleServerIRCBot):
-    def __init__(self, host, port, nick, realname, channel, botpass, prefix):
-            ircbot.SingleServerIRCBot.__init__(self, [(host, port)], nick, realname)
-            self.CHANNEL = channel
-            self.BOTPASS = botpass
-            self.PREFIX = prefix
+    def __init__(self, host, port, nick, realname, channel, botpass, prefix, debug_level):
+        ircbot.SingleServerIRCBot.__init__(self, [(host, port)], nick, realname)
+        self.CHANNEL = channel
+        self.BOTPASS = botpass
+        self.PREFIX = prefix
+        self.DEBUG_LEVEL = debug_level
 
     def on_ctcp(self, connection, event):
         if event.arguments()[0].upper() == self.BOTPASS.upper():
@@ -74,10 +75,15 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
                     privateCommands[event.arguments()[0].split()[0][1:].upper()].index(connection,event)
                 except:
                     tb = traceback.format_exc()
-                    print tb
-                    connection.privmsg(event.source().split("!")[0], "There was an error")
-                    #for line in tb.split("\n"):
-                    #   connection.privmsg(event.source().split("!")[0], line)
+                    if self.DEBUG_LEVEL == 0:
+                        connection.privmsg(event.source().split("!")[0], "There was an error")
+                    elif self.DEBUG_LEVEL == 1:
+                        print tb
+                        connection.privmsg(event.source().split("!")[0], "There was an error")
+                    else:
+                        print tb
+                        for line in tb.split("\n"):
+                           connection.privmsg(event.source().split("!")[0], line)
                     
     def on_pubmsg(self, connection, event):
         #check if prefix used
@@ -87,10 +93,20 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
                     publicCommands[event.arguments()[0].split()[0][1:].upper()].index(connection, event)
                 except:
                     tb = traceback.format_exc()
-                    print tb
-                    connection.privmsg(event.target(), "There was an error")
-                    #for line in tb.split("\n"):
-                    #    connection.privmsg(event.target(), line)
+                    if self.DEBUG_LEVEL == 0:
+                        connection.privmsg(event.target(), "There was an error")
+                    elif self.DEBUG_LEVEL == 1:
+                        print tb
+                        connection.privmsg(event.target(), "There was an error")
+                    elif self.DEBUG_LEVEL == 2:
+                        print tb
+                        connection.privmsg(event.target(), "There was an error")
+                        for line in tb.split("\n"):
+                            connection.privmsg(event.source().split("!")[0], line)
+                    elif self.DEBUG_LEVEL == 3:
+                        print tb
+                        for line in tb.split("\n"):
+                            connection.privmsg(event.target(), line)
 
     def on_whoisuser(self, connection, event):
         pass
@@ -118,7 +134,7 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
         pass
 
 
-def start(host, port, nick, realname, channel, botpass, prefix):
+def start(host, port, nick, realname, channel, botpass, prefix, debug_level):
     scan()
-    bot = EVErsibleBot(host, port, nick, realname, channel, botpass, prefix)
+    bot = EVErsibleBot(host, port, nick, realname, channel, botpass, prefix, debug_level)
     bot.start()
