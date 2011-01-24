@@ -75,6 +75,6 @@ def index(connection,event):
                 
                 SPleft = skillqueue[i]["endSP"] - skillqueue[i]["startSP"]
                 
-                connection.privmsg(event.target(), "\x02%i\x02: \x1f%s %s\x1f \x02::\x02 %i SP to go" % (i, typeName, level_roman, SPleft))
+                connection.privmsg(event.target(), "\x02%i\x02: \x1f%s %s\x1f \x02::\x02 %i SP to go" % (i+1, typeName, level_roman, SPleft))
                 connection.privmsg(event.target(), "   Started:    \x02%s\x02 ago" % started)
                 connection.privmsg(event.target(), "   Time to go: \x033\x02%s\x02\x03" % ended)
