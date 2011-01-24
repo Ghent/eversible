@@ -19,7 +19,7 @@ def index(connection, event):
             players = players + " \x0314(Shooting fish in a barrel...)\x03"
         elif online >= 30000:
             players = "\x037 " + locale.format("%d", online, True) + "\x03"
-            players = players + " \x0314(Its getting a little crowded...)\x03"
+            players = players + " \x0314(It's getting a little crowded...)\x03"
         else:
             players = "\x033 " + locale.format("%d", online, True) + "\x03"
             players = players + " \x0314(Space is empty...)\x03"
