@@ -1,4 +1,7 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+#
+# vim: filetype=python tabstop=4 expandtab:
+
 
 import db
 DUMP = db.DUMP()

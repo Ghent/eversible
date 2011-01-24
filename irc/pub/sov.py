@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# vim: filetype=python tabstop=2 expandtab:
+# vim: filetype=python tabstop=4 expandtab:
 
 
 import api
