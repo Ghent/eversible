@@ -34,7 +34,7 @@ irc.bot.start(config.get("irc", "host"),
               config.get("irc", "channel"),
               config.get("bot", "password"),
               config.get("bot", "prefix"),
-              config.get("bot", "debug_level"))
+              config.getint("bot", "debug_level"))
 
 
 quit()
