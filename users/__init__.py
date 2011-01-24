@@ -159,9 +159,8 @@ class DB:
             cursor.execute("""
                            SELECT id, characterName, password
                            FROM users
-                           WHERE characterName="%s"
-                           AND
-                           WHERE password="%s"
+                           WHERE
+                           characterName="%s" AND password="%s"
                            """ % (characterName, hashpassword)
                           )
         except sqlite3.OperationalError:
