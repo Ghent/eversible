@@ -34,12 +34,14 @@ class CACHE:
                             """ % (table, requestname, url, expireTime),
                             [buffer(xml)]
                             )
+        conn.commit()
         self.cursor.close()
         conn.close()
         
     def requestXML(self, requesturl, postdata={}):
         
         def shutdown(returnable):
+            conn.commit()
             self.cursor.close()
             conn.close()
             return returnable
@@ -64,6 +66,7 @@ class CACHE:
                                         WHERE url='%s'
                                         """ % (table, url)
                                        )
+                    conn.commit()
                     shutdown(None)
                 else:
                     xml = str(row[3])
