@@ -38,14 +38,7 @@ class API:
 
     def _getXML(self, requesturl, postdata={}):
         xml = self.CACHE.requestXML(requesturl, postdata)
-        print "_getXML is recieving:",type(xml)
-        if xml:
-            print requesturl, postdata
-            print "cached"
         if not xml:
-            print xml
-            print requesturl, postdata
-            print "not cached"
             xml = urllib2.urlopen(requesturl, urllib.urlencode(postdata)).read()
             self.CACHE.insertXML(requesturl, xml, self._getCachedUntil(xml), postdata)
         self._errorCheck(xml)
@@ -523,7 +516,37 @@ class API:
         elif Request.lower() == "skillqueue":
             requesturl = os.path.join(self.API_URL, "char/SkillQueue.xml.aspx")
             xml = self._getXML(requesturl, basepostdata)
-            print xml
+            
+            rows = re.finditer("\<row queuePosition=\"(?P<queuePosition>\d+)\" typeID=\"(?P<typeID>\d+)\" level=\"(?P<level>\d+)\" startSP=\"(?P<startSP>\d+)\" endSP=\"(?P<endSP>\d+)\" startTime=\"(?P<startTime>\d+-\d+-\d+ \d+:\d+:\d+)\" endTime=\"(?P<endTime>\d+-\d+-\d+ \d+:\d+:\d+)\"", xml)
+            returndict = {}
+            while True:
+                try:
+                    row = rows.next().groupdict()
+                except StopIteration:
+                    break
+                else:
+                    returndict[int(row["queuePosition"])] = {
+                        "typeID" : int(row["typeID"]),
+                        "typeName" : self.DUMP.getItemNameByID(int(row["typeID"])),
+                        "level" : int(row["level"]),
+                        "startSP" : int(row["startSP"]),
+                        "endSP" : int(row["endSP"]),
+                        "startTime" : time.mktime(time.strptime(row["startTime"], "%Y-%m-%d %H:%M:%S")),
+                        "endTime" : time.mktime(time.strptime(row["endTime"], "%Y-%m-%d %H:%M:%S"))
+                    }
+            return returndict
+            
+#<?xml version='1.0' encoding='UTF-8'?>
+#<eveapi version="2">
+#  <currentTime>2011-01-24 22:43:06</currentTime>
+#  <result>
+#    <rowset name="skillqueue" key="queuePosition" columns="queuePosition,typeID,level,startSP,endSP,startTime,endTime">
+#      <row queuePosition="0" typeID="30546" level="5" startSP="45255" endSP="256000" startTime="2011-01-22 20:25:45" endTime="2011-01-26 18:05:37" />
+#    </rowset>
+#  </result>
+#  <cachedUntil>2011-01-24 23:40:06</cachedUntil>
+#</eveapi>
+
             #regex = self.XML.getDefaultRegex(xml)[0]
             #return regex.search(xml).groupdict()
 
