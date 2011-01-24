@@ -32,7 +32,6 @@ class CACHE:
                             [buffer(xml)]
                             )
         conn.commit()
-        raw_input("stuff was inserted")
         self.cursor.close()
         conn.close()
         
@@ -56,6 +55,7 @@ class CACHE:
             row = self.cursor.fetchone()
             if row:
                 expireTime = row[2]
+                print "Retrieved result, with expireTime: %s" % expireTime
                 if time.time() > expireTime:
                     #remove row
                     self.cursor.execute("""
