@@ -33,7 +33,8 @@ irc.bot.start(config.get("irc", "host"),
               config.get("irc", "name"),
               config.get("irc", "channel"),
               config.get("bot", "password"),
-              config.get("bot", "prefix"))
+              config.get("bot", "prefix"),
+              config.get("bot", "debug_level"))
 
 
 quit()
