@@ -653,14 +653,14 @@ class API:
         """
         if Request.lower() == "jumps":
             requesturl = os.path.join(self.API_URL, "map/Jumps.xml.aspx")
-            xml = self._getXML(requesturl, postdata)
+            xml = self._getXML(requesturl)
             print xml
 
         if Request.lower() == "kills":
             solarSystemID_str = self.DUMP.getSystemIDByName(systemname)
             if solarSystemID_str:
                 requesturl = os.path.join(self.API_URL, "map/Kills.xml.aspx")
-                xml = self._getXML(requesturl, postdata)
+                xml = self._getXML(requesturl)
                 solarSystemID = int(solarSystemID_str)
                 try:
                     shipKills, factionKills, podKills = re.findall("\<row solarSystemID=\"%i\" shipKills=\"(\d+)\" factionKills=\"(\d+)\" podKills=\"(\d+)\" \/\>" % (solarSystemID), xml)[0]
@@ -685,7 +685,7 @@ class API:
             solarSystemID_str = self.DUMP.getSystemIDByName(systemname.upper())
             if solarSystemID_str:
                 requesturl = os.path.join(self.API_URL, "map/Sovereignty.xml.aspx")
-                xml = self._getXML(requesturl, postdata)
+                xml = self._getXML(requesturl)
                 solarSystemID = int(solarSystemID_str)
                 try:
                     allianceID, factionID, solarSystemName, corporationID = re.findall("\<row solarSystemID=\"%i\" allianceID=\"(\d+)\" factionID=\"(\d+)\" solarSystemName=\"(.*?)\" corporationID=\"(\d+)\" \/\>" % (solarSystemID), xml)[0]
