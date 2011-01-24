@@ -1,6 +1,9 @@
+# Alphabetically arranged
+cache/cache.db
+cache/cache.db-journal
 db/*/*.db
 etc/*.cfg
 !etc/eversible-dist.cfg
+
+# Globbing file extentions
 *.pyc
-cache/cache.db
-cache/cache.db-journal
