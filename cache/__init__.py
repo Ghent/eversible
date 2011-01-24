@@ -32,6 +32,7 @@ class CACHE:
                             [buffer(xml)]
                             )
         conn.commit()
+        raw_input("stuff was inserted")
         self.cursor.close()
         conn.close()
         
