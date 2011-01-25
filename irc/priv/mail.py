@@ -83,12 +83,15 @@ def index(connection,event):
                 connection.privmsg(sourceNick, "\x02Use syntax: \x02\x1fmail [mail ID]\x1f\x02 to get the message body of a mail")
         else:
             try:
+                mailID = int(mailID)
                 mailHeader = API.Char("mail")[mailID]
                 mailBody = API.Char("mail",mailID=mailID)
             except api.APIError:
                 connection.privmsg(sourceNick, "There was an error with the API: %s" % " ".join(traceback.format_exc().splitlines()[-1].split()[1:]))
             except KeyError:
                 connection.privmsg(sourceNick, "No such mail")
+            except ValueError:
+                connection.privmsg(sourceNick, "Mail ID must be a number")
             else:
                 title = mailHeader["title"]
                 From = mailHeader["senderName"]
