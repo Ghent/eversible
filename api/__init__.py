@@ -106,7 +106,7 @@ class API:
                     return {
                         "allianceID" : int(allianceID),
                         "allianceName" : allianceName,
-                        "alliaceTicker" : Ticker
+                        "allianceTicker" : Ticker
                     }
             else:
                 return None
