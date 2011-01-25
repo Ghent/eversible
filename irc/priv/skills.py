@@ -3,6 +3,7 @@
 import users
 import api
 import time
+import traceback
 
 def index(connection,event):
     #requires limited api key
@@ -15,7 +16,7 @@ def index(connection,event):
     response = USERS.retrieveUserByHostname(sourceHostName)
     if not response:
         connection.privmsg(event.source().split("!")[0], "This command requires your limited API key")
-        connection.privmsg(event.source().split("!")[0], "Please identify or register in a private message")
+        connection.privmsg(event.source().split("!")[0], "Please identify or register")
     else:
         characterName = response["characterName"]
         characterID = response["characterID"]
@@ -26,7 +27,7 @@ def index(connection,event):
             API = api.API(userid=userID, apikey=apiKey, charid=characterID)
             skillqueue = API.Char("skillqueue")
         except api.APIError:
-            connection.privmsg(event.source().split("!")[0], "There was an error with the API: %s" % "too lazy to get this info right now")
+            connection.privmsg(event.source().split("!")[0], "There was an error with the API: %s" % " ".join(traceback.format_exc().splitlines()[-1].split()[1:]))
         else:
             connection.privmsg(event.source().split("!")[0], "\x02Skills currently in training\x02:")
             

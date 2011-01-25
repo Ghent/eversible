@@ -3,6 +3,7 @@
 import users
 import api
 import time
+import traceback
 
 def index(connection,event):
     #requires limited api key
@@ -26,7 +27,7 @@ def index(connection,event):
             API = api.API(userid=userID, apikey=apiKey, charid=characterID)
             skillqueue = API.Char("skillqueue")
         except api.APIError:
-            connection.privmsg(event.target(), "There was an error with the API: %s" % "too lazy to get this info right now")
+            connection.privmsg(event.target(), "There was an error with the API: %s" % " ".join(traceback.format_exc().splitlines()[-1].split()[1:]))
         else:
             connection.privmsg(event.target(), "\x02Skills currently in training\x02:")
             
