@@ -3,8 +3,10 @@
 # vim: filetype=python tabstop=4 expandtab:
 
 
-import db
-DUMP = db.DUMP()
+import evedb
+
+
+EVE = evedb.DUMP()
 
 def index(connection, event):
     try:
@@ -12,9 +14,9 @@ def index(connection, event):
     except IndexError:
         connection.privmsg(event.target(), "Syntax is: bp [item name]")
     else:
-        itemID = DUMP.getItemIDByName(itemName_user)
-        materials = DUMP.getMaterialsByTypeID(itemID)
-        itemName = DUMP.getItemNameByID(itemID)
+        itemID = EVE.getItemIDByName(itemName_user)
+        materials = EVE.getMaterialsByTypeID(itemID)
+        itemName = EVE.getItemNameByID(itemID)
         
         tri, pye, mex, iso, noc, zyd, meg, mor = 0,0,0,0,0,0,0,0
         if "Tritanium" in materials.keys():

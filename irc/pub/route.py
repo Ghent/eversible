@@ -4,11 +4,11 @@
 
 
 import api
-import db
+import evedb
 
 
 API = api.API()
-DB = db.DUMP()
+EVE = evedb.DUMP()
 
 def index(connection, event):
     dotlan = "http://evemaps.dotlan.net/route/"
@@ -24,8 +24,8 @@ def index(connection, event):
         connection.privmsg(event.target(),
             "           [ ] = required items      ( ) = optional items     * case insensitive")
     else:
-        originID = DB.getSystemIDByName(origin)
-        endpointID = DB.getSystemIDByName(endpoint)
+        originID = EVE.getSystemIDByName(origin)
+        endpointID = EVE.getSystemIDByName(endpoint)
         if not originID:
             connection.privmsg(event.target(), "Origin system '%s' is unknown to me"
                 % origin)
@@ -111,7 +111,7 @@ def index(connection, event):
 
 
 def findSecurity(name):
-    sysInfo = DB.getSystemInfoByName(name)
+    sysInfo = EVE.getSystemInfoByName(name)
     if sysInfo == None:
         return None
 
@@ -128,9 +128,9 @@ def findSecurity(name):
 def findName(name, list, count):
     match = None
     if match == None:
-        match = DB.getSystemName(name)
+        match = EVE.getSystemName(name)
     if match == None:
-        match = DB.getRegionName(name)
+        match = EVE.getRegionName(name)
     if match != None:
         list[count] = match
         return 1

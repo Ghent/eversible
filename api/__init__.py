@@ -10,7 +10,7 @@ import re
 import collections
 import sys
 import time
-import db
+import evedb
 import cache
 
 class APIError(Exception):
@@ -18,14 +18,14 @@ class APIError(Exception):
         self.value = value
     def __str__(self):
         return repr(self.value)
-        
+
 class API:
     def __init__(self, userid=None, apikey=None, charid=None, characterName=None, debug=False):
         self.USER_ID = userid
         self.API_KEY = apikey
         self.API_URL = "http://api.eve-online.com"
         self.DEBUG = debug
-        self.DUMP = db.DUMP()
+        self.EVE = evedb.DUMP()
         self.CACHE = cache.CACHE()
         if not charid and characterName:
             #get CHAR_ID from API
@@ -405,18 +405,18 @@ class API:
                                 CARGO = False
                     #victim data
                     #{'corporationID': '1102238026', 'damageTaken': '286', 'characterName': 'mountainpenguin', 'allianceName': 'Intergalactic Exports Group', 'allianceID': '1076729448', 'shipTypeID': '670', 'corporationName': 'LazyBoyz Band of Recreational Flyers', 'characterID': '1364641301'}
-                    victim_shipTypeName = self.DUMP.getItemNameByID(int(victimData["shipTypeID"]))
+                    victim_shipTypeName = self.EVE.getItemNameByID(int(victimData["shipTypeID"]))
                     namedAttackers = []
                     for attacker in ATTACKERS:
-                        weaponTypeName = self.DUMP.getItemNameByID(int(attacker["weaponTypeID"]))
+                        weaponTypeName = self.EVE.getItemNameByID(int(attacker["weaponTypeID"]))
                         if weaponTypeName == "#system":
                             weaponTypeName = "Unknown"
-                        shipTypeName = self.DUMP.getItemNameByID(int(attacker["shipTypeID"]))
+                        shipTypeName = self.EVE.getItemNameByID(int(attacker["shipTypeID"]))
                         namedAttackers += [{
                             "corporationID" : int(attacker["corporationID"]),
                             "damageDone" : int(attacker["damageDone"]),
                             "weaponTypeID" : int(attacker["weaponTypeID"]),
-                            "weaponTypeName" : self.DUMP.getItemNameByID(int(attacker["weaponTypeID"])),
+                            "weaponTypeName" : self.EVE.getItemNameByID(int(attacker["weaponTypeID"])),
                             "characterName" : attacker["characterName"],
                             "allianceName" : attacker["allianceName"],
                             "finalBlow" : int(attacker["finalBlow"]),
@@ -429,12 +429,12 @@ class API:
                     namedDrops = []
                     for i,v in DROPS.iteritems():
                         #6 : {'typeID': '3467', 'flag': '5', 'qtyDropped': '0', 'children': [{'typeID': '23594', 'flag': '0', 'qtyDropped': '0', 'qtyDestroyed': '1'}, {'typeID': '2444', 'flag': '0', 'qtyDropped': '0', 'qtyDestroyed': '4'}, {'typeID': '23606', 'flag': '0', 'qtyDropped': '0', 'qtyDestroyed': '1'}, {'typeID': '12093', 'flag': '0', 'qtyDropped': '0', 'qtyDestroyed': '1'}, {'typeID': '12386', 'flag': '0', 'qtyDropped': '0', 'qtyDestroyed': '1'}], 'qtyDestroyed': '1'
-                        typeName = self.DUMP.getItemNameByID(int(v["typeID"]))
+                        typeName = self.EVE.getItemNameByID(int(v["typeID"]))
                         namedChilds = []
                         if v.has_key("children"):
                             children = v["children"]
                             for child in children:
-                                child_typeName = self.DUMP.getItemNameByID(int(child["typeID"]))
+                                child_typeName = self.EVE.getItemNameByID(int(child["typeID"]))
                                 namedChilds += [{
                                     "typeID" : int(child["typeID"]),
                                     "flag" : int(child["flag"]),
@@ -453,7 +453,7 @@ class API:
                         #generalData {'killID': '14868783', 'solarSystemID': '30002723', 'killTime': '2010-09-29 12:49:00', 'moonID': '0'}
                         "killID" : int(killID),
                         "solarSystemID" : int(generalData["solarSystemID"]),
-                        "solarSystemName" : self.DUMP.getSystemNameByID(int(generalData["solarSystemID"])),
+                        "solarSystemName" : self.EVE.getSystemNameByID(int(generalData["solarSystemID"])),
                         "killTime" : time.mktime(time.strptime(generalData["killTime"], "%Y-%m-%d %H:%M:%S")),
                         "shipTypeID" : int(victimData["shipTypeID"]),
                         "shipTypeName" : victim_shipTypeName,
@@ -591,7 +591,7 @@ class API:
                 else:
                     returndict[int(row["queuePosition"])] = {
                         "typeID" : int(row["typeID"]),
-                        "typeName" : self.DUMP.getItemNameByID(int(row["typeID"])),
+                        "typeName" : self.EVE.getItemNameByID(int(row["typeID"])),
                         "level" : int(row["level"]),
                         "startSP" : int(row["startSP"]),
                         "endSP" : int(row["endSP"]),
@@ -752,7 +752,7 @@ class API:
             print xml
 
         if Request.lower() == "kills":
-            solarSystemID_str = self.DUMP.getSystemIDByName(systemname)
+            solarSystemID_str = self.EVE.getSystemIDByName(systemname)
             if solarSystemID_str:
                 requesturl = os.path.join(self.API_URL, "map/Kills.xml.aspx")
                 xml = self._getXML(requesturl)
@@ -762,7 +762,7 @@ class API:
                 except IndexError:
                     return {
                         "solarSystemID" : solarSystemID,
-                        "solarSystemName" : self.DUMP.getSystemNameByID(solarSystemID),
+                        "solarSystemName" : self.EVE.getSystemNameByID(solarSystemID),
                         "shipKills" : 0,
                         "podKills" : 0,
                         "npcKills" : 0
@@ -770,14 +770,14 @@ class API:
                 else:
                     return {
                         "solarSystemID" : solarSystemID,
-                        "solarSystemName" : self.DUMP.getSystemNameByID(solarSystemID),
+                        "solarSystemName" : self.EVE.getSystemNameByID(solarSystemID),
                         "shipKills" : int(shipKills),
                         "podKills" : int(podKills),
                         "npcKills" : int(factionKills)
                     }
 
         if Request.lower() == "sov":
-            solarSystemID_str = self.DUMP.getSystemIDByName(systemname.upper())
+            solarSystemID_str = self.EVE.getSystemIDByName(systemname.upper())
             if solarSystemID_str:
                 requesturl = os.path.join(self.API_URL, "map/Sovereignty.xml.aspx")
                 xml = self._getXML(requesturl)
@@ -804,7 +804,7 @@ class API:
                             "corporationName" : corporationName
                         }
                     else:
-                        factionName = self.DUMP.getFactionNameByID(factionID)
+                        factionName = self.EVE.getFactionNameByID(factionID)
                         return {
                             "solarSystemID" : int(solarSystemID),
                             "solarSystemName" : solarSystemName,

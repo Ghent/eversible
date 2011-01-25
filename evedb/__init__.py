@@ -9,7 +9,7 @@ import sqlite3
 
 class DUMP:
     def __init__(self):
-        conn = sqlite3.connect("db/current.db")
+        conn = sqlite3.connect("evedb/current.db")
         self.cursor = conn.cursor()
 
     def getItemNameByID(self, ID):
