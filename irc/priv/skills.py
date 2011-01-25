@@ -16,7 +16,7 @@ def index(connection,event):
     response = USERS.retrieveUserByHostname(sourceHostName)
     if not response:
         connection.privmsg(event.source().split("!")[0], "This command requires your limited API key")
-        connection.privmsg(event.source().split("!")[0], "Please identify or register in a private message")
+        connection.privmsg(event.source().split("!")[0], "Please identify or register")
     else:
         characterName = response["characterName"]
         characterID = response["characterID"]

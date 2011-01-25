@@ -56,7 +56,7 @@ class API:
         cachedUntil = time.mktime(time.strptime(re.findall("\<cachedUntil\>(.*?)\<\/cachedUntil\>", xml)[0], "%Y-%m-%d %H:%M:%S"))
         return cachedUntil
     
-    def Eve(self,Request, allianceID=None):
+    def Eve(self,Request, allianceID=None, characterID=None):
         """
             Methods related to EVE in general:
             *********************************************
@@ -64,6 +64,7 @@ class API:
                         allianceID (N)
                         # currently outputs only allianceName
                         # and allianceTicker
+            characterName : returns the characterName for a given characterID
             *********************************************
             (N) = No API key required
         """
@@ -83,7 +84,23 @@ class API:
                     }
             else:
                 return None
-
+        elif Request.lower() == "charactername":
+            requesturl = os.path.join(self.API_URL, "eve/CharacterName.xml.aspx")
+            postdata = {
+                "ids" : characterID
+            }
+            if characterID:
+                xml = self._getXML(requesturl, postdata)
+                try:
+                    charName, charID = re.findall("\<row name=\"(.*?)\" characterID=\"(\d+)\" \/\>", xml)[0]
+                except IndexError:
+                    return None
+                else:
+                    return {
+                        "characterName" : charName,
+                        "characterID" : int(charID)
+                    }            
+            
     def Corporation(self, Request, corporationID=None):
         """
             Methods related to corporations:
@@ -103,7 +120,11 @@ class API:
                     }
                 else:
                     return None
-                xml = self._getXML(requesturl, postdata)
+                try:
+                    xml = self._getXML(requesturl, postdata)
+                except APIError:
+                    return None
+                
                 corporationName = xml.split("<corporationName>")[1].split("</corporationName>")[0]
                 
                 #for now, just return corporationName
@@ -142,7 +163,7 @@ class API:
 #</eveapi>
 
             
-    def Char(self, Request):
+    def Char(self, Request, mailID=None):
         """ Methods related to a character:
             **********************************************
             balance : returns the account balance (F)
@@ -442,38 +463,85 @@ class API:
             return killDict
 
         elif Request.lower() == "mail":
-            requesturl = os.path.join(self.API_URL, "char/MailMessages.xml.aspx")
-            xml = self._getXML(requesturl, basepostdata)
-            rows = re.finditer("\<row messageID=\"(?P<messageID>\d+)\" senderID=\"(?P<senderID>\d+)\" sentDate=\"(?P<sentDate>\d+-\d+-\d+ \d+:\d+:\d+)\" title=\"(?P<title>.*?)\" toCorpOrAllianceID=\"(?P<toCorpOrAllianceID>\d+)\" toCharacterIDs=\"(?P<toCharacterIDs>.*?)\" toListID=\"(?P<toListID>.*?)\" \/\>", xml)
-            maildict = {}
-            while True:
-                try:
-                    row = rows.next().groupdict()
-                except StopIteration:
-                    break
-                else:
-                    maildict[row["messageID"]] = row
-            mail_ids = maildict.keys()
-            postdata = {
-                "apiKey" : self.API_KEY,
-                "userID" : self.USER_ID,
-                "characterID" : self.CHAR_ID,
-                "ids" : ",".join(mail_ids)
-            }
+            if not mailID:
+                requesturl = os.path.join(self.API_URL, "char/MailMessages.xml.aspx")
+                xml = self._getXML(requesturl, basepostdata)
+                rows = re.finditer("\<row messageID=\"(?P<messageID>\d+)\" senderID=\"(?P<senderID>\d+)\" sentDate=\"(?P<sentDate>\d+-\d+-\d+ \d+:\d+:\d+)\" title=\"(?P<title>.*?)\" toCorpOrAllianceID=\"(?P<toCorpOrAllianceID>\d+)\" toCharacterIDs=\"(?P<toCharacterIDs>.*?)\" toListID=\"(?P<toListID>.*?)\" \/\>", xml)
+                maildict = {}
+                while True:
+                    try:
+                        row = rows.next().groupdict()
+                    except StopIteration:
+                        break
+                    else:
+                        #resolve corp / alliance recipient
+                        tCOAID = int(row["toCorpOrAllianceID"])
+                        corpCheck = self.Corporation("publicsheet", tCOAID)
+                        if corpCheck:
+                            corpID = tCOAID
+                            corpName = corpCheck["corporationName"]
+                            allianceID = None
+                            allianceName = None
+                            allianceTicker = None
+                        else:
+                            allianceCheck = self.Eve("alliances", tCOAID)
+                            if allianceCheck:
+                                corpID = None
+                                corpName = None
+                                allianceID = tCOAID
+                                allianceName = allianceCheck["allianceName"]
+                                allianceTicker = allianceCheck["allianceTicker"]
+                            else:
+                                (corpID, corpName, allianceID, allianceName, allianceTicker) = (None, None, None, None, None)
+                                
+                        #resolve charIDs
+                        toCharIDs = row["toCharacterIDs"]
+                        if toCharIDs == "":
+                            toCharDict = None
+                        else:
+                            toCharDict = {}
+                            IDs = toCharIDs.split(",")
+                            for ID in IDs:
+                                charID = int(ID)
+                                charCheck = self.Eve("characterName", characterID=charID)
+                                if charCheck:
+                                    charName = charCheck["characterName"]
+                                    toCharDict[charID] = {"characterName" : charName}
+                                
+                        maildict[int(row["messageID"])] = {
+                            "senderID" : int(row["senderID"]),
+                            "senderName" : self.Eve("characterName", characterID=int(row["senderID"]))["characterName"],
+                            "sentDate" : time.mktime(time.strptime(row["sentDate"], "%Y-%m-%d %H:%M:%S")),
+                            "title" : row["title"],
+                            "corpID" : corpID,
+                            "corpName" : corpName,
+                            "allianceID" : allianceID,
+                            "allianceName" : allianceName,
+                            "allianceTicker" : allianceTicker,
+                            "toCharacters" : toCharDict
+                        }
+                return maildict
+            else:
+                postdata = {
+                    "apiKey" : self.API_KEY,
+                    "userID" : self.USER_ID,
+                    "characterID" : self.CHAR_ID,
+                    "ids" : [mailID]
+                }
 
-            requesturl = os.path.join(self.API_URL, "char/MailBodies.xml.aspx")
-            xml = self._getXML(requesturl, postdata)
-            rows = re.finditer("\<row messageID=\"(?P<messageID>\d+)\"\>\<!\[CDATA\[(?P<messageBody>.*?)\]\]\>\<\/row\>", xml)
-            while True:
-                try:
-                    row = rows.next().groupdict()
-                except StopIteration:
-                    break
-                else:
-                    messageID = row["messageID"]
-                    messageBody = row["messageBody"]
-                    maildict[messageID]["messageBody"] = messageBody
-            return maildict
+                requesturl = os.path.join(self.API_URL, "char/MailBodies.xml.aspx")
+                xml = self._getXML(requesturl, postdata)
+                rows = re.finditer("\<row messageID=\"(?P<messageID>\d+)\"\>\<!\[CDATA\[(?P<messageBody>.*?)\]\]\>\<\/row\>", xml)
+                while True:
+                    try:
+                        row = rows.next().groupdict()
+                    except StopIteration:
+                        break
+                    else:
+                        messageID = row["messageID"]
+                        messageBody = row["messageBody"]
+                        maildict[messageID]["messageBody"] = messageBody
+                return maildict
 
         elif Request.lower() == "market":
             requesturl = os.path.join(self.API_URL, "char/MarketOrders.xml.aspx")
