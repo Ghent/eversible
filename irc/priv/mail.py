@@ -3,6 +3,7 @@
 import users
 import api
 import time
+import traceback
 
 def index(connection,event):
     
@@ -43,7 +44,9 @@ def index(connection,event):
         try:
             API = api.API(userid=userID, apikey=apiKey, charid=characterID)
             mailheaders = API.Char("mail")
-            
+        except api.APIError:
+            connection.privmsg(souceNick, "There was an error with the API: %s" % " ".join(traceback.format_exc().splitlines()[-1].split()[1:]))
+        else:
             mailkeys = mailheaders.keys()
             mailkeys.sort()
             mailkeys.reverse()
