@@ -17,9 +17,11 @@ def index(connection, event):
         if not details:
             connection.privmsg(sourceNick, "You must be identified to use this command")
         else:
+            if switchTo.lower() == details["characterName"].lower():
+                connection.privmsg(sourceNick, "You're already identified as %s!" % switchTo)
             if switchTo:
                 #check if alt is valid
-                response = USERS.lookupalt(details["apiKey"], details["userID"], details["characterName"], switchTo)
+                response = USERS.lookupAlt(details["apiKey"], details["userID"], details["characterName"], switchTo)
                 if not response:
                     connection.privmsg(sourceNick, "The character \x033\x02\x02%s\x03\x02\x02 hasn't been registered under your account" % switchTo)
                 else:
@@ -32,9 +34,10 @@ def index(connection, event):
                 if not alts:
                     connection.privmsg(sourceNick, "You appear to have no alts, this is almost certainly an error")
                 else:
+                    connection.privmsg(sourceNick, "\x02Alts for character %s\x02:" % details["characterName"])
                     for alt in alts:
-                        altName = alts[0]
+                        altName = alt[0]
                         if altName == details["characterName"]:
-                            connection.privmsg(sourceNick, "\x033*** \x02%s\x02\x03" % altName)
+                            connection.privmsg(sourceNick, "\x033\x02%s\x02\x03 <-- current" % altName)
                         else:
-                            connection.privsmg(sourceNick, "\x032    \x02%s\x03\x03" % altName)
+                            connection.privmsg(sourceNick, "\x032\x02%s\x03\x03" % altName)

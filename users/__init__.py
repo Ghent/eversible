@@ -132,8 +132,6 @@ class DB:
                     conn.close()
                     return True
         else:
-            cursor.close()
-            conn.close()
             return None
     
     def retrieveUserByHostname(self, hostname):
