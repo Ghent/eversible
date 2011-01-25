@@ -29,15 +29,18 @@ def scan():
     publicCommands.clear()
     privateCommands.clear()
     for moduleSource in glob.glob("irc/pub/*.py"):
-        name = moduleSource.replace(".py", "").replace("\\","/").split("/")[-1].upper()
+        name = moduleSource.replace(".py", "").replace("\\","/").split("/")[-1].upper() + "_pub"
         handle = open(moduleSource)
         module = imp.load_module(name, handle, ("pub/" + moduleSource), (".py", "r", imp.PY_SOURCE))
         publicCommands[name] = module
     for moduleSource in glob.glob("irc/priv/*.py"):
-        name = moduleSource.replace(".py","").replace("\\","/").split("/")[-1].upper()
+        name = moduleSource.replace(".py","").replace("\\","/").split("/")[-1].upper() + "_priv"
         handle = open(moduleSource)
-        module = imp.load_module(name, handle, ("priv/" + moduleSource), (".py", "r", imp.PY_SOURCE))
+        module = imp.load_module(name, handle, ("priv/" + moduleSource + "_priv"), (".py", "r", imp.PY_SOURCE))
         privateCommands[name] = module
+        
+    print publicCommands
+    print privateCommands
 
 class EVErsibleBot(ircbot.SingleServerIRCBot):
     def __init__(self, host, port, nick, realname, channel, botpass, prefix, debug_level):
@@ -70,9 +73,9 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
 
     def on_privmsg(self, connection, event):
         if event.arguments()[0][0] == self.PREFIX:
-            if privateCommands.has_key(event.arguments()[0].split()[0][1:].upper()):
+            if privateCommands.has_key(event.arguments()[0].split()[0][1:].upper() + "_priv"):
                 try:
-                    privateCommands[event.arguments()[0].split()[0][1:].upper()].index(connection,event)
+                    privateCommands[event.arguments()[0].split()[0][1:].upper() + "_priv"].index(connection,event)
                 except:
                     tb = traceback.format_exc()
                     if self.DEBUG_LEVEL == 0:
@@ -88,9 +91,9 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
     def on_pubmsg(self, connection, event):
         #check if prefix used
         if event.arguments()[0][0] == self.PREFIX:
-            if publicCommands.has_key(event.arguments()[0].split()[0][1:].upper()):
+            if publicCommands.has_key(event.arguments()[0].split()[0][1:].upper() + "_pub"):
                 try:
-                    publicCommands[event.arguments()[0].split()[0][1:].upper()].index(connection, event)
+                    publicCommands[event.arguments()[0].split()[0][1:].upper() + "_pub"].index(connection, event)
                 except:
                     tb = traceback.format_exc()
                     if self.DEBUG_LEVEL == 0:
