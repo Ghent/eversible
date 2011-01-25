@@ -4,10 +4,11 @@
 
 
 import api
-import db
+import evedb
+
 
 API = api.API()
-DB = db.DUMP()
+EVE = evedb.DUMP()
 
 def index(connection, event):
     try:
@@ -24,7 +25,7 @@ def index(connection, event):
             npcKills = response["npcKills"]
             solarSystemName = response["solarSystemName"]
             
-            systemInfo = DB.getSystemInfoByID(response["solarSystemID"])
+            systemInfo = EVE.getSystemInfoByID(response["solarSystemID"])
             security = systemInfo["security"]
             if security >= 0.5:
                 sec = "\x033\x02\x02%.01f\x03" % security
