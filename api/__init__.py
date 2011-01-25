@@ -88,7 +88,7 @@ class API:
                     }
             elif allianceName:
                 try:
-                    allianceID, allName, allianceTicker = re.findall("\<row=\"(%s)\" shortName=\"(.*?)\" allianceID=\"(\d+)\"" % (allianceName), xml, re.I)[0]
+                    allName, allianceTicker, allianceID = re.findall("\<row name=\"(%s)\" shortName=\"(.*?)\" allianceID=\"(\d+)\"" % (allianceName), xml, re.I)[0]
                 except IndexError:
                     return None
                 else:
@@ -99,7 +99,7 @@ class API:
                     }
             elif allianceTicker:
                 try:
-                    allianceID, allianceName, Ticker = re.findall("\<row=\"(.*?)\" shortName=\"(%s)\" allianceID+\"(\d+)\"" % (allianceTicker), xml, re.I)[0]
+                    allianceName, Ticker, allianceID = re.findall("\<row name=\"(.*?)\" shortName=\"(%s)\" allianceID=\"(\d+)\"" % (allianceTicker), xml, re.I)[0]
                 except IndexError:
                     return None
                 else:

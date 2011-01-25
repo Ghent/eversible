@@ -44,12 +44,12 @@ def index(connection,event):
         mailID = None
         
     try:
-        search_from = " ".join(event.arguments()[0].split()[1:]).upper().split("FROM:")[1].split()[0]
+        search_from = " ".join(event.arguments()[0].split()[1:]).split("FROM:")[1].split()[0]
     except IndexError:
         search_from = None
         
     try:
-        search_to = " ".join(event.arguments()[0].split()[1:]).upper().split("TO:")[1].split()[0]
+        search_to = " ".join(event.arguments()[0].split()[1:]).split("TO:")[1].split()[0]
     except IndexError:
         search_to = None
         
@@ -84,8 +84,10 @@ def index(connection,event):
                 def process_search_from(search_from):
                     #check all:
                     idCheck = API.Eve("getid", nameName=search_from)
-                    if not idCheck:
+                    print idCheck
+                    if idCheck["ID"] == 0:
                         #check for alliance ticker
+                        print "Checking for alliance ticker"
                         allianceInfo = API.Eve("alliances", allianceTicker=search_from)
                         if allianceInfo:
                             return {"alliance" : allianceInfo["allianceID"], "alliance" : allianceInfo["allianceTicker"]}
@@ -140,6 +142,11 @@ def index(connection,event):
                         wanted_recip_to_format = "\x037\x02\x02%s\x03\x02\x02" % search_from
                         
                     title_string += "to %s" % wanted_recip_to_format
+                    
+                print """
+                    wanted_recip_from: %s
+                    wanted_recip_to: %s
+                """ % (wanted_recip_from, wanted_recip_to)
                         
                 mailkeys_temp = []
                 for mailkey in mailkeys:
@@ -151,20 +158,26 @@ def index(connection,event):
                     if mail["corpID"]:
                         recipients += [mail["corpID"]]
                     if mail["toCharacters"]:
-                        recipients += [mail["toCharacters"].keys()]
-                    
+                        for id in mail["toCharacters"].keys():    
+                            recipients += [id]
+                    sender = mail["senderID"]
+                    if search_from:
+                        if str(sender) == str(wanted_recip_from):
+                            print "ADDED"
+                            mailkeys_temp += [mailkey]
                     for recip in recipients:
-                        if search_from:
-                            if str(recip) == str(wanted_recip_from):
-                                mailkeys_temp += [mailkey]
                         if search_to:
                             if str(recip) == str(wanted_recip_to):
+                                print "ADDED"
                                 mailkeys_temp += [mailkey]
                             
                 mailkeys_temp.sort()
                 mailkeys_temp.reverse()
                 
-                first5 = mailkeys_temp.keys()[:5]
+                if mailkeys_temp != []:
+                    first5 = mailkeys_temp[:5]
+                else:
+                    first5 = mailkeys[:5]
                     
                 connection.privmsg(sourceNick, title_string)
                 connection.privmsg(sourceNick, " (\x1f mail ID \x1f)")
@@ -186,7 +199,6 @@ def index(connection,event):
                     timeSent = time.time() - mailheaders[header]["sentDate"]
                     human_time = convert_to_human(timeSent)
                     connection.privmsg(sourceNick, " (\x02%i\x02): \x1f%s\x1f from \x034\x02%s\x02\x03 to %s (%s ago)" % (header, title, From, TO, human_time))
-                    connection.privmsg(sourceNick, repr(mailkeys_temp[header]))
                     count += 1
                 
                 connection.privmsg(sourceNick, "\x02Use syntax: \x02\x1fmail [mail ID]\x1f\x02 to get the message body of a mail")
