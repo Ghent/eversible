@@ -3,6 +3,8 @@
 # vim: filetype=python tabstop=4 expandtab:
 
 
+import re
+
 import api
 import evedb
 
@@ -20,7 +22,7 @@ def index(connection, event):
 
     except IndexError:
         connection.privmsg(event.target(),
-            "Syntax is: .route [Origin system] [Endpoint system] (Safe, Fast or Low) (Systems to avoid separated by spaces)")
+            "Syntax is: route [Origin system] [Endpoint system] (Safe, Fast or Low) (Systems to avoid separated by spaces)")
         connection.privmsg(event.target(),
             "           [ ] = required items      ( ) = optional items     * case insensitive")
     else:
@@ -64,7 +66,7 @@ def index(connection, event):
             unknown = []
             count = 0
             for entry in data:
-                if entry == ".route":
+                if re.search("route", entry):
                     count = count + 1
                     continue
                 if not findName(entry, data, count):
@@ -86,9 +88,9 @@ def index(connection, event):
 
             # Print the output to IRC
             connection.privmsg(event.target(),
-                "\x02Origin\x02:   %s" % data[1])
+                "\x02Origin\x02:   %s %s" % (data[1], findSecurity(data[1])))
             connection.privmsg(event.target(),
-                "\x02Endpoint\x02: %s" % data[2])
+                "\x02Endpoint\x02: %s %s" % (data[2], findSecurity(data[2])))
 
             if not unknown == []:
                 connection.privmsg(event.target(),
