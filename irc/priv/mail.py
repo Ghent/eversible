@@ -69,7 +69,11 @@ def index(connection,event):
     except IndexError:
         mailID = None
     except ValueError:
+        if mailID.lower() == "help":
+            connection.privmsg(sourceNick, "SYNTAX: mail (FROM:sender) (TO:recipient) (mail id)")
+            return
         mailID = None
+        
 
     
     try:
