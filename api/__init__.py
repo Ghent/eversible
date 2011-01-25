@@ -521,27 +521,100 @@ class API:
                             "toCharacters" : toCharDict
                         }
                 return maildict
+            
             else:
                 postdata = {
                     "apiKey" : self.API_KEY,
                     "userID" : self.USER_ID,
                     "characterID" : self.CHAR_ID,
-                    "ids" : [mailID]
+                    "ids" : mailID
                 }
 
                 requesturl = os.path.join(self.API_URL, "char/MailBodies.xml.aspx")
                 xml = self._getXML(requesturl, postdata)
-                rows = re.finditer("\<row messageID=\"(?P<messageID>\d+)\"\>\<!\[CDATA\[(?P<messageBody>.*?)\]\]\>\<\/row\>", xml)
-                while True:
-                    try:
-                        row = rows.next().groupdict()
-                    except StopIteration:
-                        break
-                    else:
-                        messageID = row["messageID"]
-                        messageBody = row["messageBody"]
-                        maildict[messageID]["messageBody"] = messageBody
-                return maildict
+                try:
+                    message = xml.split("<row messageID=\"%s\"><![CDATA[" % mailID)[1].split("]]></row>")[0]
+                except IndexError:
+                    return None
+                else:
+                    #parse out html
+                    
+                    #basic elements to parse into output:
+                    #- <br> -> \n
+                    #- <a href="showinfo:ItemID">Item Name</a> -> ItemName (link to item)
+                    #- <a href="showinfo:5//solarSystemID">solarSystemName</a> -> Name (link)
+                    #- <a " " " " " " " :4 -> constell
+                    #- <a               :3 -> region
+                    #- <a               :2 -> corp
+                    #- <a               :1377 -> char
+                    #- <a               :16159 -> alliance
+                    #- <a               :3867 -> station
+                    #- <b> -> bold
+                    #- </b> -> unbold
+                    
+                    message = re.sub("(\<br\>)+", "\n", message)
+                    message = message.replace("<b>","\x02")
+                    message = message.replace("</b>","\x02")
+                    message = message.replace("<u>","\x1f")
+                    message = message.replace("</u>","\x1f")
+                    itemmatches = re.findall("(\<a href=\"showinfo:(\d+)\"\>(.*?)\<\/a\>)", message, re.DOTALL)
+                    for match in itemmatches:
+                        html = match[0]
+                        itemID = match[1]
+                        itemName = match[2]
+                        message = message.replace(html, "\x1f%s\x1f ( http://games.chruker.dk/eve_online/item.php?type_id=%s )" % (itemName, itemID))
+                        
+                    itemmatches = re.findall("(\<a href=\"showinfo:5//(\d+)\"\>(.*?)\<\/a\>)", message, re.DOTALL)
+                    for match in itemmatches:
+                        html = match[0]
+                        solarSystemID = match[1]
+                        solarSystemName = match[2]
+                        message = message.replace(html, "\x035\x02%s\x03\x02" % solarSystemName)
+                        
+                    itemmatches = re.findall("(\<a href=\"showinfo:4//(\d+)\"\>(.*?)\<\/a\>)", message, re.DOTALL)
+                    for match in itemmatches:
+                        html = match[0]
+                        ID = match[1]
+                        Name = match[2]
+                        message = message.replace(html, "\x0310\x02%s\x03\x02" % Name)
+                        
+                    itemmatches = re.findall("(\<a href=\"showinfo:3//(\d+)\"\>(.*?)\<\/a\>)", message, re.DOTALL)
+                    for match in itemmatches:
+                        html = match[0]
+                        ID = match[1]
+                        Name = match[2]
+                        message = message.replace(html, "\x032\x02%s\x03\x02" % Name)
+                        
+                    itemmatches = re.findall("(\<a href=\"showinfo:3//(\d+)\"\>(.*?)\<\/a\>)", message, re.DOTALL)
+                    for match in itemmatches:
+                        html = match[0]
+                        ID = match[1]
+                        Name = match[2]
+                        message = message.replace(html, "\x037\x02%s\x03\x02" % Name)
+                        
+                    itemmatches = re.findall("(\<a href=\"showinfo:16159//(\d+)\"\>(.*?)\<\/a\>)", message, re.DOTALL)
+                    for match in itemmatches:
+                        html = match[0]
+                        ID = match[1]
+                        Name = match[2]
+                        message = message.replace(html, "\x033\x02%s\x03\x02" % Name)
+                        
+                    itemmatches = re.findall("(\<a href=\"showinfo:1377//(\d+)\"\>(.*?)\<\/a\>)", message, re.DOTALL)
+                    for match in itemmatches:
+                        html = match[0]
+                        ID = match[1]
+                        Name = match[2]
+                        message = message.replace(html, "\x034\x02%s\x03\x02" % Name)
+                        
+                    itemmatches = re.findall("(\<a href=\"showinfo:3867//(\d+)\"\>(.*?)\<\/a\>)", message, re.DOTALL)
+                    for match in itemmatches:
+                        html = match[0]
+                        ID = match[1]
+                        Name = match[2]
+                        message = message.replace(html, "\x02%s\x02" % Name)
+                    
+                    message = re.sub("\<.*?\>","",message)
+                    return message
 
         elif Request.lower() == "market":
             requesturl = os.path.join(self.API_URL, "char/MarketOrders.xml.aspx")
