@@ -557,6 +557,7 @@ class API:
                     message = message.replace("</b>","\x02")
                     message = message.replace("<u>","\x1f")
                     message = message.replace("</u>","\x1f")
+                    message = message.replace("&gt;",">").replace("&lt;","<")
                     itemmatches = re.findall("(\<a href=\"showinfo:(\d+)\"\>(.*?)\<\/a\>)", message, re.DOTALL)
                     for match in itemmatches:
                         html = match[0]
