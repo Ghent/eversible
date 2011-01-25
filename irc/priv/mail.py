@@ -4,6 +4,7 @@ import users
 import api
 import time
 import traceback
+import re
 
 def index(connection,event):
     
@@ -56,7 +57,7 @@ def index(connection,event):
         mailID: %s
         search_from: %s
         search_to: %s
-    """, (mailID, search_from, search_to)
+    """ % (mailID, search_from, search_to)
         
     response = USERS.retrieveUserByHostname(sourceHostName)
     if not response:
@@ -78,8 +79,21 @@ def index(connection,event):
                 mailkeys = mailheaders.keys()
                 mailkeys.sort()
                 mailkeys.reverse()
-                first5 = mailkeys[:5]
+                mailkeys_temp = {}
+                for mailkey in mailkeys:
+                    recipients = []
+                    mail = mailheaders[mailkey]
+                    if mail["allianceID"]:
+                        recipients += [mail["allianceID"]]
+                    #mail can be to both an alliance and a corp, so don't use elif here
+                    if mail["corpID"]:
+                        recipients += [mail["corpID"]]
+                    if mail["toCharacters"]:
+                        recipients += [mail["toCharacters"].keys()]
+                    #get first 5 mails from:
+                    mailkeys_temp[mailkey] = recipients
     
+                first5 = mailkeys_temp.keys()[:5]
                 connection.privmsg(sourceNick, "\x02Latest 5 mails\x02:")
                 connection.privmsg(sourceNick, " (\x1f mail ID \x1f)")
                 
@@ -100,6 +114,7 @@ def index(connection,event):
                     timeSent = time.time() - mailheaders[header]["sentDate"]
                     human_time = convert_to_human(timeSent)
                     connection.privmsg(sourceNick, " (\x02%i\x02): \x1f%s\x1f from \x034\x02%s\x02\x03 to %s (%s ago)" % (header, title, From, TO, human_time))
+                    connection.privmsg(sourceNick, repr(mailkeys_temp[header]))
                     count += 1
                 
                 connection.privmsg(sourceNick, "\x02Use syntax: \x02\x1fmail [mail ID]\x1f\x02 to get the message body of a mail")
