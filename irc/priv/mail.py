@@ -79,21 +79,69 @@ def index(connection,event):
                 mailkeys = mailheaders.keys()
                 mailkeys.sort()
                 mailkeys.reverse()
-                mailkeys_temp = {}
                 
                 #process search_from
                 def process_search_from(search_from):
-                    #check for alliance name
-                    allianceInfo = API.Eve("alliances",allianceName=search_from)
-                    if allianceInfo:
-                        return allianceInfo["allianceID"]
+                    #check all:
+                    idCheck = API.Eve("getid", nameName=search_from)
+                    if not idCheck:
+                        #check for alliance ticker
+                        allianceInfo = API.Eve("alliances", allianceTicker=search_from)
+                        if allianceInfo:
+                            return {"alliance" : allianceInfo["allianceID"], "alliance" : allianceInfo["allianceTicker"]}
+                        #check for corp ticker <-- can't be implemented yet
+                    else:
+                        name = idCheck["Name"]
+                        id = idCheck["ID"]
                     
-                    #check for alliance ticker
-                    #check for corp name
-                    #(check for corp ticker) <-- not possible with current state of api.API
-                    #check for char name
+                        #check for alliance name
+                        allianceInfo = API.Eve("alliances", allianceID=id)
+                        if allianceInfo:
+                            return {"alliance" : allianceInfo["allianceID"], "allianceTicker" : allianceInfo["allianceTicker"]}
+                            
+                        #check for corp name
+                        corpInfo = API.Corporation("publicsheet", corporationID=id)
+                        if corpInfo:
+                            return {"corp" : corpInfo["corporationID"]}
+                            
+                        #check for char name
+                        charInfo = API.Eve("characterinfo", characterID=id)
+                        if charInfo:
+                            return {"char" : charInfo["characterID"]}
                     
+                wanted_recip_from = ""
+                wanted_recip_to = ""
+                title_string = "\x02Latest 5 mails\x02:"
                 
+                if search_from:
+                    wanted_recip_from_dict = process_search_from(search_from)
+                    if wanted_recip_from_dict.has_key("char"):
+                        wanted_recip_from = wanted_recip_from_dict["char"]
+                        wanted_recip_from_format = "\x034\x02\x02%s\x03\x02\x02" % search_from
+                    elif wanted_recip_from_dict.has_key("alliance"):
+                        wanted_recip_from = wanted_recip_from_dict["alliance"]
+                        wanted_recip_from_format = "\x033\x02\x02%s\x03\x02\x02" % search_from
+                    elif wanted_recip_from_dict.has_key("corp"):
+                        wanted_recip_from = wanted_recip_from_dict["corp"]
+                        wanted_recip_from_format = "\x037\x02\x02%s\x03\x02\x02" % search_from
+    
+                    title_string += "from %s " % wanted_recip_from_format
+                    
+                if search_to:
+                    wanted_recip_to_dict = process_search_from(search_to)
+                    if wanted_recip_to_dict.has_key("char"):
+                        wanted_recip_to = wanted_recip_to_dict["char"]
+                        wanted_recip_to_format = "\x034\x02\x02%s\x03\x02\x02" % search_from
+                    elif wanted_recip_to_dict.has_key("alliance"):
+                        wanted_recip_to = wanted_recip_to_dict["alliance"]
+                        wanted_recip_to_format = "\x033\x02\x02%s\x03\x02\x02" % search_from
+                    elif wanted_recip_to_dict.has_key("corp"):
+                        wanted_recip_to = wanted_recip_to_dict["corp"]
+                        wanted_recip_to_format = "\x037\x02\x02%s\x03\x02\x02" % search_from
+                        
+                    title_string += "to %s" % wanted_recip_to_format
+                        
+                mailkeys_temp = []
                 for mailkey in mailkeys:
                     recipients = []
                     mail = mailheaders[mailkey]
@@ -104,13 +152,21 @@ def index(connection,event):
                         recipients += [mail["corpID"]]
                     if mail["toCharacters"]:
                         recipients += [mail["toCharacters"].keys()]
-                    #get first 5 mails from:
                     
-                    
-                    mailkeys_temp[mailkey] = recipients
-    
+                    for recip in recipients:
+                        if search_from:
+                            if str(recip) == str(wanted_recip_from):
+                                mailkeys_temp += [mailkey]
+                        if search_to:
+                            if str(recip) == str(wanted_recip_to):
+                                mailkeys_temp += [mailkey]
+                            
+                mailkeys_temp.sort()
+                mailkeys_temp.reverse()
+                
                 first5 = mailkeys_temp.keys()[:5]
-                connection.privmsg(sourceNick, "\x02Latest 5 mails\x02:")
+                    
+                connection.privmsg(sourceNick, title_string)
                 connection.privmsg(sourceNick, " (\x1f mail ID \x1f)")
                 
                 count = 1
