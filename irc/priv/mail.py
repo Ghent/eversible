@@ -80,6 +80,20 @@ def index(connection,event):
                 mailkeys.sort()
                 mailkeys.reverse()
                 mailkeys_temp = {}
+                
+                #process search_from
+                def process_search_from(search_from):
+                    #check for alliance name
+                    allianceInfo = API.Eve("alliances",allianceName=search_from)
+                    if allianceInfo:
+                        return allianceInfo["allianceID"]
+                    
+                    #check for alliance ticker
+                    #check for corp name
+                    #(check for corp ticker) <-- not possible with current state of api.API
+                    #check for char name
+                    
+                
                 for mailkey in mailkeys:
                     recipients = []
                     mail = mailheaders[mailkey]
@@ -91,6 +105,8 @@ def index(connection,event):
                     if mail["toCharacters"]:
                         recipients += [mail["toCharacters"].keys()]
                     #get first 5 mails from:
+                    
+                    
                     mailkeys_temp[mailkey] = recipients
     
                 first5 = mailkeys_temp.keys()[:5]

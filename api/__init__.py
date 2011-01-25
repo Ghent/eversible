@@ -56,14 +56,14 @@ class API:
         cachedUntil = time.mktime(time.strptime(re.findall("\<cachedUntil\>(.*?)\<\/cachedUntil\>", xml)[0], "%Y-%m-%d %H:%M:%S"))
         return cachedUntil
     
-    def Eve(self,Request, allianceID=None, characterID=None, allianceName=None):
+    def Eve(self,Request, allianceID=None, characterID=None, allianceName=None, allianceTicker=None):
         """
             Methods related to EVE in general:
             *********************************************
             alliances : returns alliance info for a given
-                        allianceID or allianceName(N)
-                        # currently outputs only allianceName
-                        # and allianceTicker
+                        allianceID, allianceName or allianceID(N)
+                        # currently outputs only allianceID, 
+                        # allianceName and allianceTicker
             characterName : returns the characterName for a given characterID
             *********************************************
             (N) = No API key required
@@ -84,7 +84,7 @@ class API:
                     }
             elif allianceName:
                 try:
-                    allianceID, allName, allianceTicker = re.findall("\<row=\"(%s)\" shortName=\"(.*?)\" allianceID=\"(\d+)\"" % (allianceName), xml)[0]
+                    allianceID, allName, allianceTicker = re.findall("\<row=\"(%s)\" shortName=\"(.*?)\" allianceID=\"(\d+)\"" % (allianceName), xml, re.I)[0]
                 except IndexError:
                     return None
                 else:
@@ -92,6 +92,17 @@ class API:
                         "allianceID" : int(allianceID),
                         "allianceName" : allName,
                         "allianceTicker" : allianceTicker
+                    }
+            elif allianceTicker:
+                try:
+                    allianceID, allianceName, Ticker = re.findall("\<row=\"(.*?)\" shortName=\"(%s)\" allianceID+\"(\d+)\"" % (allianceTicker), xml, re.I)[0]
+                except IndexError:
+                    return None
+                else:
+                    return {
+                        "allianceID" : int(allianceID),
+                        "allianceName" : allianceName,
+                        "alliaceTicker" : Ticker
                     }
             else:
                 return None
