@@ -91,11 +91,6 @@ def index(connection,event):
             search_to = search_to_partial.strip()
     except IndexError:
         search_to = None
-        
-    print """
-        search_from : %s
-        search_to : %s
-    """ % (search_from, search_to)
     
     response = USERS.retrieveUserByHostname(sourceHostName)
     if not response:
@@ -136,7 +131,7 @@ def index(connection,event):
                             wanted_recip_from = wanted_recip_from_dict["corp"]
                             wanted_recip_from_format = "\x037\x02\x02%s\x03\x02\x02" % search_from
                     else:
-                        title_string += "!? FROM:%s ?! " % search_from
+                        title_string += "( unknown sender %s ) " % search_from
                         search_from = None
                     
                         
@@ -154,7 +149,7 @@ def index(connection,event):
                             wanted_recip_to = wanted_recip_to_dict["corp"]
                             wanted_recip_to_format = "\x037\x02\x02%s\x03\x02\x02" % search_to
                     else:
-                        title_string += "!? TO:%s ?!" % search_to
+                        title_string += "( unknown recipient %s ) " % search_to
                         search_to = None
 
                 mailkeys_temp = []

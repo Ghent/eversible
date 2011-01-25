@@ -38,9 +38,6 @@ def scan():
         handle = open(moduleSource)
         module = imp.load_module(name, handle, ("priv/" + moduleSource + "_priv"), (".py", "r", imp.PY_SOURCE))
         privateCommands[name] = module
-        
-    print publicCommands
-    print privateCommands
 
 class EVErsibleBot(ircbot.SingleServerIRCBot):
     def __init__(self, host, port, nick, realname, channel, botpass, prefix, debug_level):
