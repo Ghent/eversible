@@ -33,8 +33,30 @@ def index(connection,event):
     
     try:
         mailID = event.arguments()[0].split()[1]
+        if "FROM" in mailID.upper() or "TO" in mailID.upper():
+            mailID = None
+        else:
+            mailID = int(mailID)
     except IndexError:
         mailID = None
+    except ValueError:
+        mailID = None
+        
+    try:
+        search_from = " ".join(event.arguments()[0].split()[1:]).upper().split("FROM:")[1].split()[0]
+    except IndexError:
+        search_from = None
+        
+    try:
+        search_to = " ".join(event.arguments()[0].split()[1:]).upper().split("TO:")[1].split()[0]
+    except IndexError:
+        search_to = None
+        
+    print """
+        mailID: %s
+        search_from: %s
+        search_to: %s
+    """, (mailID, search_from, search_to)
         
     response = USERS.retrieveUserByHostname(sourceHostName)
     if not response:
@@ -90,8 +112,6 @@ def index(connection,event):
                 connection.privmsg(sourceNick, "There was an error with the API: %s" % " ".join(traceback.format_exc().splitlines()[-1].split()[1:]))
             except KeyError:
                 connection.privmsg(sourceNick, "No such mail")
-            except ValueError:
-                connection.privmsg(sourceNick, "Mail ID must be a number")
             else:
                 title = mailHeader["title"]
                 From = mailHeader["senderName"]
