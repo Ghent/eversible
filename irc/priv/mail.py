@@ -184,17 +184,19 @@ def index(connection,event):
                 if mailkeys_temp != []:
                     if search_from and not search_to:
                         title_string += "from %s" % wanted_recip_from_format
-                    if search_to and not search_from:
+                    elif search_to and not search_from:
                         title_string += "to %s" % wanted_recip_to_format
-                    if search_to and search_from:
+                    elif search_to and search_from:
                         title_string += "from %s \x02and\x02 to %s" % (wanted_recip_from_format, wanted_recip_to_format)
                         
                     first5 = mailkeys_temp[:5]
                 else:
-                    if search_from:
+                    if search_from and not search_to:
                         title_string += "(no messages from %s) " % wanted_recip_from_format
-                    if search_to:
+                    elif search_to and not search_from:
                         title_string += "(no messages to %s)" % wanted_recip_to_format
+                    elif search_to and search_from:
+                        title_string += "(no messages both from %s and to %s)" % (wanted_recip_from_format, wanted_recip_to_format)
                     first5 = mailkeys[:5]
                     
                 connection.privmsg(sourceNick, title_string)
