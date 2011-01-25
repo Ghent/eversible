@@ -56,15 +56,19 @@ class API:
         cachedUntil = time.mktime(time.strptime(re.findall("\<cachedUntil\>(.*?)\<\/cachedUntil\>", xml)[0], "%Y-%m-%d %H:%M:%S"))
         return cachedUntil
     
-    def Eve(self,Request, allianceID=None, characterID=None):
+    def Eve(self,Request, allianceID=None, nameID=None, nameName=None, allianceName=None, allianceTicker=None, characterID=None):
         """
             Methods related to EVE in general:
             *********************************************
             alliances : returns alliance info for a given
-                        allianceID (N)
-                        # currently outputs only allianceName
-                        # and allianceTicker
-            characterName : returns the characterName for a given characterID
+                        allianceID, allianceName or allianceID(N)
+                        # currently outputs only allianceID, 
+                        # allianceName and allianceTicker
+            getName   : returns the Name for a given ID
+                        # includes chars, corps and alliances
+            getID     : returns the ID for a given Name
+                        # includes chars, corps and alliances
+            characterinfo : returns (public) info for a character
             *********************************************
             (N) = No API key required
         """
@@ -82,14 +86,36 @@ class API:
                         "allianceName" : allianceName,
                         "allianceTicker" : allianceTicker
                     }
+            elif allianceName:
+                try:
+                    allName, allianceTicker, allianceID = re.findall("\<row name=\"(%s)\" shortName=\"(.*?)\" allianceID=\"(\d+)\"" % (allianceName), xml, re.I)[0]
+                except IndexError:
+                    return None
+                else:
+                    return {
+                        "allianceID" : int(allianceID),
+                        "allianceName" : allName,
+                        "allianceTicker" : allianceTicker
+                    }
+            elif allianceTicker:
+                try:
+                    allianceName, Ticker, allianceID = re.findall("\<row name=\"(.*?)\" shortName=\"(%s)\" allianceID=\"(\d+)\"" % (allianceTicker), xml, re.I)[0]
+                except IndexError:
+                    return None
+                else:
+                    return {
+                        "allianceID" : int(allianceID),
+                        "allianceName" : allianceName,
+                        "allianceTicker" : Ticker
+                    }
             else:
                 return None
-        elif Request.lower() == "charactername":
+        elif Request.lower() == "getname":
             requesturl = os.path.join(self.API_URL, "eve/CharacterName.xml.aspx")
-            postdata = {
-                "ids" : characterID
-            }
-            if characterID:
+            if nameID:
+                postdata = {
+                    "ids" : nameID
+                }
                 xml = self._getXML(requesturl, postdata)
                 try:
                     charName, charID = re.findall("\<row name=\"(.*?)\" characterID=\"(\d+)\" \/\>", xml)[0]
@@ -97,10 +123,71 @@ class API:
                     return None
                 else:
                     return {
-                        "characterName" : charName,
-                        "characterID" : int(charID)
-                    }            
-            
+                        "Name" : charName,
+                        "ID" : int(charID)
+                    }
+        elif Request.lower() == "getid":
+            requesturl = os.path.join(self.API_URL, "eve/CharacterID.xml.aspx")
+            if nameName:
+                postdata = {
+                    "names" : nameName
+                }
+                xml = self._getXML(requesturl, postdata)
+                try:
+                    charName, charID = re.findall("\<row name=\"(.*?)\" characterID=\"(\d+)\" \/\>", xml)[0]
+                except IndexError:
+                    return None
+                else:
+                    return {
+                        "Name" : charName,
+                        "ID" : int(charID)
+                    }
+        elif Request.lower() == "characterinfo":
+            requesturl = os.path.join(self.API_URL, "eve/CharacterInfo.xml.aspx")
+            def getValue(name):
+                try:
+                    value = xml.split("<%s>" % name)[1].split("</%s>" % name)[0]
+                except IndexError:
+                    return None
+                else:
+                    return value
+                
+            if characterID:
+                postdata = {
+                    "characterID" : characterID
+                }
+                try:
+                    xml = self._getXML(requesturl, postdata)
+                except APIError:
+                    return None
+                else:
+                    return {
+                        "characterID" : int(getValue("characterID")),
+                        "characterName" : getValue("characterName"),
+                        "race" : getValue("race"),
+                        "bloodline" : getValue("bloodline"),
+                        "corporationID" : int(getValue("corporationID")),
+                        "corporationName" : getValue("corporation"),
+                        "corporationDate" : time.mktime(time.strptime(getValue("corporationDate"), "%Y-%m-%d %H:%M:%S")),
+                        "allianceID" : int(getValue("allianceID")),
+                        "allianceName" : getValue("alliance"),
+                        "allianceDate" : time.mktime(time.strptime(getValue("allianceDate"), "%Y-%m-%d %H:%M:%S")),
+                        "securityStatus" : float(getValue("securityStatus"))
+                    }
+    #<characterID>1364641301</characterID>
+    #<characterName>mountainpenguin</characterName>
+    #<race>Gallente</race>
+    #<bloodline>Intaki</bloodline>
+    #<corporationID>1102238026</corporationID>
+    #<corporation>LazyBoyz Band of Recreational Flyers</corporation>
+    #<corporationDate>2010-09-14 16:49:00</corporationDate>
+    #<allianceID>1076729448</allianceID>
+    #<alliance>Intergalactic Exports Group</alliance>
+    #<allianceDate>2010-09-09 21:10:00</allianceDate>
+    #<securityStatus>5.00979714871991</securityStatus>
+
+                
+                    
     def Corporation(self, Request, corporationID=None):
         """
             Methods related to corporations:
@@ -127,8 +214,8 @@ class API:
                 
                 corporationName = xml.split("<corporationName>")[1].split("</corporationName>")[0]
                 
-                #for now, just return corporationName
                 return {
+                    "corporationID" : corporationID,
                     "corporationName" : corporationName
                 }
             else:
@@ -484,7 +571,7 @@ class API:
                             allianceName = None
                             allianceTicker = None
                         else:
-                            allianceCheck = self.Eve("alliances", tCOAID)
+                            allianceCheck = self.Eve("alliances", allianceID=tCOAID)
                             if allianceCheck:
                                 corpID = None
                                 corpName = None
@@ -503,14 +590,14 @@ class API:
                             IDs = toCharIDs.split(",")
                             for ID in IDs:
                                 charID = int(ID)
-                                charCheck = self.Eve("characterName", characterID=charID)
+                                charCheck = self.Eve("getName", nameID=charID)
                                 if charCheck:
-                                    charName = charCheck["characterName"]
+                                    charName = charCheck["Name"]
                                     toCharDict[charID] = {"characterName" : charName}
                                 
                         maildict[int(row["messageID"])] = {
                             "senderID" : int(row["senderID"]),
-                            "senderName" : self.Eve("characterName", characterID=int(row["senderID"]))["characterName"],
+                            "senderName" : self.Eve("getName", nameID=int(row["senderID"]))["Name"],
                             "sentDate" : time.mktime(time.strptime(row["sentDate"], "%Y-%m-%d %H:%M:%S")),
                             "title" : row["title"],
                             "corpID" : corpID,
