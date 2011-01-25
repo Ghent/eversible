@@ -36,7 +36,7 @@ def index(connection,event):
             constellationName = systemInfo["constellationName"]
             regionName = systemInfo["regionName"]
 
-            connection.privmsg(event.target(), "\x02System\x02:   \x02%s\x02/\x0310%s\x03/\x032%s\x03 :: \x1fhttp://evemaps.dotlan.net/system/%s\x1f" %
+            connection.privmsg(event.target(), "\x02System\x02:   \x02%s\x02/\x0310%s\x03/\x032%s\x03 \x02::\x02 \x1fhttp://evemaps.dotlan.net/system/%s\x1f" %
                                (solarSystemName, constellationName, regionName, solarSystemName)
                                )
             if factionName:
