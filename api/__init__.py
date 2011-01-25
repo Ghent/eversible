@@ -562,7 +562,8 @@ class API:
                         html = match[0]
                         itemID = match[1]
                         itemName = match[2]
-                        message = message.replace(html, "\x1f%s\x1f ( http://games.chruker.dk/eve_online/item.php?type_id=%s )" % (itemName, itemID))
+                        #message = message.replace(html, "\x1f%s\x1f ( http://games.chruker.dk/eve_online/item.php?type_id=%s )" % (itemName, itemID))
+                        message = message.replace(html, "\x1f%s\x1f" % itemName)
                         
                     itemmatches = re.findall("(\<a href=\"showinfo:5//(\d+)\"\>(.*?)\<\/a\>)", message, re.DOTALL)
                     for match in itemmatches:
