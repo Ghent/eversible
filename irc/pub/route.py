@@ -95,8 +95,6 @@ def index(connection, event):
                     "\x02Unknown\x02:  \x035" + ", ".join(unknown) + "\x03")
 
             if not avoid == "":
-                print "AVOID -----------"
-                print data[3:]
                 avoidsec = []
                 for entry in data[3:]:
                     entrysec = findSecurity(entry)
@@ -104,8 +102,6 @@ def index(connection, event):
                         avoidsec = avoidsec + [entry + " " + entrysec]
                     else:
                         avoidsec = avoidsec + [entry + " " + "\x02(R)\x02"]
-                print "AVOIDSEC -----------"
-                print avoidsec
                 connection.privmsg(event.target(),
                     "\x02Avoids\x02:   " + ", ".join(avoidsec))
 
