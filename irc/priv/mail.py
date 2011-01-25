@@ -70,5 +70,5 @@ def index(connection,event):
                 
                 timeSent = time.time() - mailheaders[header]["sentDate"]
                 human_time = convert_to_human(timeSent)
-                connection.privmsg(sourceNick, "    \x02%i\x02: \x1f%s\x1f from %s to %s on %s (%s ago)" % (count, title, From, TO, human_time))
+                connection.privmsg(sourceNick, "    \x02%i\x02: \x1f%s\x1f from %s to %s (%s ago)" % (count, title, From, TO, human_time))
                 count += 1
