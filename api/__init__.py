@@ -194,20 +194,6 @@ class API:
                 else:
                     refTypes[int(row["refTypeID"])] = row["refTypeName"]
             return refTypes
-            #refTypeID="1" refTypeName="Player Trading"
-            
-            
-    #<characterID>1364641301</characterID>
-    #<characterName>mountainpenguin</characterName>
-    #<race>Gallente</race>
-    #<bloodline>Intaki</bloodline>
-    #<corporationID>1102238026</corporationID>
-    #<corporation>LazyBoyz Band of Recreational Flyers</corporation>
-    #<corporationDate>2010-09-14 16:49:00</corporationDate>
-    #<allianceID>1076729448</allianceID>
-    #<alliance>Intergalactic Exports Group</alliance>
-    #<allianceDate>2010-09-09 21:10:00</allianceDate>
-    #<securityStatus>5.00979714871991</securityStatus>
 
                 
                     
@@ -243,36 +229,7 @@ class API:
                 }
             else:
                 return None
-            
-#  <result>
-#    <corporationID>1102238026</corporationID>
-#    <corporationName>LazyBoyz Band of Recreational Flyers</corporationName>
-#    <ticker>LBBRF</ticker>
-#    <ceoID>2081077519</ceoID>
-#    <ceoName>Gheent</ceoName>
-#    <stationID>60005086</stationID>
-#    <stationName>Alakgur VII - Moon 3 - Republic Security Services Assembly Plant</stationName>
-#    <description>Players of all skill levels are welcomed into a friendly Corp.&lt;br&gt;&lt;br&gt;Our Corp is growing in all aspects of the game, beside our regular mission and mining ops, wormhole exploration and the occasionaly pvp sessions. We also do lots of research and manufacturing, at our own highsec and nullsec POS's!&lt;br&gt;&lt;br&gt;Furthermore we are proud to be part of the [Intergalactic Exports Group] Alliance and are currently active in 0.0 space. Don't let it scare you off, since we have a strong base of operations down in secure nullsec space for any newcomers to the game!&lt;br&gt;&lt;br&gt;This could be your window of opportunity and let it be known that &lt;a href="showinfo:2//1102238026"&gt;Lazyboyz Band of Recreational Flyers&lt;/a&gt; will aid you in anyway we can to get you to roam amongst the stars.&lt;br&gt;&lt;br&gt;We host no obligations, and there is no risk of getting kicked out, your attendence is not required, but of course as we are all friends, we love to see you show up. In this family we totally understanding that real life obligations should come before those of EVE&lt;br&gt;&lt;br&gt;Corp tax is currently maintained at 8%, this is due to Corp expenses joining our alliance in null-sec, and to pay the rent for our own systems. We have financial support for the newcomers</description>
-#    <url>http://www.eveonline.com</url>
-#    <allianceID>1076729448</allianceID>
-#    <allianceName>Intergalactic Exports Group</allianceName>
-#    <taxRate>8</taxRate>
-#    <memberCount>61</memberCount>
-#    <shares>101000</shares>
-#    <logo>
-#      <graphicID>0</graphicID>
-#      <shape1>439</shape1>
-#      <shape2>451</shape2>
-#      <shape3>513</shape3>
-#      <color1>677</color1>
-#      <color2>679</color2>
-#      <color3>680</color3>
-#    </logo>
-#  </result>
-#  <cachedUntil>2011-01-21 23:28:01</cachedUntil>
-#</eveapi>
-
-            
+                        
     def Char(self, Request, mailID=None, refID=None):
         """ Methods related to a character:
             **********************************************
@@ -743,9 +700,6 @@ class API:
                         "balance" : row["balance"],
                     }
                     if int(row["refTypeID"]) == 85:
-                        #argName1 = solarSystemName
-                        #argID1 = solarSystemID
-                        #reason = NPCID:count,...
                         reason = row["reason"]
                         elements = reason.split(",")
                         kills = []
