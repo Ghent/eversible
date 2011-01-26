@@ -49,16 +49,23 @@ class DB:
             ])
             
             #first check if user exists
-            cursor.execute("""
-                           SELECT id,characterName,userID
-                           FROM users
-                           WHERE characterName="%s"
-                           AND userID = "%s"
-                           """ % (characterName, userID)
-                          )
-            check = cursor.fetchone()
-            if check:
-                return (False, 'Entry already exists')
+            def alreadyexists(characterName, userID):
+                cursor.execute("""
+                               SELECT id,characterName,userID
+                               FROM users
+                               WHERE characterName="%s"
+                               AND userID = "%s"
+                               """ % (characterName, userID)
+                              )
+                check = cursor.fetchone()
+                if check:
+                    return (False, 'Entry already exists')
+                else:
+                    return (True, '')
+                    
+            response = alreadyexists(characterName, userID)
+            if not response[0]:
+                return response
             
             cursor.execute("""
                            INSERT INTO users
@@ -67,6 +74,19 @@ class DB:
                            """ % (randomid, characterName, charID, userID, apiKey, hashpassword)
                           )
             
+            #add alternate characters also
+            for characterName_alt in characters.keys():
+                if alreadyexists(characterName_alt, userID)[0]:
+                    randomid_alt = "".join([random.choice(string.ascii_letters + string.digits) for x in range(20)])
+                    charID_alt = characters[characterName_alt]["characterID"]
+                    
+                    cursor.execute("""
+                                   INSERT INTO users
+                                   (id, characterName, characterID, userID, apiKey, password)
+                                   VALUES ("%s", "%s", "%s", "%s", "%s", "%s")
+                                   """ % (randomid_alt, characterName_alt, charID_alt, userID, apiKey, hashpassword)
+                                  )
+                    
             self.removeHostname(hostname)
             
             cursor.execute("""
@@ -177,7 +197,8 @@ class DB:
                     "characterName" : result[1],
                     "characterID" : result[2],
                     "userID" : result[3],
-                    "apiKey" : result[4]
+                    "apiKey" : result[4],
+                    "apiObject" : api.API(userid=result[3], apikey=result[4], charid=result[2], characterName=result[1])
                 }
         cursor.close()
         conn.close()
