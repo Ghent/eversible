@@ -177,7 +177,8 @@ class DB:
                     "characterName" : result[1],
                     "characterID" : result[2],
                     "userID" : result[3],
-                    "apiKey" : result[4]
+                    "apiKey" : result[4],
+                    "apiObject" : api.API(userid=result[3], apikey=result[4], charid=result[2], characterName=result[1])
                 }
         cursor.close()
         conn.close()
