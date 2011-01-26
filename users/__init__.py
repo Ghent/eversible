@@ -151,9 +151,7 @@ class DB:
         else:
             result = cursor.fetchone()
             if result:
-                print result
                 user_id = result[0]
-                print user_id
             else:
                 cursor.close()
                 conn.close()
