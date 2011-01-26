@@ -69,6 +69,7 @@ class API:
             getID     : returns the ID for a given Name
                         # includes chars, corps and alliances
             characterinfo : returns (public) info for a character
+            refTypes : returns list of wallet journal ref types
             *********************************************
             (N) = No API key required
         """
@@ -174,17 +175,25 @@ class API:
                         "allianceDate" : time.mktime(time.strptime(getValue("allianceDate"), "%Y-%m-%d %H:%M:%S")),
                         "securityStatus" : float(getValue("securityStatus"))
                     }
-    #<characterID>1364641301</characterID>
-    #<characterName>mountainpenguin</characterName>
-    #<race>Gallente</race>
-    #<bloodline>Intaki</bloodline>
-    #<corporationID>1102238026</corporationID>
-    #<corporation>LazyBoyz Band of Recreational Flyers</corporation>
-    #<corporationDate>2010-09-14 16:49:00</corporationDate>
-    #<allianceID>1076729448</allianceID>
-    #<alliance>Intergalactic Exports Group</alliance>
-    #<allianceDate>2010-09-09 21:10:00</allianceDate>
-    #<securityStatus>5.00979714871991</securityStatus>
+        elif Request.lower() == "reftypes":
+            requesturl = os.path.join(self.API_URL, "eve/RefTypes.xml.aspx")
+            #cache forever
+            xml = self.CACHE.requestXML(requesturl, {})
+            if not xml:
+                xml = urllib2.urlopen(requesturl).read()
+                self._errorCheck(xml)
+                self.CACHE.insertXML(requesturl, xml, 2147483647.0, {})
+            
+            rows = re.finditer("\<row refTypeID=\"(?P<refTypeID>\d+)\" refTypeName=\"(?P<refTypeName>.*?)\" \/\>", xml)
+            refTypes = {}
+            while True:
+                try:
+                    row = rows.next().groupdict()
+                except StopIteration:
+                    break
+                else:
+                    refTypes[int(row["refTypeID"])] = row["refTypeName"]
+            return refTypes
 
                 
                     
@@ -220,37 +229,8 @@ class API:
                 }
             else:
                 return None
-            
-#  <result>
-#    <corporationID>1102238026</corporationID>
-#    <corporationName>LazyBoyz Band of Recreational Flyers</corporationName>
-#    <ticker>LBBRF</ticker>
-#    <ceoID>2081077519</ceoID>
-#    <ceoName>Gheent</ceoName>
-#    <stationID>60005086</stationID>
-#    <stationName>Alakgur VII - Moon 3 - Republic Security Services Assembly Plant</stationName>
-#    <description>Players of all skill levels are welcomed into a friendly Corp.&lt;br&gt;&lt;br&gt;Our Corp is growing in all aspects of the game, beside our regular mission and mining ops, wormhole exploration and the occasionaly pvp sessions. We also do lots of research and manufacturing, at our own highsec and nullsec POS's!&lt;br&gt;&lt;br&gt;Furthermore we are proud to be part of the [Intergalactic Exports Group] Alliance and are currently active in 0.0 space. Don't let it scare you off, since we have a strong base of operations down in secure nullsec space for any newcomers to the game!&lt;br&gt;&lt;br&gt;This could be your window of opportunity and let it be known that &lt;a href="showinfo:2//1102238026"&gt;Lazyboyz Band of Recreational Flyers&lt;/a&gt; will aid you in anyway we can to get you to roam amongst the stars.&lt;br&gt;&lt;br&gt;We host no obligations, and there is no risk of getting kicked out, your attendence is not required, but of course as we are all friends, we love to see you show up. In this family we totally understanding that real life obligations should come before those of EVE&lt;br&gt;&lt;br&gt;Corp tax is currently maintained at 8%, this is due to Corp expenses joining our alliance in null-sec, and to pay the rent for our own systems. We have financial support for the newcomers</description>
-#    <url>http://www.eveonline.com</url>
-#    <allianceID>1076729448</allianceID>
-#    <allianceName>Intergalactic Exports Group</allianceName>
-#    <taxRate>8</taxRate>
-#    <memberCount>61</memberCount>
-#    <shares>101000</shares>
-#    <logo>
-#      <graphicID>0</graphicID>
-#      <shape1>439</shape1>
-#      <shape2>451</shape2>
-#      <shape3>513</shape3>
-#      <color1>677</color1>
-#      <color2>679</color2>
-#      <color3>680</color3>
-#    </logo>
-#  </result>
-#  <cachedUntil>2011-01-21 23:28:01</cachedUntil>
-#</eveapi>
-
-            
-    def Char(self, Request, mailID=None):
+                        
+    def Char(self, Request, mailID=None, refID=None):
         """ Methods related to a character:
             **********************************************
             balance : returns the account balance (F)
@@ -686,20 +666,55 @@ class API:
                         "endTime" : time.mktime(time.strptime(row["endTime"], "%Y-%m-%d %H:%M:%S"))
                     }
             return returndict
+        elif Request.lower() == "wallet":
+            requesturl = os.path.join(self.API_URL, "char/WalletJournal.xml.aspx")
+            xml = self._getXML(requesturl, basepostdata)
             
-#<?xml version='1.0' encoding='UTF-8'?>
-#<eveapi version="2">
-#  <currentTime>2011-01-24 22:43:06</currentTime>
-#  <result>
-#    <rowset name="skillqueue" key="queuePosition" columns="queuePosition,typeID,level,startSP,endSP,startTime,endTime">
-#      <row queuePosition="0" typeID="30546" level="5" startSP="45255" endSP="256000" startTime="2011-01-22 20:25:45" endTime="2011-01-26 18:05:37" />
-#    </rowset>
-#  </result>
-#  <cachedUntil>2011-01-24 23:40:06</cachedUntil>
-#</eveapi>
-
-            #regex = self.XML.getDefaultRegex(xml)[0]
-            #return regex.search(xml).groupdict()
+            walletdict = {}
+            rows = re.finditer("\<row date=\"(?P<date>\d+-\d+-\d+ \d+:\d+:\d+)\" refID=\"(?P<refID>\d+)\" refTypeID=\"(?P<refTypeID>\d+)\" ownerName1=\"(?P<ownerName1>.*?)\" ownerID1=\"(?P<ownerID1>\d+)\" ownerName2=\"(?P<ownerName2>.*?)\" ownerID2=\"(?P<ownerID2>\d+)\" argName1=\"(?P<argName1>.*?)\" argID1=\"(?P<argID1>\d+)\" amount=\"(?P<amount>\d+\.\d\d)\" balance=\"(?P<balance>\d+\.\d\d)\" reason=\"(?P<reason>.*?)\" taxReceiverID=\"(?P<taxReceiverID>\d+)\" taxAmount=\"(?P<taxAmount>\d+\.\d\d)\" \/\>", xml)
+            refTypes = self.Eve("reftypes")
+            
+            while True:
+                try:
+                    row = rows.next().groupdict()
+                except StopIteration:
+                    break
+                    
+                else:
+                    walletdict[int(row["refID"])] = {
+                        "refID" : int(row["refID"]),
+                        "refTypeID" : int(row["refTypeID"]),
+                        "refTypeName" : refTypes[int(row["refTypeID"])],
+                        "date" : time.mktime(time.strptime(row["date"], "%Y-%m-%d %H:%M:%S")),
+                        "amount" : float(row["amount"]),
+                        "taxAmount" : float(row["taxAmount"]),
+                        "taxReceiverID" : int(row["taxReceiverID"]),
+                        "taxReceiverName" : self.Eve("getname",nameID=int(row["taxReceiverID"]))["Name"],
+                        "ownerID1" : int(row["ownerID1"]),
+                        "ownerName1" : row["ownerName1"],
+                        "ownerID2" : int(row["ownerID2"]),
+                        "ownerName2" : row["ownerName2"],
+                        "argID1" : int(row["argID1"]),
+                        "argName1" : row["argName1"],
+                        "reason" : row["reason"],
+                        "balance" : row["balance"],
+                    }
+                    if int(row["refTypeID"]) == 85:
+                        reason = row["reason"]
+                        elements = reason.split(",")
+                        kills = []
+                        for element in elements:
+                            if element != "":
+                                NPCid = int(element.split(":")[0])
+                                NPCName = self.Eve("getname", nameID=NPCid)["Name"]
+                                count = element.split(":")[1]
+                                kills += [{
+                                    "shipID" : NPCid,
+                                    "shipName" : NPCName,
+                                    "count" : count
+                                }]
+                        walletdict[int(row["refID"])]["_kills_"] = kills
+            return walletdict
 
         elif Request.lower() == "transacts":
             requesturl = os.path.join(self.API_URL, "char/WalletTransactions.xml.aspx")

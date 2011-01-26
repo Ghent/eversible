@@ -4,7 +4,7 @@ import sqlite3
 import api
 import random
 import string
-import md5
+import hashlib
 
 class DB:
     def __init__(self):
@@ -18,14 +18,12 @@ class DB:
         cursor.execute("DROP TABLE users")
         cursor.close()
         conn.close()
-        
+
     def createUser(self, apiKey, userID, characterName, password, hostname):
         API = api.API(apikey=apiKey, userid=userID, charid=None)
         characters = API.Account("characters")
-        hashpassword = md5.new(password).hexdigest()
+        hashpassword = hashlib.md5(password).hexdigest()
 
-        print "characterName:",characterName
-        print "characters.keys():", characters.keys()
         if characterName in characters.keys():
             charID = characters[characterName]["characterID"]
             conn = sqlite3.connect("users/eversible.db")
@@ -68,6 +66,9 @@ class DB:
                            VALUES ("%s", "%s", "%s", "%s", "%s", "%s")
                            """ % (randomid, characterName, charID, userID, apiKey, hashpassword)
                           )
+            
+            self.removeHostname(hostname)
+            
             cursor.execute("""
                            INSERT INTO hostnames
                            (id, hostname)
@@ -80,6 +81,58 @@ class DB:
             return (True,'')
         else:
             return (False,'Invalid details')
+            
+    def lookForAlts(self, apiKey, userID):
+        conn = sqlite3.connect("users/eversible.db")
+        cursor = conn.cursor()
+        try:
+            cursor.execute("""
+                           SELECT characterName
+                           FROM users
+                           WHERE apiKey="%s"
+                           AND userID="%s"
+                           """ % (apiKey, userID)
+                          )
+        except sqlite3.OperationalError:
+            cursor.close()
+            conn.close()
+            return None
+        else:
+            results = cursor.fetchall()
+            cursor.close()
+            conn.close()
+            return results
+    def lookupAlt(self, apiKey, userID, characterName, altName):
+        API = api.API(apikey=apiKey, userid=userID)
+        characters = API.Account("characters")
+        if characterName in characters.keys() and altName in characters.keys():
+            conn = sqlite3.connect("users/eversible.db")
+            cursor = conn.cursor()
+            try:
+                cursor.execute("""
+                               SELECT id, characterName, characterID, userID, apiKey
+                               FROM users
+                               WHERE characterName='%s'
+                               AND userID='%s'
+                               AND apiKey='%s'
+                               """ % (altName, userID, apiKey)
+                              )
+            except sqlite3.OperationalError:
+                cursor.close()
+                conn.close()
+                return None
+            else:
+                result = cursor.fetchone()
+                if not result:
+                    cursor.close()
+                    conn.close()
+                    return None
+                else:
+                    cursor.close()
+                    conn.close()
+                    return True
+        else:
+            return None
     
     def retrieveUserByHostname(self, hostname):
         conn = sqlite3.connect("users/eversible.db")
@@ -92,12 +145,16 @@ class DB:
                            """ % (hostname))
             
         except sqlite3.OperationalError:
+            cursor.close()
+            conn.close()
             return None
         else:
             result = cursor.fetchone()
             if result:
-                id = result[0]
+                user_id = result[0]
             else:
+                cursor.close()
+                conn.close()
                 return None
             
             try:
@@ -106,12 +163,16 @@ class DB:
                                SELECT id, characterName, characterID, userID, apiKey
                                FROM users
                                WHERE id="%s"
-                               """ % (id)
+                               """ % (user_id)
                               )
             except sqlite3.OperationalError:
+                cursor.close()
+                conn.close()
                 return None
             else:
                 result = cursor.fetchone()
+                cursor.close()
+                conn.close()
                 return {
                     "characterName" : result[1],
                     "characterID" : result[2],
@@ -154,7 +215,7 @@ class DB:
     def testIdentity(self, characterName, password, hostname):
         conn = sqlite3.connect("users/eversible.db")
         cursor = conn.cursor()
-        hashpassword = md5.new(password).hexdigest()
+        hashpassword = hashlib.md5(password).hexdigest()
         try:
             cursor.execute("""
                            SELECT id, characterName, password
@@ -164,11 +225,14 @@ class DB:
                            """ % (characterName, hashpassword)
                           )
         except sqlite3.OperationalError:
+            cursor.close()
+            conn.close()
             return False
         else:
             result = cursor.fetchone()
             if result:
                 #insert hostname into hostnames table
+                self.removeHostname(hostname)
                 id = result[0]
                 cursor.execute("""
                                INSERT INTO hostnames
@@ -181,4 +245,36 @@ class DB:
                 conn.close()
                 return True
             else:
+                cursor.close()
+                conn.close()
                 return False
+            
+    def addHostname(self, characterName, hostname):
+        conn = sqlite3.connect("users/eversible.db")
+        cursor = conn.cursor()
+        
+        #get associated id
+        cursor.execute("""
+                       SELECT id,characterName,apiKey,userID
+                       FROM users
+                       WHERE characterName="%s"
+                       """ % characterName)
+        result = cursor.fetchone()
+        
+        if not result:
+            cursor.close()
+            conn.close()
+            return False
+        else:
+            self.removeHostname(hostname)
+            
+            cursor.execute("""
+                           INSERT INTO hostnames
+                           (id, hostname)
+                           VALUES ("%s", "%s")
+                           """ % (result[0], hostname)
+                          )
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return True
