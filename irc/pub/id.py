@@ -12,16 +12,16 @@ DB = evedb.DUMP()
 
 def index(connection, event):
     try:
-        idSearch = event.arguments()[0].split()[1]
+        idSearch = " ".join(event.arguments()[0].split()[1:]).strip()
     except (IndexError, ValueError):
         connection.privmsg(event.target(),
-            "Syntax is: .id [itemName]")
+            "Syntax is: id [itemName]")
     else:
         responseItemName = DB.getItemIDByName(idSearch)
     if not responseItemName:
             connection.privmsg(event.target(), "Item '%s' is unknown to me"
                 % idSearch)
     else:
-	connection.privmsg(event.target(),
-                    "\x02ID of %s\x02: \x1f%s\x1f"
-                    % (idSearch, responseItemName))
+        connection.privmsg(event.target(),
+			   "\x02ID of %s\x02: \x1f%s\x1f"
+			   % (idSearch, responseItemName))
