@@ -707,7 +707,7 @@ class API:
                             if element != "":
                                 NPCid = int(element.split(":")[0])
                                 NPCName = self.Eve("getname", nameID=NPCid)["Name"]
-                                count = element.split(":")[1]
+                                count = int(element.split(":")[1])
                                 kills += [{
                                     "shipID" : NPCid,
                                     "shipName" : NPCName,
