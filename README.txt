@@ -24,7 +24,7 @@ PLANNED FEATURES
   EVE INFORMATION
     - Blueprint Lookup
     - EVE Mail Received Notification
-    - Jump Route Planner
+    * Jump Route Planner
     * Route Planner
     - Sell/Buy Order changes
     * Server Status with user statistics
@@ -32,7 +32,7 @@ PLANNED FEATURES
     * System Information
       * Kills
       * Sovereignty
-     - Wormhole information
+    - Wormhole information
 
 
 TECHNICAL FEATURES
