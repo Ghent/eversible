@@ -4,7 +4,7 @@ import sqlite3
 import api
 import random
 import string
-import md5
+import hashlib
 
 class DB:
     def __init__(self):
@@ -22,7 +22,7 @@ class DB:
     def createUser(self, apiKey, userID, characterName, password, hostname):
         API = api.API(apikey=apiKey, userid=userID, charid=None)
         characters = API.Account("characters")
-        hashpassword = md5.new(password).hexdigest()
+        hashpassword = hashlib.md5(password).hexdigest()
 
         if characterName in characters.keys():
             charID = characters[characterName]["characterID"]
@@ -215,7 +215,7 @@ class DB:
     def testIdentity(self, characterName, password, hostname):
         conn = sqlite3.connect("users/eversible.db")
         cursor = conn.cursor()
-        hashpassword = md5.new(password).hexdigest()
+        hashpassword = hashlib.md5(password).hexdigest()
         try:
             cursor.execute("""
                            SELECT id, characterName, password
