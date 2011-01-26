@@ -151,7 +151,9 @@ class DB:
         else:
             result = cursor.fetchone()
             if result:
-                id = result[0]
+                print result
+                user_id = result[0]
+                print user_id
             else:
                 cursor.close()
                 conn.close()
@@ -163,7 +165,7 @@ class DB:
                                SELECT id, characterName, characterID, userID, apiKey
                                FROM users
                                WHERE id="%s"
-                               """ % (id)
+                               """ % (user_id)
                               )
             except sqlite3.OperationalError:
                 cursor.close()
@@ -258,7 +260,7 @@ class DB:
                        SELECT id,characterName,apiKey,userID
                        FROM users
                        WHERE characterName="%s"
-                       """)
+                       """ % characterName)
         result = cursor.fetchone()
         
         if not result:
@@ -271,8 +273,8 @@ class DB:
             cursor.execute("""
                            INSERT INTO hostnames
                            (id, hostname)
-                           VALUE ("%s", "%s")
-                           """ % (id, hostname)
+                           VALUES ("%s", "%s")
+                           """ % (result[0], hostname)
                           )
             conn.commit()
             cursor.close()
