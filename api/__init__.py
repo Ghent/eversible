@@ -180,7 +180,7 @@ class API:
             #cache forever
             xml = self.CACHE.requestXML(requesturl, {})
             if not xml:
-                xml = urllib2.urlopen(requesturl)
+                xml = urllib2.urlopen(requesturl).read()
                 self._errorCheck(xml)
                 self.CACHE.insertXML(requesturl, xml, 2147483647.0, {})
             
@@ -273,7 +273,7 @@ class API:
 #</eveapi>
 
             
-    def Char(self, Request, mailID=None):
+    def Char(self, Request, mailID=None, refID=None):
         """ Methods related to a character:
             **********************************************
             balance : returns the account balance (F)
@@ -722,11 +722,12 @@ class API:
                     row = rows.next().groupdict()
                 except StopIteration:
                     break
+                    
                 else:
-                    newentry = {[int(row["refID"])] : {
+                    walletdict[int(row["refID"])] = {
                         "refID" : int(row["refID"]),
                         "refTypeID" : int(row["refTypeID"]),
-                        "refTypeName" : refType[int(row["refTypeID"])],
+                        "refTypeName" : refTypes[int(row["refTypeID"])],
                         "date" : time.mktime(time.strptime(row["date"], "%Y-%m-%d %H:%M:%S")),
                         "amount" : float(row["amount"]),
                         "taxAmount" : float(row["taxAmount"]),
@@ -739,8 +740,27 @@ class API:
                         "argID1" : int(row["argID1"]),
                         "argName1" : row["argName1"],
                         "reason" : row["reason"],
-                        "balance" : row["balance"]
-                    }}
+                        "balance" : row["balance"],
+                    }
+                    if int(row["refTypeID"]) == 85:
+                        #argName1 = solarSystemName
+                        #argID1 = solarSystemID
+                        #reason = NPCID:count,...
+                        reason = row["reason"]
+                        elements = reason.split(",")
+                        kills = []
+                        for element in elements:
+                            if element != "":
+                                NPCid = int(element.split(":")[0])
+                                NPCName = self.Eve("getname", nameID=NPCid)["Name"]
+                                count = element.split(":")[1]
+                                kills += [{
+                                    "shipID" : NPCid,
+                                    "shipName" : NPCName,
+                                    "count" : count
+                                }]
+                        walletdict[int(row["refID"])]["_kills_"] = kills
+            return walletdict
 
         elif Request.lower() == "transacts":
             requesturl = os.path.join(self.API_URL, "char/WalletTransactions.xml.aspx")
