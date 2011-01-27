@@ -15,16 +15,16 @@ jumpCapableID = array([22440, 22428, 22430, 22436, 28352, 23757, 23915, 24483, 2
 def index(connection, event):
     try:
         shipName = event.arguments()[0].split()[1]
-	lvlJDC = event.arguments()[0].split()[2]
-	lvlJFC = event.arguments()[0].split()[3]
-	lvlJF = event.arguments()[0].split()[4]
-	systemFrom = event.arguments()[0].split()[5]
+        lvlJDC = event.arguments()[0].split()[2]
+        lvlJFC = event.arguments()[0].split()[3]
+        lvlJF = event.arguments()[0].split()[4]
+        systemFrom = event.arguments()[0].split()[5]
         systemTo = event.arguments()[0].split()[6]
     except (IndexError, ValueError):
-	connection.privmsg(event.target(),
+        connection.privmsg(event.target(),
             "Syntax is: .jump [ship name] [JDC lvl] [JFC lvl] [JF lvl] [system name] [system name]")
     else:
-	responseShipID = DB.getItemIDByName(shipName)
+        responseShipID = DB.getItemIDByName(shipName)
         responseSystemFromID = DB.getSystemIDByName(systemFrom)
         responseSystemToID = DB.getSystemIDByName(systemTo)
         if not responseSystemFromID:
@@ -33,19 +33,19 @@ def index(connection, event):
         elif not responseSystemToID:
             connection.privmsg(event.target(), "System '%s' is unknown to me"
                 % systemTo)
-	elif not responseShipID:
-	    connection.privmsg(event.target(), "Ship '%s' is unknown to me"
+        elif not responseShipID:
+            connection.privmsg(event.target(), "Ship '%s' is unknown to me"
                 % shipName)
-	elif not responseShipID in jumpCapableID:
+        elif not responseShipID in jumpCapableID:
             connection.privmsg(event.target(), "Ship '%s' not jump capable"
                 % shipName)
-	elif int(lvlJDC) > 5 or int(lvlJDC) < 0:
-	    connection.privmsg(event.target(), "JDC level not within acceptable ranges"
+        elif int(lvlJDC) > 5 or int(lvlJDC) < 0:
+            connection.privmsg(event.target(), "JDC level not within acceptable ranges"
                 )
-	elif int(lvlJFC) > 5 or int(lvlJFC) < 0:
+        elif int(lvlJFC) > 5 or int(lvlJFC) < 0:
             connection.privmsg(event.target(), "JFC level not within acceptable ranges"
                 )
-	elif int(lvlJF) > 5 or int(lvlJF) < 0:
+        elif int(lvlJF) > 5 or int(lvlJF) < 0:
             connection.privmsg(event.target(), "JF level not within acceptable ranges"
                 )
         elif float(DB.getSystemInfoByID(responseSystemFromID)["security"]) > 0.0:
@@ -60,16 +60,16 @@ def index(connection, event):
             systemSecFrom = security(responseSystemFromID)
             systemNameTo = DB.getSystemNameByID(responseSystemToID)
             systemSecTo = security(responseSystemToID)
-	    shipName = DB.getItemNameByID(responseShipID)
+            shipName = DB.getItemNameByID(responseShipID)
             sytemSecFromChk = DB.getSystemInfoByID(responseSystemFromID)["security"]
             systemSecToChk =  DB.getSystemInfoByID(responseSystemToID)["security"]            
 
-	    outputMessage = """
+            outputMessage = """
                 \x02Origin\x02:   %s (%s)
                 \x02Endpoint\x02: %s (%s)
                 \x02Ship\x02: %s
                 \x02JDC lvl\x02: %s    \x02JFC lvl\x02: %s    \x02JF lvl\x02: %s
-		\x02Jump Route\x02: \x1fhttp://evemaps.dotlan.net/jump/%s,%s%s%s/%s:%s\x1f
+                \x02Jump Route\x02: \x1fhttp://evemaps.dotlan.net/jump/%s,%s%s%s/%s:%s\x1f
             """ % (systemNameFrom, systemSecFrom, systemNameTo, systemSecTo, shipName, lvlJDC, lvlJFC, lvlJF, shipName, lvlJDC, lvlJFC, lvlJF, systemNameFrom, systemNameTo)
             for line in outputMessage.split("\n"):
                 connection.privmsg(event.target(), line.strip())
