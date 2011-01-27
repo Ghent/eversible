@@ -38,13 +38,13 @@ def index(connection, event):
         elif not responseShipID in jumpCapableID:
             connection.privmsg(event.target(), "Ship '%s' not jump capable"
                 % shipName)
-        elif lvlJDC > 5 or int(lvlJDC) < 0:
+        elif lvlJDC > 5 or lvlJDC < 0:
             connection.privmsg(event.target(), "JDC level not within acceptable ranges"
                 )
-        elif lvlJFC > 5 or int(lvlJFC) < 0:
+        elif lvlJFC > 5 or lvlJFC < 0:
             connection.privmsg(event.target(), "JFC level not within acceptable ranges"
                 )
-        elif lvlJF > 5 or int(lvlJF) < 0:
+        elif lvlJF > 5 or lvlJF < 0:
             connection.privmsg(event.target(), "JF level not within acceptable ranges"
                 )
         elif DB.getSystemInfoByID(responseSystemFromID)["security"] >= 0.5:
