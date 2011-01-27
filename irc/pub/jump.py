@@ -14,9 +14,9 @@ jumpCapableID = [22440, 22428, 22430, 22436, 28352, 23757, 23915, 24483, 23911, 
 def index(connection, event):
     try:
         shipName = event.arguments()[0].split()[1]
-        lvlJDC = event.arguments()[0].split()[2]
-        lvlJFC = event.arguments()[0].split()[3]
-        lvlJF = event.arguments()[0].split()[4]
+        lvlJDC = int(event.arguments()[0].split()[2])
+        lvlJFC = int(event.arguments()[0].split()[3])
+        lvlJF = int(event.arguments()[0].split()[4])
         systemFrom = event.arguments()[0].split()[5]
         systemTo = event.arguments()[0].split()[6]
     except (IndexError, ValueError):
@@ -38,19 +38,19 @@ def index(connection, event):
         elif not responseShipID in jumpCapableID:
             connection.privmsg(event.target(), "Ship '%s' not jump capable"
                 % shipName)
-        elif int(lvlJDC) > 5 or int(lvlJDC) < 0:
+        elif lvlJDC > 5 or int(lvlJDC) < 0:
             connection.privmsg(event.target(), "JDC level not within acceptable ranges"
                 )
-        elif int(lvlJFC) > 5 or int(lvlJFC) < 0:
+        elif lvlJFC > 5 or int(lvlJFC) < 0:
             connection.privmsg(event.target(), "JFC level not within acceptable ranges"
                 )
-        elif int(lvlJF) > 5 or int(lvlJF) < 0:
+        elif lvlJF > 5 or int(lvlJF) < 0:
             connection.privmsg(event.target(), "JF level not within acceptable ranges"
                 )
-        elif float(DB.getSystemInfoByID(responseSystemFromID)["security"]) > 0.0:
+        elif DB.getSystemInfoByID(responseSystemFromID)["security"] >= 0.5:
             connection.privmsg(event.target(), "System of Origin must be > 0.0"
                 )
-        elif float(DB.getSystemInfoByID(responseSystemToID)["security"]) > 0.0:
+        elif DB.getSystemInfoByID(responseSystemToID)["security"] >= 0.5:
             connection.privmsg(event.target(), "Destination sytem must be > 0.0"
                 )
 
