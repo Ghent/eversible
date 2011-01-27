@@ -3,11 +3,10 @@
 # vim: filetype=python tabstop=4 expandtab:
 
 
-import ConfigParser
-
-import core.options as options
-import core.config as config
 import irc.bot
+
+from core.options import options
+from core.config import config
 
 
 """ Start the IRC bot """
@@ -19,6 +18,3 @@ irc.bot.start(config.get("irc", "host"),
               config.get("bot", "password"),
               config.get("bot", "prefix"),
               config.getint("bot", "debug_level"))
-
-
-sys.exit(1)

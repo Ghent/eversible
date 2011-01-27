@@ -5,6 +5,8 @@
 
 import ConfigParser
 
+from core.options import options
+
 
 """ Load the configuration """
 config = ConfigParser.RawConfigParser()
