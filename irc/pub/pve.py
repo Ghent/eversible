@@ -52,11 +52,15 @@ def index(connection, event):
                     bounty_rev += ","
                 bounty_rev += char
                 count += 1
-            bounty = "%s.%s" % (bounty_rev[::-1], str(total_bounty).split(".")[1])
+            if total_bounty != 0:
+                bounty = "%s.%s" % (bounty_rev[::-1], str(total_bounty).split(".")[1])
+            else:
+                bounty = "0.0"
             bounties_list = sorted(bounties.items(), key=lambda ship: ship[1], reverse=True)
             connection.privmsg(event.target(), "\x02PvE stats for character \x038\x02\x02%s\x03 in the past week\x02" % APItest["characterName"])
             connection.privmsg(event.target(), "\x02Total bounty earned\x02: \x039\x02\x02%s ISK\x03\x02\x02" % bounty)
-            connection.privmsg(event.target(), "\x02Top 5 NPC ships killed:\x02")
-            for shiptype in bounties_list[:5]:
-                connection.privmsg(event.target(), "\x034\x02%-25s\x03\x02:  \x033\x02\x02%1i\x03" % (shiptype[0], shiptype[1]))
+            if total_bounty != 0:
+                connection.privmsg(event.target(), "\x02Top 5 NPC ships killed:\x02")
+                for shiptype in bounties_list[:5]:
+                    connection.privmsg(event.target(), "\x034\x02%-25s\x03\x02:  \x033\x02\x02%1i\x03" % (shiptype[0], shiptype[1]))
                 
