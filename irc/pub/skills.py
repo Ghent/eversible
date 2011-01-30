@@ -89,7 +89,6 @@ def index(connection,event):
                     secs_done = time.time() - startTime
                 else:
                     secs_done = 0
-                    print time.time() - startTime
                 secs_to_go = total_sec - secs_done
                                 
                 SPleft = endSP - (secs_done * SPpersec) - startSP
