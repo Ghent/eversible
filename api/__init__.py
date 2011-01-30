@@ -343,7 +343,99 @@ class API:
         elif Request.lower() == "charsheet":
             requesturl = os.path.join(self.API_URL, "char/CharacterSheet.xml.aspx")
             xml = self._getXML(requesturl, basepostdata)
-            print xml
+            
+            def getBasicValue(valueName, xml=xml):
+                try:
+                    value = xml.split("<%s>" % valueName)[1].split("</%s>" % valueName)[0]
+                    return value
+                except IndexError:
+                    return None
+            
+            #get attributes
+            attrib_dict = {}
+            attrib_xml = getBasicValue("attributes").strip()
+            attrib_dict["intelligence"] = int(getBasicValue("intelligence",attrib_xml))
+            attrib_dict["memory"] = int(getBasicValue("memory", attrib_xml))
+            attrib_dict["charisma"] = int(getBasicValue("charisma",attrib_xml))
+            attrib_dict["perception"] = int(getBasicValue("perception", attrib_xml))
+            attrib_dict["willpower"] = int(getBasicValue("willpower", attrib_xml))
+            
+            #get attributeEnhancers
+            xml_aE = getBasicValue("attributeEnhancers")
+            if xml_aE:
+                xml_aE = xml_aE.strip()
+                intelligence_xml = getBasicValue("intelligenceBonus", xml_aE)
+                if intelligence_xml:
+                    intelligence_bonus_name = getBasicValue("augmentatorName", intelligence_xml)
+                    intelligence_bonus_value = int(getBasicValue("augmentatorValue", intelligence_xml))
+                    attrib_dict["intelligence"] += intelligence_bonus_value
+                memory_xml = getBasicValue("memoryBonus", xml_aE)
+                if memory_xml:
+                    attrib_dict["memory"] += int(getBasicValue("augmentatorValue", memory_xml))
+                charisma_xml = getBasicValue("charismaBonus", xml_aE)
+                if charisma_xml:
+                    attrib_dict["charisma"] += int(getBasicValue("augmentatorValue", memory_xml))
+                perception_xml = getBasicValue("perceptionBonus", xml_aE)
+                if perception_xml:
+                    attrib_dict["perception"] += int(getBasicValue("augmentatorValue", memory_xml))
+                willpower_xml = getBasicValue("willpowerBonus", xml_aE)
+                if willpower_xml:
+                    attrib_dict["willpower"] += int(getBasicValue("augmentatorValue", memory_xml))
+                    
+            #get skills
+            xml_skills = xml.split("<rowset name=\"skills\"")[1].split(">", 1)[1].split("</rowset>")[0]
+            rows = re.finditer("\<row typeID=\"(?P<typeID>\d+)\" skillpoints=\"(?P<skillpoints>\d+)\" level=\"(?P<level>\d+)\" \/\>", xml_skills)
+            skills_dict = {}
+            while True:
+                try:
+                    row = rows.next().groupdict()
+                except StopIteration:
+                    break
+                else:
+                    skills_dict[int(row["typeID"])] = {
+                        "typeID" : int(row["typeID"]),
+                        "typeName" : self.EVE.getItemNameByID(int(row["typeID"])),
+                        "skillpoints" : int(row["skillpoints"]),
+                        "level" : int(row["level"])
+                    }
+                    
+            #get certificates
+            xml_certs = xml.split("<rowset name=\"certificates\"")[1].split(">", 1)[1].split("</rowset>")[0]
+            rows = re.finditer("\<row certificateID=\"(?P<ID>\d+)\" \/\>", xml_certs)
+            certificate_dict = {}
+            while True:
+                try:
+                    row = rows.next().groupdict()
+                except StopIteration:
+                    break
+                else:
+                    certificate_dict[int(row["ID"])] = {
+                        "certificateID" : int(row["ID"]),
+                        #"certificateName" : need corresponding method in evedb
+                    }
+                    
+            #ignore corp roles for now
+            
+            return {
+                "characterID" : int(getBasicValue("characterID")),
+                "name" : getBasicValue("name"),
+                "DoB" : time.mktime(time.strptime(getBasicValue("DoB"),"%Y-%m-%d %H:%M:%S")),
+                "race" : getBasicValue("race"),
+                "bloodLine" : getBasicValue("bloodLine"),
+                "ancestry" : getBasicValue("ancestry"),
+                "gender" : getBasicValue("gender"),
+                "corporationName" : getBasicValue("corporationName"),
+                "corporationID" : int(getBasicValue("corporationID")),
+                "allianceName" : getBasicValue("allianceName"),
+                "allianceID" : int(getBasicValue("allianceID")),
+                "cloneName" : getBasicValue("cloneName"),
+                "cloneSkillPoints" : int(getBasicValue("cloneSkillPoints")),
+                "balance" : float(getBasicValue("balance")),
+                "attributes" : attrib_dict,
+                "skills" : skills_dict,
+                "certificated" : certificate_dict
+            }
+                
 
         elif Request.lower() == "industry":
             requesturl = os.path.join(self.API_URL, "char/IndustryJobs.xml.aspx")
@@ -705,14 +797,17 @@ class API:
                         kills = []
                         for element in elements:
                             if element != "":
-                                NPCid = int(element.split(":")[0])
-                                NPCName = self.Eve("getname", nameID=NPCid)["Name"]
-                                count = int(element.split(":")[1])
-                                kills += [{
-                                    "shipID" : NPCid,
-                                    "shipName" : NPCName,
-                                    "count" : count
-                                }]
+                                try:
+                                    NPCid = int(element.split(":")[0])
+                                    NPCName = self.Eve("getname", nameID=NPCid)["Name"]
+                                    count = int(element.split(":")[1])
+                                    kills += [{
+                                        "shipID" : NPCid,
+                                        "shipName" : NPCName,
+                                        "count" : count
+                                    }]
+                                except ValueError:
+                                    print element
                         walletdict[int(row["refID"])]["_kills_"] = kills
             return walletdict
 
