@@ -5,6 +5,25 @@ import api
 import time
 import traceback
 
+def convert_to_human(Time):
+    mins, secs = divmod(Time, 60)
+    hours, mins = divmod(mins, 60)
+    days, hours = divmod(hours, 24)
+    weeks, days = divmod(days, 7)
+    
+    time_str = ""
+    if weeks > 0:
+        time_str += "%iw " % weeks
+    if days > 0:
+        time_str += "%id " % days
+    if hours > 0:
+        time_str += "%ih " % hours
+    if mins > 0:
+        time_str += "%im " % mins
+    if secs > 0:
+        time_str += "%is" % secs
+    return time_str
+
 def index(connection,event):
     #requires limited api key
     
@@ -33,6 +52,9 @@ def index(connection,event):
             
             queuekeys = skillqueue.keys()
             queuekeys.sort()
+            
+            attributes = API.Char("charsheet")["attributes"]
+            
             for i in queuekeys:
                 level = skillqueue[i]["level"]
                 if level == 5:
@@ -49,33 +71,29 @@ def index(connection,event):
                     level_roman = "?"
                     
                 typeName = skillqueue[i]["typeName"]
+                
+                needed_attributes = API.Eve("skilltree", typeID=skillqueue[i]["typeID"])
+                
                 startTime = skillqueue[i]["startTime"]
                 endTime = skillqueue[i]["endTime"]
                 
-                def convert_to_human(Time):
-                    mins, secs = divmod(Time, 60)
-                    hours, mins = divmod(mins, 60)
-                    days, hours = divmod(hours, 24)
-                    weeks, days = divmod(days, 7)
-                    
-                    time_str = ""
-                    if weeks > 0:
-                        time_str += "%iw " % weeks
-                    if days > 0:
-                        time_str += "%id " % days
-                    if hours > 0:
-                        time_str += "%ih " % hours
-                    if mins > 0:
-                        time_str += "%im " % mins
-                    if secs > 0:
-                        time_str += "%is" % secs
-                    return time_str
-                    
-                started = convert_to_human(time.time() - startTime)
-                ended = convert_to_human(endTime - time.time())
+                startSP = skillqueue[i]["startSP"]
+                endSP = skillqueue[i]["endSP"]
                 
-                SPleft = skillqueue[i]["endSP"] - skillqueue[i]["startSP"]
+                SPtogo = endSP - startSP
                 
-                connection.privmsg(event.target(), "\x02%i\x02: \x1f%s %s\x1f \x02::\x02 %i SP to go" % (i+1, typeName, level_roman, SPleft))
-                connection.privmsg(event.target(), "   Started:    \x02%s\x02 ago" % started)
-                connection.privmsg(event.target(), "   Time to go: \x033\x02%s\x02\x03" % ended)
+                SPpersec = (float(attributes[needed_attributes["primaryAttribute"]]) + (float(attributes[needed_attributes["secondaryAttribute"]]) / 2)) / 60
+                total_sec = SPtogo / SPpersec
+                
+                if i == 0:
+                    secs_done = time.time() - startTime
+                else:
+                    secs_done = 0
+                    print time.time() - startTime
+                secs_to_go = total_sec - secs_done
+                                
+                SPleft = endSP - (secs_done * SPpersec) - startSP
+                
+                connection.privmsg(event.target(), "\x02%i\x02: \x1f%s %s\x1f \x02::\x02 %i SP to go \x02::\x02 Time to go: \x033\x02%s\x02\x03" %
+                                   (i+1, typeName, level_roman, SPleft, convert_to_human(secs_to_go))
+                                   )
