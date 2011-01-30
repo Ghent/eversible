@@ -12,6 +12,7 @@ import sys
 import time
 import evedb
 import cache
+import calendar
 
 class APIError(Exception):
     def __init__(self, value):
@@ -53,7 +54,7 @@ class API:
             raise APIError("%s : %s" % (error[0], error[1]))
         
     def _getCachedUntil(self, xml):
-        cachedUntil = time.mktime(time.strptime(re.findall("\<cachedUntil\>(.*?)\<\/cachedUntil\>", xml)[0], "%Y-%m-%d %H:%M:%S"))
+        cachedUntil = calendar.timegm(time.strptime(re.findall("\<cachedUntil\>(.*?)\<\/cachedUntil\>", xml)[0], "%Y-%m-%d %H:%M:%S"))
         return cachedUntil
     
     def Eve(self,Request, allianceID=None, nameID=None, nameName=None, allianceName=None, allianceTicker=None, characterID=None, typeID=None):
@@ -171,10 +172,10 @@ class API:
                         "bloodline" : getValue("bloodline"),
                         "corporationID" : int(getValue("corporationID")),
                         "corporationName" : getValue("corporation"),
-                        "corporationDate" : time.mktime(time.strptime(getValue("corporationDate"), "%Y-%m-%d %H:%M:%S")),
+                        "corporationDate" : calendar.timegm(time.strptime(getValue("corporationDate"), "%Y-%m-%d %H:%M:%S")),
                         "allianceID" : int(getValue("allianceID")),
                         "allianceName" : getValue("alliance"),
-                        "allianceDate" : time.mktime(time.strptime(getValue("allianceDate"), "%Y-%m-%d %H:%M:%S")),
+                        "allianceDate" : calendar.timegm(time.strptime(getValue("allianceDate"), "%Y-%m-%d %H:%M:%S")),
                         "securityStatus" : float(getValue("securityStatus"))
                     }
         elif Request.lower() == "reftypes":
@@ -449,7 +450,7 @@ class API:
             return {
                 "characterID" : int(getBasicValue("characterID")),
                 "name" : getBasicValue("name"),
-                "DoB" : time.mktime(time.strptime(getBasicValue("DoB"),"%Y-%m-%d %H:%M:%S")),
+                "DoB" : calendar.timegm(time.strptime(getBasicValue("DoB"),"%Y-%m-%d %H:%M:%S")),
                 "race" : getBasicValue("race"),
                 "bloodLine" : getBasicValue("bloodLine"),
                 "ancestry" : getBasicValue("ancestry"),
@@ -643,7 +644,7 @@ class API:
                         "killID" : int(killID),
                         "solarSystemID" : int(generalData["solarSystemID"]),
                         "solarSystemName" : self.EVE.getSystemNameByID(int(generalData["solarSystemID"])),
-                        "killTime" : time.mktime(time.strptime(generalData["killTime"], "%Y-%m-%d %H:%M:%S")),
+                        "killTime" : calendar.timegm(time.strptime(generalData["killTime"], "%Y-%m-%d %H:%M:%S")),
                         "shipTypeID" : int(victimData["shipTypeID"]),
                         "shipTypeName" : victim_shipTypeName,
                         "attackers" : namedAttackers,
@@ -700,7 +701,7 @@ class API:
                         maildict[int(row["messageID"])] = {
                             "senderID" : int(row["senderID"]),
                             "senderName" : self.Eve("getName", nameID=int(row["senderID"]))["Name"],
-                            "sentDate" : time.mktime(time.strptime(row["sentDate"], "%Y-%m-%d %H:%M:%S")),
+                            "sentDate" : calendar.timegm(time.strptime(row["sentDate"], "%Y-%m-%d %H:%M:%S")),
                             "title" : row["title"],
                             "corpID" : corpID,
                             "corpName" : corpName,
@@ -784,8 +785,8 @@ class API:
                         "level" : int(row["level"]),
                         "startSP" : int(row["startSP"]),
                         "endSP" : int(row["endSP"]),
-                        "startTime" : time.mktime(time.strptime(row["startTime"], "%Y-%m-%d %H:%M:%S")),
-                        "endTime" : time.mktime(time.strptime(row["endTime"], "%Y-%m-%d %H:%M:%S"))
+                        "startTime" : calendar.timegm(time.strptime(row["startTime"], "%Y-%m-%d %H:%M:%S")),
+                        "endTime" : calendar.timegm(time.strptime(row["endTime"], "%Y-%m-%d %H:%M:%S"))
                     }
             return returndict
         elif Request.lower() == "wallet":
@@ -807,7 +808,7 @@ class API:
                         "refID" : int(row["refID"]),
                         "refTypeID" : int(row["refTypeID"]),
                         "refTypeName" : refTypes[int(row["refTypeID"])],
-                        "date" : time.mktime(time.strptime(row["date"], "%Y-%m-%d %H:%M:%S")),
+                        "date" : calendar.timegm(time.strptime(row["date"], "%Y-%m-%d %H:%M:%S")),
                         "amount" : float(row["amount"]),
                         "taxAmount" : float(row["taxAmount"]),
                         "taxReceiverID" : int(row["taxReceiverID"]),
@@ -941,8 +942,8 @@ class API:
             logonCount = int(getTag("logonCount"))
             logonMinutes = int(getTag("logonMinutes"))
 
-            createDate_unix = time.mktime(time.strptime(createDate, "%Y-%m-%d %H:%M:%S"))
-            paidUntil_unix = time.mktime(time.strptime(paidUntil, "%Y-%m-%d %H:%M:%S"))
+            createDate_unix = calendar.timegm(time.strptime(createDate, "%Y-%m-%d %H:%M:%S"))
+            paidUntil_unix = calendar.timegm(time.strptime(paidUntil, "%Y-%m-%d %H:%M:%S"))
             #logged_on = ""
             #if logonMinutes >= 10080:
             #    weeks = logonMinutes / 10080
