@@ -56,7 +56,7 @@ class API:
         cachedUntil = time.mktime(time.strptime(re.findall("\<cachedUntil\>(.*?)\<\/cachedUntil\>", xml)[0], "%Y-%m-%d %H:%M:%S"))
         return cachedUntil
     
-    def Eve(self,Request, allianceID=None, nameID=None, nameName=None, allianceName=None, allianceTicker=None, characterID=None):
+    def Eve(self,Request, allianceID=None, nameID=None, nameName=None, allianceName=None, allianceTicker=None, characterID=None, typeID=None):
         """
             Methods related to EVE in general:
             *********************************************
@@ -70,6 +70,8 @@ class API:
                         # includes chars, corps and alliances
             characterinfo : returns (public) info for a character
             refTypes : returns list of wallet journal ref types
+            skillTree : returns the primary / secondary attributes
+                        of a given skill typeID
             *********************************************
             (N) = No API key required
         """
@@ -194,8 +196,36 @@ class API:
                 else:
                     refTypes[int(row["refTypeID"])] = row["refTypeName"]
             return refTypes
-
+        elif Request.lower() == "skilltree" and typeID:
+            requesturl = os.path.join(self.API_URL, "eve/SkillTree.xml.aspx")
+            xml = self._getXML(requesturl)
+            
+            split_on = re.search("(\<row typeName=\"(.*?)\" groupID=\"(\d+)\" typeID=\"%s\" published=\"(\d+)\"\>)" % typeID, xml)
+            if not split_on:
+                return None
+            else:
+                xml_specific = xml.split(split_on.group())[1].split("</row>")[0]
                 
+                return {
+                    "typeID" : int(typeID),
+                    "typeName" : split_on.group(2),
+                    "primaryAttribute" : xml_specific.split("<primaryAttribute>")[1].split("</primaryAttribute>")[0],
+                    "secondaryAttribute" : xml_specific.split("<secondaryAttribute>")[1].split("</secondaryAttribute>")[0]
+                }
+          #<row typeName="Marketing" groupID="274" typeID="16598" published="1">
+          #  <description>Skill at selling items remotely. Each level increases the range from the seller to the item being sold. Level 1 allows for the sale of items within the same solar system, Level 2 extends that range to systems within 5 jumps, and each subsequent level then doubles it. Level 5 allows for sale of items located anywhere within current region.</description>
+          #  <rank>3</rank>
+          #  <rowset name="requiredSkills" key="typeID" columns="typeID,skillLevel">
+          #    <row typeID="3443" skillLevel="2" />
+          #  </rowset>
+          #  <requiredAttributes>
+          #    <primaryAttribute>charisma</primaryAttribute>
+          #    <secondaryAttribute>memory</secondaryAttribute>
+          #  </requiredAttributes>
+          #  <rowset name="skillBonusCollection" key="bonusType" columns="bonusType,bonusValue" />
+          #</row>
+
+            
                     
     def Corporation(self, Request, corporationID=None):
         """
