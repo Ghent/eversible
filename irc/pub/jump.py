@@ -21,7 +21,7 @@ def index(connection, event):
         systemTo = event.arguments()[0].split()[6]
     except (IndexError, ValueError):
         connection.privmsg(event.target(),
-            "Syntax is: .jump [ship name] [JDC lvl] [JFC lvl] [JF lvl] [system name] [system name]")
+            "Syntax is: jump [ship name] [JDC lvl] [JFC lvl] [JF lvl] [system name] [system name]")
     else:
         responseShipID = DB.getItemIDByName(shipName)
         responseSystemFromID = DB.getSystemIDByName(systemFrom)
@@ -61,15 +61,16 @@ def index(connection, event):
             systemSecTo = security(responseSystemToID)
             shipName = DB.getItemNameByID(responseShipID)
             sytemSecFromChk = DB.getSystemInfoByID(responseSystemFromID)["security"]
-            systemSecToChk =  DB.getSystemInfoByID(responseSystemToID)["security"]            
+            systemSecToChk =  DB.getSystemInfoByID(responseSystemToID)["security"]
 
             outputMessage = """
-                \x02Origin\x02:   %s (%s)
-                \x02Endpoint\x02: %s (%s)
-                \x02Ship\x02: %s
-                \x02JDC lvl\x02: %s    \x02JFC lvl\x02: %s    \x02JF lvl\x02: %s
+                \x02Origin\x02:     %s (%s)
+                \x02Endpoint\x02:   %s (%s)
+                \x02Ship\x02:       %s  \x0314[JDC: %s, JFC: %s, JF: %s]\x03
                 \x02Jump Route\x02: \x1fhttp://evemaps.dotlan.net/jump/%s,%s%s%s/%s:%s\x1f
-            """ % (systemNameFrom, systemSecFrom, systemNameTo, systemSecTo, shipName, lvlJDC, lvlJFC, lvlJF, shipName, lvlJDC, lvlJFC, lvlJF, systemNameFrom, systemNameTo)
+            """ % (systemNameFrom, systemSecFrom, systemNameTo, systemSecTo,
+                  shipName, lvlJDC, lvlJFC, lvlJF, shipName, lvlJDC, lvlJFC,
+                  lvlJF, systemNameFrom, systemNameTo)
             for line in outputMessage.split("\n"):
                 connection.privmsg(event.target(), line.strip())
 

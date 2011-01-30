@@ -3,14 +3,15 @@
 # vim: filetype=python tabstop=4 expandtab:
 
 
-import re
-
 import api
 import evedb
+from core.config import config
 
 
 API = api.API()
 EVE = evedb.DUMP()
+
+prefix = config.get("bot", "prefix")
 
 def index(connection, event):
     dotlan = "http://evemaps.dotlan.net/route/"
@@ -22,7 +23,7 @@ def index(connection, event):
 
     except IndexError:
         connection.privmsg(event.target(),
-            "Syntax is: route [Origin system] [Endpoint system] (Safe, Fast or Low) (Systems to avoid separated by spaces)")
+            "Syntax is: %sroute [Origin system] [Endpoint system] (Safe, Fast or Low) (Systems to avoid separated by spaces)" % prefix)
         connection.privmsg(event.target(),
             "           [ ] = required items      ( ) = optional items     * case insensitive")
     else:
@@ -66,7 +67,7 @@ def index(connection, event):
             unknown = []
             count = 0
             for entry in data:
-                if re.search("route", entry):
+                if entry == prefix + "route":
                     count = count + 1
                     continue
                 if not findName(entry, data, count):
