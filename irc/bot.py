@@ -40,12 +40,13 @@ def scan():
         privateCommands[name] = module
 
 class EVErsibleBot(ircbot.SingleServerIRCBot):
-    def __init__(self, host, port, nick, realname, channel, botpass, prefix, debug_level):
+    def __init__(self, host, port, nick, realname, channel, botpass, prefix, debug_level, database):
         ircbot.SingleServerIRCBot.__init__(self, [(host, port)], nick, realname)
         self.CHANNEL = channel
         self.BOTPASS = botpass
         self.PREFIX = prefix
         self.DEBUG_LEVEL = debug_level
+        self.DATABASE = database
 
     def on_ctcp(self, connection, event):
         if event.arguments()[0].upper() == self.BOTPASS.upper():
@@ -71,42 +72,48 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
     def on_privmsg(self, connection, event):
         if event.arguments()[0][0] == self.PREFIX:
             if privateCommands.has_key(event.arguments()[0].split()[0][1:].upper() + "_priv"):
-                try:
-                    privateCommands[event.arguments()[0].split()[0][1:].upper() + "_priv"].index(connection,event)
-                except:
-                    tb = traceback.format_exc()
-                    if self.DEBUG_LEVEL == 0:
-                        connection.privmsg(event.source().split("!")[0], "There was an error")
-                    elif self.DEBUG_LEVEL == 1:
-                        print tb
-                        connection.privmsg(event.source().split("!")[0], "There was an error")
-                    else:
-                        print tb
-                        for line in tb.split("\n"):
-                           connection.privmsg(event.source().split("!")[0], line)
+                if self.DATABASE:
+                    try:
+                        privateCommands[event.arguments()[0].split()[0][1:].upper() + "_priv"].index(connection,event)
+                    except:
+                        tb = traceback.format_exc()
+                        if self.DEBUG_LEVEL == 0:
+                            connection.privmsg(event.source().split("!")[0], "There was an error")
+                        elif self.DEBUG_LEVEL == 1:
+                            print tb
+                            connection.privmsg(event.source().split("!")[0], "There was an error")
+                        else:
+                            print tb
+                            for line in tb.split("\n"):
+                               connection.privmsg(event.source().split("!")[0], line)
+                else:
+                    connecton.privmsg(event.target(), "The static CCP dump database is not up to date / not installed correctly")
                     
     def on_pubmsg(self, connection, event):
         #check if prefix used
         if event.arguments()[0][0] == self.PREFIX:
             if publicCommands.has_key(event.arguments()[0].split()[0][1:].upper() + "_pub"):
-                try:
-                    publicCommands[event.arguments()[0].split()[0][1:].upper() + "_pub"].index(connection, event)
-                except:
-                    tb = traceback.format_exc()
-                    if self.DEBUG_LEVEL == 0:
-                        connection.privmsg(event.target(), "There was an error")
-                    elif self.DEBUG_LEVEL == 1:
-                        print tb
-                        connection.privmsg(event.target(), "There was an error")
-                    elif self.DEBUG_LEVEL == 2:
-                        print tb
-                        connection.privmsg(event.target(), "There was an error")
-                        for line in tb.split("\n"):
-                            connection.privmsg(event.source().split("!")[0], line)
-                    elif self.DEBUG_LEVEL == 3:
-                        print tb
-                        for line in tb.split("\n"):
-                            connection.privmsg(event.target(), line)
+                if self.DATABASE:
+                    try:
+                        publicCommands[event.arguments()[0].split()[0][1:].upper() + "_pub"].index(connection, event)
+                    except:
+                        tb = traceback.format_exc()
+                        if self.DEBUG_LEVEL == 0:
+                            connection.privmsg(event.target(), "There was an error")
+                        elif self.DEBUG_LEVEL == 1:
+                            print tb
+                            connection.privmsg(event.target(), "There was an error")
+                        elif self.DEBUG_LEVEL == 2:
+                            print tb
+                            connection.privmsg(event.target(), "There was an error")
+                            for line in tb.split("\n"):
+                                connection.privmsg(event.source().split("!")[0], line)
+                        elif self.DEBUG_LEVEL == 3:
+                            print tb
+                            for line in tb.split("\n"):
+                                connection.privmsg(event.target(), line)
+                else:
+                    connecton.privmsg(event.target(), "The static CCP dump database is not up to date / not installed correctly")
 
     def on_whoisuser(self, connection, event):
         pass
@@ -134,7 +141,7 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
         pass
 
 
-def start(host, port, nick, realname, channel, botpass, prefix, debug_level):
+def start(host, port, nick, realname, channel, botpass, prefix, debug_level, database):
     scan()
-    bot = EVErsibleBot(host, port, nick, realname, channel, botpass, prefix, debug_level)
+    bot = EVErsibleBot(host, port, nick, realname, channel, botpass, prefix, debug_level, database)
     bot.start()
