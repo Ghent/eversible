@@ -87,7 +87,7 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
                             for line in tb.split("\n"):
                                connection.privmsg(event.source().split("!")[0], line)
                 else:
-                    connecton.privmsg(event.target(), "The static CCP dump database is not up to date / not installed correctly")
+                    connection.privmsg(event.target(), "The static CCP dump database is not up to date / not installed correctly")
                     
     def on_pubmsg(self, connection, event):
         #check if prefix used
@@ -113,7 +113,7 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
                             for line in tb.split("\n"):
                                 connection.privmsg(event.target(), line)
                 else:
-                    connecton.privmsg(event.target(), "The static CCP dump database is not up to date / not installed correctly")
+                    connection.privmsg(event.target(), "The static CCP dump database is not up to date / not installed correctly")
 
     def on_whoisuser(self, connection, event):
         pass
