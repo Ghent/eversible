@@ -5,10 +5,11 @@
 
 import api
 import evedb
-
+from misc import functions
 
 API = api.API()
 DB = evedb.DUMP()
+MISC = misc.functions
 jumpCapableID = [22440, 22428, 22430, 22436, 28352, 23757, 23915, 24483, 23911, 19724, 19722, 19726, 19720, 28848, 28850, 28846, 28844, 23919, 22852, 23913, 23917, 11567, 671, 3764, 23773]
 
 def index(connection, event):
@@ -56,9 +57,9 @@ def index(connection, event):
 
         else:
             systemNameFrom = DB.getSystemNameByID(responseSystemFromID)
-            systemSecFrom = security(responseSystemFromID)
+            systemSecFrom = functions.security(responseSystemFromID)
             systemNameTo = DB.getSystemNameByID(responseSystemToID)
-            systemSecTo = security(responseSystemToID)
+            systemSecTo = functions.security(responseSystemToID)
             shipName = DB.getItemNameByID(responseShipID)
             sytemSecFromChk = DB.getSystemInfoByID(responseSystemFromID)["security"]
             systemSecToChk =  DB.getSystemInfoByID(responseSystemToID)["security"]
@@ -73,17 +74,3 @@ def index(connection, event):
                   lvlJF, systemNameFrom, systemNameTo)
             for line in outputMessage.split("\n"):
                 connection.privmsg(event.target(), line.strip())
-
-
-def security(systemID):
-    systemInfo = DB.getSystemInfoByID(systemID)
-    security = systemInfo["security"]
-    if security >= 0.5:
-        sec = "\x033\x02\x02%.01f\x03" % security
-    elif security < 0.5 and security > 0.0:
-        sec = "\x037\x02\x02%.01f\x03" % security
-    else:
-        sec = "\x035\x02\x02%.02f\x03" % security
-
-    return sec
-

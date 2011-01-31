@@ -4,25 +4,7 @@ import users
 import api
 import time
 import traceback
-
-def convert_to_human(Time):
-    mins, secs = divmod(Time, 60)
-    hours, mins = divmod(mins, 60)
-    days, hours = divmod(hours, 24)
-    weeks, days = divmod(days, 7)
-    
-    time_str = ""
-    if weeks > 0:
-        time_str += "%iw " % weeks
-    if days > 0:
-        time_str += "%id " % days
-    if hours > 0:
-        time_str += "%ih " % hours
-    if mins > 0:
-        time_str += "%im " % mins
-    if secs > 0:
-        time_str += "%is" % secs
-    return time_str
+from misc import functions
 
 def index(connection,event):
     #requires limited api key
@@ -95,7 +77,7 @@ def index(connection,event):
                 SPleft = endSP - (secs_done * SPpersec) - startSP
                 
                 messages += ["\x02%i\x02: \x1f%s %s\x1f \x02::\x02 %i SP to go \x02::\x02 Time to go: \x033\x02%s\x02\x03" %
-                                   (i+1, typeName, level_roman, SPleft, convert_to_human(secs_to_go))
+                                   (i+1, typeName, level_roman, SPleft, functions.convert_to_human(secs_to_go))
                             ]
             for message in messages:
                 connection.privmsg(event.target(), message)
