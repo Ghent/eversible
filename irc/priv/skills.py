@@ -48,7 +48,7 @@ def index(connection,event):
         except api.APIError:
             connection.privmsg(sourceNick, "There was an error with the API: %s" % " ".join(traceback.format_exc().splitlines()[-1].split()[1:]))
         else:
-            connection.privmsg(sourceNick, "\x02Skills currently in training\x02:")
+            messages = ["\x02Skills currently in training\x02:"]
             
             queuekeys = skillqueue.keys()
             queuekeys.sort()
@@ -93,6 +93,8 @@ def index(connection,event):
                                 
                 SPleft = endSP - (secs_done * SPpersec) - startSP
                 
-                connection.privmsg(sourceNick, "\x02%i\x02: \x1f%s %s\x1f \x02::\x02 %i SP to go \x02::\x02 Time to go: \x033\x02%s\x02\x03" %
+                messages += ["\x02%i\x02: \x1f%s %s\x1f \x02::\x02 %i SP to go \x02::\x02 Time to go: \x033\x02%s\x02\x03" %
                                    (i+1, typeName, level_roman, SPleft, convert_to_human(secs_to_go))
-                                   )
+                            ]
+            for message in messages:
+                connection.privmsg(sourceNick, message)
