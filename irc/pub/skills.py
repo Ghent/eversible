@@ -51,10 +51,20 @@ def index(connection,event):
             messages = ["\x02Skills currently in training for \x033\x02\x02%s\x03\x02:" % characterName]
             queuekeys = skillqueue.keys()
             queuekeys.sort()
-            
             attributes = API.Char("charsheet")["attributes"]
             
+            for i in range(1,20):
+                skillqueue[i] = {
+                    "level" : 5,
+                    "typeName" : "Gallente Cruiser",
+                    "startTime" : 1296440072,
+                    "endTime" : 1296440172,
+                    "startSP" : 0,
+                    "endSP" : 100,
+                }
             for i in queuekeys:
+                if i == 8:
+                    messages += ["\x02 + %i more\x02" % (len(queuekeys) - 8)]
                 level = skillqueue[i]["level"]
                 if level == 5:
                     level_roman = "V"
