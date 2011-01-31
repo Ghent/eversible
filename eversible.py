@@ -7,20 +7,11 @@ import irc.bot
 import sqlite3
 from core.options import options
 from core.config import config
+from misc import functions
 
-def testDB():
-    import evedb
-    EVEDB = evedb.DUMP()
-    EVEDB.getSystemIDByName("Jita")
-
-try:
-    testDB()
-except sqlite3.OperationalError:
-    print "WARNING: your database is not up to date, many EVErsible functions will not work"
-    database = False
-else:
-    database = True
-
+database = functions.testDB()
+if not database:
+    print "WARNING: your static database is not up to date"
 
 """ Start the IRC bot """
 irc.bot.start(config.get("irc", "host"),

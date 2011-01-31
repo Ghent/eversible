@@ -16,6 +16,8 @@ import irc.lib.irclib as irclib
 import users
 USERS = users.DB()
 
+from misc import functions
+
 if "-v" in sys.argv:
     irclib.DEBUG = True
 
@@ -87,7 +89,10 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
                             for line in tb.split("\n"):
                                connection.privmsg(event.source().split("!")[0], line)
                 else:
-                    connection.privmsg(event.target(), "The static CCP dump database is not up to date / not installed correctly")
+                    if not functions.testDB():
+                        connection.privmsg(event.source().split("!")[0], "The static CCP dump database is not up to date / not installed correctly")
+                    else:
+                        connection.privmsg(event.source().split("!")[0], "Reloading database, please try again")
                     
     def on_pubmsg(self, connection, event):
         #check if prefix used
@@ -113,7 +118,11 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
                             for line in tb.split("\n"):
                                 connection.privmsg(event.target(), line)
                 else:
-                    connection.privmsg(event.target(), "The static CCP dump database is not up to date / not installed correctly")
+                    if not functions.testDB():
+                        connection.privmsg(event.target(), "The static CCP dump database is not up to date / not installed correctly")
+                    else:
+                        self.DATABASE = True
+                        connection.privmsg(event.target(), "Reloading database, please try again") # this is because I'm lazy and totally fake
 
     def on_whoisuser(self, connection, event):
         pass

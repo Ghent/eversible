@@ -1,9 +1,19 @@
 #!/usr/bin/env python
 
 import evedb
-EVEDB = evedb.DUMP()
+import sqlite3
 
+def testDB():
+    try:
+        EVEDB = evedb.DUMP()
+        EVEDB.getSystemIDByName("Jita")
+    except sqlite3.OperationalError:
+        return False
+    else:
+        return True
+    
 def security(systemID=None, systemInfo=None):
+    EVEDB = evedb.DUMP()
     """
         Returns IRC formatted security for a given systemID
         if systemInfo is inputted then the database call will be omitted
@@ -24,6 +34,7 @@ def security(systemID=None, systemInfo=None):
     return sec
 
 def findSecurity(systemName):
+    EVEDB = evedb.DUMP()
     """
         Returns IRC formatted security for a given systemName
         >= 0.5 in green
@@ -44,6 +55,7 @@ def findSecurity(systemName):
     return sec
 
 def findName(name, list, count):
+    EVEDB = evedb.DUMP()
     match = None
     if match == None:
         match = EVEDB.getSystemName(name)
