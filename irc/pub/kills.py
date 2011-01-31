@@ -5,6 +5,7 @@
 
 import api
 import evedb
+from misc import functions
 
 
 API = api.API()
@@ -26,13 +27,7 @@ def index(connection, event):
             solarSystemName = response["solarSystemName"]
             
             systemInfo = EVE.getSystemInfoByID(response["solarSystemID"])
-            security = systemInfo["security"]
-            if security >= 0.5:
-                sec = "\x033\x02\x02%.01f\x03" % security
-            elif security < 0.5 and security > 0.0:
-                sec = "\x037\x02\x02%.01f\x03" % security
-            else:
-                sec = "\x035\x02\x02%.02f\x03" % security
+            sec = functions.security(systemInfo=systemInfo)
             
             regionName = systemInfo["regionName"]
             constellationName = systemInfo["constellationName"]

@@ -6,6 +6,7 @@
 import api
 import evedb
 from core.config import config
+from misc import functions
 
 
 API = api.API()
@@ -70,7 +71,7 @@ def index(connection, event):
                 if entry == prefix + "route":
                     count = count + 1
                     continue
-                if not findName(entry, data, count):
+                if not functions.findName(entry, data, count):
                     unknown = unknown + [entry]
                     data = data[:count] + data[count+1:]
                 else:
@@ -89,9 +90,9 @@ def index(connection, event):
 
             # Print the output to IRC
             connection.privmsg(event.target(),
-                "\x02Origin\x02:   %s %s" % (data[1], findSecurity(data[1])))
+                "\x02Origin\x02:   %s %s" % (data[1], functions.findSecurity(data[1])))
             connection.privmsg(event.target(),
-                "\x02Endpoint\x02: %s %s" % (data[2], findSecurity(data[2])))
+                "\x02Endpoint\x02: %s %s" % (data[2], functions.findSecurity(data[2])))
 
             if not unknown == []:
                 connection.privmsg(event.target(),
@@ -100,7 +101,7 @@ def index(connection, event):
             if not avoid == "":
                 avoidsec = []
                 for entry in data[3:]:
-                    entrysec = findSecurity(entry)
+                    entrysec = functions.findSecurity(entry)
                     if entrysec != None:
                         avoidsec = avoidsec + [entry + " " + entrysec]
                     else:
@@ -111,30 +112,3 @@ def index(connection, event):
             connection.privmsg(event.target(),
                 "%s \x1f%s\x1f"
                     % (map, url))
-
-
-def findSecurity(name):
-    sysInfo = EVE.getSystemInfoByName(name)
-    if sysInfo == None:
-        return None
-
-    security = sysInfo["security"]
-    if security >= 0.5:
-        sec = "(\x033\x02\x02%.01f\x03)" % security
-    elif security < 0.5 and security > 0.0:
-        sec = "(\x037\x02\x02%.01f\x03)" % security
-    else:
-        sec = "(\x035\x02\x02%.02f\x03)" % security
-    return sec
-
-
-def findName(name, list, count):
-    match = None
-    if match == None:
-        match = EVE.getSystemName(name)
-    if match == None:
-        match = EVE.getRegionName(name)
-    if match != None:
-        list[count] = match
-        return 1
-    return None

@@ -5,7 +5,7 @@
 
 import api
 import evedb
-
+from misc import functions
 
 API = api.API()
 DB = evedb.DUMP()
@@ -56,9 +56,9 @@ def index(connection, event):
 
         else:
             systemNameFrom = DB.getSystemNameByID(responseSystemFromID)
-            systemSecFrom = security(responseSystemFromID)
+            systemSecFrom = functions.security(responseSystemFromID)
             systemNameTo = DB.getSystemNameByID(responseSystemToID)
-            systemSecTo = security(responseSystemToID)
+            systemSecTo = functions.security(responseSystemToID)
             shipName = DB.getItemNameByID(responseShipID)
             sytemSecFromChk = DB.getSystemInfoByID(responseSystemFromID)["security"]
             systemSecToChk =  DB.getSystemInfoByID(responseSystemToID)["security"]
@@ -73,17 +73,3 @@ def index(connection, event):
                   lvlJF, systemNameFrom, systemNameTo)
             for line in outputMessage.split("\n"):
                 connection.privmsg(event.target(), line.strip())
-
-
-def security(systemID):
-    systemInfo = DB.getSystemInfoByID(systemID)
-    security = systemInfo["security"]
-    if security >= 0.5:
-        sec = "\x033\x02\x02%.01f\x03" % security
-    elif security < 0.5 and security > 0.0:
-        sec = "\x037\x02\x02%.01f\x03" % security
-    else:
-        sec = "\x035\x02\x02%.02f\x03" % security
-
-    return sec
-
