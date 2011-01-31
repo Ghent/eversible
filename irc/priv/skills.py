@@ -56,6 +56,9 @@ def index(connection,event):
             attributes = API.Char("charsheet")["attributes"]
             
             for i in queuekeys:
+                if i == 8:
+                    messages += ["\x02 + %i more\x02" % (len(queuekeys) - 8)]
+                    break
                 level = skillqueue[i]["level"]
                 if level == 5:
                     level_roman = "V"

@@ -49,15 +49,6 @@ def index(connection,event):
             connection.privmsg(event.target(), "There was an error with the API: %s" % " ".join(traceback.format_exc().splitlines()[-1].split()[1:]))
         else:
             messages = ["\x02Skills currently in training for \x033\x02\x02%s\x03\x02:" % characterName]
-            for i in range(1,20):
-                skillqueue[i] = {
-                    "level" : 5,
-                    "typeName" : "Gallente Cruiser",
-                    "startTime" : 1296440072,
-                    "endTime" : 1296440172,
-                    "startSP" : 0,
-                    "endSP" : 100,
-                }
             queuekeys = skillqueue.keys()
             queuekeys.sort()
             attributes = API.Char("charsheet")["attributes"]
@@ -65,6 +56,7 @@ def index(connection,event):
             for i in queuekeys:
                 if i == 8:
                     messages += ["\x02 + %i more\x02" % (len(queuekeys) - 8)]
+                    break
                 level = skillqueue[i]["level"]
                 if level == 5:
                     level_roman = "V"
