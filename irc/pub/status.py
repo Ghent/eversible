@@ -25,9 +25,9 @@ def index(connection, event):
             players = "\x033 " + locale.format("%d", online, True) + "\x03"
             players = players + " \x0314(Space is empty...)\x03"
 
-        message = "\x02Server\x02: \x0310Tranquility\x03  \x02Status\x02: \x033Online\x03  \x02Players\x02:%s" % players
+        message = "\x02Server\x02: \x0311Tranquility\x03  \x02Status\x02: \x039Online\x03  \x02Players\x02:%s" % players
 
     elif status == "Offline":
-        message = "\x02Server\x02: \x0310Tranquility\x03  \x02Status\x02: \x035Offline\x03"
+        message = "\x02Server\x02: \x0310Tranquility\x03  \x02Status\x02: \x034Offline\x04"
 
     connection.privmsg(event.target(), message)
