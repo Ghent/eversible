@@ -28,6 +28,6 @@ def index(connection, event):
         message = "\x02Server\x02: \x0311Tranquility\x03  \x02Status\x02: \x039Online\x03  \x02Players\x02:%s" % players
 
     elif status == "Offline":
-        message = "\x02Server\x02: \x0310Tranquility\x03  \x02Status\x02: \x034Offline\x04"
+        message = "\x02Server\x02: \x0310Tranquility\x03  \x02Status\x02: \x034Offline\x03"
 
     connection.privmsg(event.target(), message)
