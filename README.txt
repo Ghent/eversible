@@ -23,12 +23,14 @@ PLANNED FEATURES
 
   EVE INFORMATION
     - Blueprint Lookup
+    - Price checking via Eve-Central
     - EVE Mail Received Notification
     * Jump Route Planner
     * Route Planner
     - Sell/Buy Order changes
     * Server Status with user statistics
-    - Skill Training Completion
+    - Skill Training Completion Notice
+    * Current Skill Queue
     * System Information
       * Kills
       * Sovereignty
