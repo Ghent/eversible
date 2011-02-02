@@ -1292,7 +1292,7 @@ class API:
             | (N) status                                                                           |
             | description : returns the current server status                                      |
             | inputs      : none                                                                   |
-            | returns     : dict with keys status, online                                          |
+            | returns     : dict with keys status, online, time                                    |
             +--------------------------------------------------------------------------------------+
             (N) = No API key required
         """

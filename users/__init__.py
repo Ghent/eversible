@@ -5,6 +5,7 @@ import api
 import random
 import string
 import hashlib
+import traceback
 
 class DB:
     def __init__(self):
@@ -21,7 +22,10 @@ class DB:
 
     def createUser(self, apiKey, userID, characterName, password, hostname):
         API = api.API(apikey=apiKey, userid=userID, charid=None)
-        characters = API.Account("characters")
+        try:
+            characters = API.Account("characters")
+        except api.APIError:
+            return (False, " ".join(traceback.format_exc().splitlines()[-1].split()[1:]))
         hashpassword = hashlib.md5(password).hexdigest()
 
         if characterName in characters.keys():
@@ -217,7 +221,48 @@ class DB:
         conn.commit()
         cursor.close()
         conn.close()
-        
+    def updateUser(self, characterName, userID, password, new_apiKey, new_password, hostname):
+        conn = sqlite3.connect("users/eversible.db")
+        cursor = conn.cursor()
+        hashpassword = hashlib.md5(password).hexdigest()
+        try:
+            cursor.execute("""
+                           SELECT id, characterName, userID, apiKey
+                           FROM users
+                           WHERE
+                           characterName="%s"
+                           """ % characterName
+                          )
+        except sqlite3.OperationalError:
+            cursor.close()
+            conn.close()
+            return (False, "Database couldn't be found")
+        else:
+            result = cursor.fetchone()
+            if not result:
+                cursor.close()
+                conn.close()
+                return (False, "Incorrect characterName or password")
+            
+            #get alts
+            alts = self.lookForAlts(result[3], result[2])
+            for altName in alts:
+                try:
+                    cursor.execute("""
+                                   DELETE
+                                   FROM users
+                                   WHERE characterName="%s"
+                                   """ % altName
+                                  )
+                except sqlite3.OperationalError:
+                    pass
+            conn.commit()
+            
+            response = self.createUser(new_apiKey, userID, characterName, new_password, hostname)
+            cursor.close()
+            conn.close()
+            return response
+                
     def removeHostname(self, hostname):
         conn = sqlite3.connect("users/eversible.db")
         cursor = conn.cursor()
@@ -232,6 +277,31 @@ class DB:
         conn.commit()
         cursor.close()
         conn.close()
+    def verifyPassword(self, characterName, password):
+        conn = sqlite3.connect("users/eversible.db")
+        cursor = conn.cursor()
+        hashpassword = hashlib.md5(password).hexdigest()
+        try:
+            cursor.execute("""
+                           SELECT id, characterName, password
+                           FROM users
+                           WHERE
+                           characterName="%s" AND password="%s"
+                           """ % (characterName, hashpassword)
+                          )
+        except sqlite3.OperationalError:
+            cursor.close()
+            conn.close()
+            return False
+        else:
+            if cursor.fetchone():
+                cursor.close()
+                conn.close()
+                return True
+            else:
+                cursor.close()
+                conn.close()
+                return False
         
     def testIdentity(self, characterName, password, hostname):
         conn = sqlite3.connect("users/eversible.db")
