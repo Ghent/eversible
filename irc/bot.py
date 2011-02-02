@@ -53,7 +53,7 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
     def on_ctcp(self, connection, event):
         if event.arguments()[0].upper() == self.BOTPASS.upper():
             scan()
-            connection.privmsg(event.source().split("!")[0], "reloaded modules successfully")
+            connection.notice(event.source().split("!")[0], "reloaded modules successfully")
         elif event.arguments()[0].upper() == "VERSION":
             connection.ctcp_reply(event.source().split("!")[0], "VERSION EVErsible v%s" % VERSION)
         elif event.arguments()[0].upper() == "TIME":
