@@ -111,7 +111,7 @@ def index(connection,event):
             try:
                 mailheaders = API.Char("mail")
             except api.APIError:
-                connection.privmsg(souceNick, "There was an error with the API: %s" % " ".join(traceback.format_exc().splitlines()[-1].split()[1:]))
+                connection.privmsg(sourceNick, "There was an error with the API: %s" % " ".join(traceback.format_exc().splitlines()[-1].split()[1:]))
             else:
                 mailkeys = mailheaders.keys()
                 mailkeys.sort()

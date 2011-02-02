@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 import users
+import api
+import traceback
 USERS = users.DB()
 
 def index(connection, event):
@@ -36,11 +38,20 @@ def index(connection, event):
             if not USERS.verifyPassword(charName, password):
                 connection.privmsg(sourceNick, "Incorrect password")
             else:
-                response = USERS.updateUser(charName, userID, password, apiKey, new_password, sourceHostname)
-                
-                if response[0]:
-                    connection.privmsg(sourceNick, "Your information was updated successfully")
+                #check details are correct
+                API = api.API(userid=userID, apikey=apiKey, characterName=charName)
+                try:
+                    API.Account("characters")
+                except api.APIError:
+                    connection.privmsg(sourceNick, "Update failed with error: %s" % " ".join(traceback.format_exc().splitlines()[-1].split()[1:]))
                 else:
-                    connection.privmsg(sourceNick, "Update failed with error: %s" % response[1])
-                #characterName, userID, password, new_apiKey, new_password, hostname
+                    response = USERS.updateUser(charName, userID, password, apiKey, new_password, sourceHostname)
+                    
+                    if response[0]:
+                        USERS.removeHostname(sourceHostname)
+                        USERS.addHostname(charName, sourceHostname)
+                        connection.privmsg(sourceNick, "Your information was updated successfully")
+                    else:
+                        connection.privmsg(sourceNick, "Update failed with error: %s" % response[1])
+                    #characterName, userID, password, new_apiKey, new_password, hostname
             

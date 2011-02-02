@@ -5,6 +5,7 @@ import api
 import random
 import string
 import hashlib
+import traceback
 
 class DB:
     def __init__(self):
@@ -21,7 +22,10 @@ class DB:
 
     def createUser(self, apiKey, userID, characterName, password, hostname):
         API = api.API(apikey=apiKey, userid=userID, charid=None)
-        characters = API.Account("characters")
+        try:
+            characters = API.Account("characters")
+        except api.APIError:
+            return (False, " ".join(traceback.format_exc().splitlines()[-1].split()[1:]))
         hashpassword = hashlib.md5(password).hexdigest()
 
         if characterName in characters.keys():
@@ -252,6 +256,7 @@ class DB:
                                   )
                 except sqlite3.OperationalError:
                     pass
+            conn.commit()
             
             response = self.createUser(new_apiKey, userID, characterName, new_password, hostname)
             cursor.close()
