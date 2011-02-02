@@ -1,5 +1,7 @@
 #!/usr/bin/env python
-#
+"""
+    Container for the API and APIError classes
+"""
 # vim: filetype=python tabstop=4 expandtab:
 
 
@@ -21,7 +23,23 @@ class APIError(Exception):
         return repr(self.value)
 
 class API:
+    """
+        Wrapper for API requests
+    """
     def __init__(self, userid=None, apikey=None, charid=None, characterName=None, debug=False):
+        """
+            If no arguments are specified, functions that require no API information will still be functional
+            
+            Keyword arguments:
+            -------------------------------------------------------------------------------------------
+              userid        -- user ID (defaults to None)
+              apikey        -- the API key associated with given user ID (defaults to None)
+              charid        -- the character ID, can be omitted if not known (defaults to None)
+              characterName -- if charid is not specified, characterName should be (defaults to None)
+              debug         -- defaults to False, this argument is deprecated and does nothing
+            --------------------------------------------------------------------------------------------
+            all arguments are optional
+        """
         self.USER_ID = userid
         self.API_KEY = apikey
         self.API_URL = "http://api.eve-online.com"
@@ -38,6 +56,16 @@ class API:
         
 
     def _getXML(self, requesturl, postdata={}):
+        """
+            Request XML for a given URL, associated with POST data
+            
+            Keyword arguments:
+            -------------------------------------------------------------------
+            * requesturl -- the base URL of a particular API request
+              postdata   -- a dictionary object containing POST keys / values
+            -------------------------------------------------------------------
+            * = required
+        """
         xml = self.CACHE.requestXML(requesturl, postdata)
         if not xml:
             xml = urllib2.urlopen(requesturl, urllib.urlencode(postdata)).read()
@@ -46,6 +74,15 @@ class API:
         return xml
         
     def _errorCheck(self, xml):
+        """
+            Parses errors from API returned XML and raises an appropriate APIError
+            
+            Keyword arguments:
+            ------------------------------------------
+            * xml  -- the XML returned by an API call
+            ------------------------------------------
+            * = required
+        """
         try:
             error = re.findall("\<error code=\"(\d+)\"\>(.*?)\<\/error\>",xml)[0]
         except IndexError:
@@ -54,27 +91,74 @@ class API:
             raise APIError("%s : %s" % (error[0], error[1]))
         
     def _getCachedUntil(self, xml):
+        """
+            Parses the <cachedUntil> value from the XML returned from an API call
+            
+            Keyword arguments:
+            ------------------------------------------
+            * xml  -- the XML returned by an API call
+            ------------------------------------------
+            * = required
+        """
         cachedUntil = calendar.timegm(time.strptime(re.findall("\<cachedUntil\>(.*?)\<\/cachedUntil\>", xml)[0], "%Y-%m-%d %H:%M:%S"))
         return cachedUntil
     
     def Eve(self,Request, allianceID=None, nameID=None, nameName=None, allianceName=None, allianceTicker=None, characterID=None, typeID=None):
         """
-            Methods related to EVE in general:
-            *********************************************
-            alliances : returns alliance info for a given
-                        allianceID, allianceName or allianceID(N)
-                        # currently outputs only allianceID, 
-                        # allianceName and allianceTicker
-            getName   : returns the Name for a given ID
-                        # includes chars, corps and alliances
-            getID     : returns the ID for a given Name
-                        # includes chars, corps and alliances
-            characterinfo : returns (public) info for a character
-            refTypes : returns list of wallet journal ref types
-            skillTree : returns the primary / secondary attributes
-                        of a given skill typeID
-            *********************************************
+            Methods for retrieving EVE related data
+            
+            (NOTE: all times and dates are returned as floats representing the seconds since the start of the unix epoch)
+            
+            Keyword arguments:
+            ----------------------------------------------------------------------------------------
+            * Request        -- the particular request (see below)
+              allianceID     -- alliance ID (used in alliances)
+              nameID         -- generic for any character, corporation or alliance ID (used in getName)
+              nameName       -- generic for any character, corporation or alliance name (used in getID)
+              allianceName   -- the name of an alliance (used in alliances)
+              allianceTicker -- the ticker of an alliance (used in alliances)
+              characterID    -- the ID of a character (used in characterinfo)
+              typeID         -- the ID of a skill type (used in skillTree)
+            ----------------------------------------------------------------------------------------
+            * = required
+            
+            Request:
+            +--------------------------------------------------------------------------------------+
+            | (N) alliances                                                                        |
+            | description : returns alliance info for a given alliance ID, name or ticker          |
+            | inputs      : allianceID, allianceName or allianceTicker                             |
+            | returns     : dict with keys allianceID, allianceName, allianceTicker                |
+            +--------------------------------------------------------------------------------------+
+            | (N) getName                                                                          |
+            | description : returns the name for a given character, corp or alliance ID            |
+            | inputs      : nameID*                                                                |
+            | returns     : dict with keys Name and ID                                             |
+            +--------------------------------------------------------------------------------------+
+            | (N) getID                                                                            |
+            | description : returns the ID for a given character, corp or alliance name            |
+            | inputs      : nameName*                                                              |
+            | returns     : dict with keys Name and ID                                             |
+            +--------------------------------------------------------------------------------------+
+            | (N) characterinfo                                                                    |
+            | description : returns the public info for a given character ID                       |
+            | inputs      : characterID*                                                           |
+            | returns     : dict with keys characterID, characterName, race, bloodline,            |
+            |               corporationID, corporationName, corporationDate, allianceID,           |
+            |               allianceName, allianceDate, securityStatus                             |
+            +--------------------------------------------------------------------------------------+
+            | (N) reftypes                                                                         |
+            | description : returns the refTypes with associated names as used in the wallet       |
+            |               journal, the returned XML will be cached essentially for ever          |
+            | inputs      : none                                                                   |
+            | returns     : dict with key refTypeID (int) and value refTypeName                    |  
+            +--------------------------------------------------------------------------------------+
+            | (N) skillTree                                                                        |
+            | description : returns limited information about a particular skill                   |
+            | inputs      : typeID*                                                                | 
+            | returns     : dict with keys typeID, typeName, primaryAttribute, secondaryAttribute  |
+            +--------------------------------------------------------------------------------------+
             (N) = No API key required
+             *  = required input
         """
         if Request.lower() == "alliances":
             requesturl = os.path.join(self.API_URL, "eve/AllianceList.xml.aspx")
@@ -213,30 +297,30 @@ class API:
                     "primaryAttribute" : xml_specific.split("<primaryAttribute>")[1].split("</primaryAttribute>")[0],
                     "secondaryAttribute" : xml_specific.split("<secondaryAttribute>")[1].split("</secondaryAttribute>")[0]
                 }
-          #<row typeName="Marketing" groupID="274" typeID="16598" published="1">
-          #  <description>Skill at selling items remotely. Each level increases the range from the seller to the item being sold. Level 1 allows for the sale of items within the same solar system, Level 2 extends that range to systems within 5 jumps, and each subsequent level then doubles it. Level 5 allows for sale of items located anywhere within current region.</description>
-          #  <rank>3</rank>
-          #  <rowset name="requiredSkills" key="typeID" columns="typeID,skillLevel">
-          #    <row typeID="3443" skillLevel="2" />
-          #  </rowset>
-          #  <requiredAttributes>
-          #    <primaryAttribute>charisma</primaryAttribute>
-          #    <secondaryAttribute>memory</secondaryAttribute>
-          #  </requiredAttributes>
-          #  <rowset name="skillBonusCollection" key="bonusType" columns="bonusType,bonusValue" />
-          #</row>
 
             
                     
     def Corporation(self, Request, corporationID=None):
         """
-            Methods related to corporations:
-            **********************************************
-            publicsheet : returns various corporation info
-                          for a given corporationID (N)
-                          # currently outputs only corporationName
-            **********************************************
+            Methods for retrieving corporation-related data
+            
+            Keyword arguments:
+            ----------------------------------------------------------------------------------------
+            * Request        -- the particular request (see below)
+              corporationID  -- the ID of the corporation of interest
+            ----------------------------------------------------------------------------------------
+            * = required
+            
+            Request:
+            +--------------------------------------------------------------------------------------+
+            | (N) publicsheet                                                                      |
+            | description : returns various corporation info, currently limited to only the name of|
+            |               a corporation                                                          |
+            | inputs      : corporationID*                                                         |
+            | returns     : dict with key corporationID                                            |
+            +--------------------------------------------------------------------------------------+
             (N) = No API key required
+             *  = required input
         """
         if Request.lower() == "publicsheet":
             if corporationID != "0":
@@ -262,22 +346,140 @@ class API:
                 return None
                         
     def Char(self, Request, mailID=None, refID=None):
-        """ Methods related to a character:
-            **********************************************
-            balance : returns the account balance (F)
-            assets : returns assets (F)
-            charsheet : returns character sheet (L)
-            industry : returns industry jobs (F)
-            kills : returns kill log (F)
-            mail : returns eve mails (F)
-            market : returns market orders (F)
-            research : returns research jobs (F)
-            currentskill : returns the current skill in training (L)
-            skillqueue : returns the skill queue (L)
-            wallet : returns the wallet journal (F)
-            transacts : returns wallet transactions (F)
-            **********************************************
-            (L) = limited API key required
+        """ Methods for character-related data
+        
+            (NOTE: all times and dates are returned as floats representing the time since the start
+                   of the unix epoch)
+            
+            Keyword arguments:
+            ----------------------------------------------------------------------------------------
+            * Request -- the particular request (see below)
+              mailID  -- the ID of a mail (see mail request)
+              refID   -- the ID of a wallet journal entry (currently not used)
+            ----------------------------------------------------------------------------------------
+            * = required
+            
+            Request:
+            +--------------------------------------------------------------------------------------+
+            | (F) balance                                                                          |
+            | description : returns the account balance                                            |
+            | inputs      : none                                                                   |
+            | returns     : dict with keys accountID, accountKey and accountBalance                |
+            +--------------------------------------------------------------------------------------+ 
+            | (F) assets                                                                           |
+            | description : returns all assets                                                     |
+            | inputs      : none                                                                   | 
+            | returns     : dict with key itemID (int)                                             |   
+            |               each itemID has keys itemID, locationID, typeID, quantity, flag,       |
+            |               singleton, __child__ and __contents__                                  |
+            |               if __child__ is True, the itemID is a child of another itemID          |
+            |               (i.e. contained within it)                                             |
+            |               if __contents__ is not None, then this will contain a dict with the    |
+            |               same keys as a normal itemID                                           |
+            +--------------------------------------------------------------------------------------+               
+            | (L) charsheet                                                                        |
+            | description : returns various (non-exhaustive) information about the instanced       |
+            |               character                                                              |
+            | inputs      : none                                                                   |
+            | returns     : dict with keys:                                                        | 
+            |                 characterID, name, DoB, race, bloodLine, ancestry, gender,           |
+            |                 corporationName, corporationID, allianceName, allianceID, cloneName, |
+            |                 cloneSkillPoints, balance, attributes, skills, certificates          |
+            |               key "attributes" contains a dict with keys:                            |
+            |                 intelligence, memory, charisma, perception, willpower                |  
+            |                 (the values include any effects from implants)                       |
+            |               key "skills" contains a dict with key typeID (int) and value a dict    |
+            |               with keys:                                                             |
+            |                 typeID, typeName, skillpoints, level                                 |  
+            |               key "certificates" contains a dict with key typeID (int) and value a   |
+            |               dict with keys:                                                        | 
+            |                 certificateID                                                        |
+            +--------------------------------------------------------------------------------------+                 
+            | (F) industry                                                                         |
+            | description : returns industry jobs for the instanced character                      |
+            | inputs      : none                                                                   | 
+            | returns     : dict with key jobID (int) and value a dict with keys:                  | 
+            |                 jobID, assemblyLineID, containerID, installedItemID,                 |
+            |                 installedItemLocationID, installedItemQuantity,                      |  
+            |                 installedItemProductivityLevel, installedItemMaterialLevel,          |
+            |                 installedItemLicensedProductionRunsRemaining, outputLocationID,      |
+            |                 installerID, runs, licensedProductionRuns, installedInSolarSystemID, |
+            |                 containerLocationID, materialMultiplier, charMaterialMultipler,      | 
+            |                 timeMultiplier, charTimeMultipler, installedItemTypeID, outputTypeID,| 
+            |                 containerTypeID, installedItemCopy, completed, completedSuccessfully,|
+            |                 installedItemFlag, outputFlag, activityID, completedStatus,          |
+            |                 installTime, beginProductionTime, endProductionTime,                 | 
+            |                 pauseProductionTime                                                  |
+            | (NOTE: industry value data types are not correct, they are currently all strings)    |
+            +--------------------------------------------------------------------------------------+
+            | (F) kills                                                                            |
+            | description : returns the latest kills for the instanced character                   |
+            | inputs      : none                                                                   |
+            | returns     : dict with key killID (int) and value a dict with keys:                 |
+            |                 solarSystemName, shipTypeName, killID, killTime, shipTypeID,         |
+            |                 solarSystemID, attackers, dropped                                    |
+            |               key "attackers" has value of a list containing dicts with keys:        |
+            |                 weaponTypeName, corporationID, damageDone, weaponTypeID,             |
+            |                 characterName, shipTypeName, allianceName, finalBlow, allianceID,    |
+            |                 shipTypeID, corporationName, characterID                             |
+            |               key "dropped" has value of a list containing dicts with keys:          |
+            |                 typeID, flag, typeName, qtyDropped, qtyDestroyed                     |
+            +--------------------------------------------------------------------------------------+
+            | (F) mail                                                                             |
+            | description : gets mail for the instanced character                                  |
+            | inputs      : mailID                                                                 |
+            | returns     : if mailID not specified                                                |
+            |                 dict with keys mailID (int) with value a dict with keys:             |
+            |                   allianceID, title, corpID, allianceTicker, senderID, allianceName, |
+            |                   toCharacters, sentDate, corpName, senderName                       |
+            |               if mailID specified                                                    |
+            |                 string containing parsed out message body                            |
+            +--------------------------------------------------------------------------------------+
+            | (F) market *** BROKEN ***                                                            |
+            | description : returns market orders for the instanced character                      |
+            | inputs      : none                                                                   |
+            | returns     : dict with keys orderID (int) with values a dict with keys:             |
+            |                 orderID, charID, stationID, volEntered, volRemaining, minVolume,     |
+            |                 orderState, typeID, range, accountKey, duration, escrow, bid, issued |
+            +--------------------------------------------------------------------------------------+
+            | (F) research *** IN DEVELOPMENT ***                                                  |
+            | description : returns research jobs for the instanced character                      |
+            | inputs      : none                                                                   |
+            | returns     : none                                                                   |
+            +--------------------------------------------------------------------------------------+
+            | (L) currentskill                                                                     |
+            | description : returns the skill that is currently training                           |
+            | inputs      : none                                                                   |
+            | returns     : dict with keys:                                                        |
+            |                 trainingStartSP, trainingTypeID, trainingDestinationSP,              |
+            |                 trainingEndTime, skillInTraining, trainingStartTime, trainingToLevel |
+            +--------------------------------------------------------------------------------------+
+            | (L) skillqueue                                                                       |
+            | description : returns the skill queue                                                |
+            | inputs      : none                                                                   |
+            | returns     : dict with key queueNumber (int) with value a dict with keys:           |
+            |                 typeID, level, endSP, typeName, startTime, startSP, endTime          |
+            +--------------------------------------------------------------------------------------+
+            | (F) wallet                                                                           |
+            | description : returns (the first page of) the wallet journal                         |
+            | inputs      : none                                                                   |
+            | returns     : dict with key refID (int) with value a dict with keys:                 |
+            |                 ownerID2, taxAmount, ownerID1, argID1, taxReceiverID, ownerName2,    |
+            |                 reason, argName1, ownerName1, amount, _kills_, taxReceiverName,      |
+            |                 refTypeName, date, refTypeID, balance, refID                         |
+            |               key "_kills_" (if not None) has value a list containing dicts with     |
+            |               keys:                                                                  |
+            |                 count, shipName, shipID                                              |
+            +--------------------------------------------------------------------------------------+
+            | (F) transacts *** IN DEVELOPMENT ***                                                 |
+            | description : returns wallet transactions for the instanced character                |
+            | inputs      : none                                                                   |
+            | returns     : none                                                                   |
+            +--------------------------------------------------------------------------------------+
+            (F) = Full API key required
+            (L) = Limited API key required
+            (N) = No API key required
+             *  = required input
         """
 
         basepostdata = {
@@ -291,11 +493,10 @@ class API:
             xml = self._getXML(requesurl, basepostdata)
             row = re.search("\<row accountID=\"(?P<accountID>\d+)\" accountKey=\"(?P<accountKey>\d+)\" balance=\"(?P<balance>\d+\.\d+)\" \/\>", xml)
             return {
-                "accountID" : row.group("accountID"),
+                "accountID" : int(row.group("accountID")),
                 "accountKey" : row.group("accountKey"),
-                "balance" : row.group("balance")
+                "balance" : float(row.group("balance"))
             }
-
         elif Request.lower() == "assets":
             requesturl = os.path.join(self.API_URL, "char/AssetList.xml.aspx")
             xml = self._getXML(requesturl, basepostdata)
@@ -370,7 +571,6 @@ class API:
                     "_contents_" : children
                 }
             return assetDict
-
         elif Request.lower() == "charsheet":
             requesturl = os.path.join(self.API_URL, "char/CharacterSheet.xml.aspx")
             xml = self._getXML(requesturl, basepostdata)
@@ -464,10 +664,8 @@ class API:
                 "balance" : float(getBasicValue("balance")),
                 "attributes" : attrib_dict,
                 "skills" : skills_dict,
-                "certificated" : certificate_dict
+                "certificates" : certificate_dict
             }
-                
-
         elif Request.lower() == "industry":
             requesturl = os.path.join(self.API_URL, "char/IndustryJobs.xml.aspx")
             xml = self._getXML(requesturl, basepostdata)
@@ -519,7 +717,6 @@ class API:
                 else:
                     industrydict[row["jobID"]] = row
             return industrydict
-
         elif Request.lower() == "kills":
             requesturl = os.path.join(self.API_URL, "char/Killlog.xml.aspx")
             xml = self._getXML(requesturl, basepostdata)
@@ -651,7 +848,6 @@ class API:
                         "dropped" : namedDrops
                     }
             return killDict
-
         elif Request.lower() == "mail":
             if not mailID:
                 requesturl = os.path.join(self.API_URL, "char/MailMessages.xml.aspx")
@@ -728,7 +924,6 @@ class API:
                     return None
                 else:
                     return message
-
         elif Request.lower() == "market":
             requesturl = os.path.join(self.API_URL, "char/MarketOrders.xml.aspx")
             xml = self._getXML(requesturl, basepostdata)
@@ -742,7 +937,6 @@ class API:
                 else:
                     returndict[row["orderID"]] = row
             return returndict
-
         elif Request.lower() == "research":
             requesturl = os.path.join(self.API_URL, "char/Research.xml.aspx")
             xml = self._getXML(requesturl, basepostdata)
@@ -758,15 +952,14 @@ class API:
                 return value
 
             return {
-                "trainingEndTime" : getValue("trainingEndTime"),
-                "trainingStartTime" : getValue("trainingStartTime"),
-                "trainingTypeID" : getValue("trainingTypeID"),
-                "trainingStartSP" : getValue("trainingStartSP"),
-                "trainingDestinationSP" : getValue("trainingDestinationSP"),
-                "trainingToLevel" : getValue("trainingToLevel"),
+                "trainingEndTime" : calendar.timegm(time.strptime(getValue("trainingEndTime"), "%Y-%m-%d %H:%M:%S")),
+                "trainingStartTime" : calendar.timegm(time.strptime(getValue("trainingStartTime"), "%Y-%m-%d %H:%M:%S")),
+                "trainingTypeID" : int(getValue("trainingTypeID")),
+                "trainingStartSP" : int(getValue("trainingStartSP")),
+                "trainingDestinationSP" : int(getValue("trainingDestinationSP")),
+                "trainingToLevel" : int(getValue("trainingToLevel")),
                 "skillInTraining" : getValue("skillInTraining")
             }
-
         elif Request.lower() == "skillqueue":
             requesturl = os.path.join(self.API_URL, "char/SkillQueue.xml.aspx")
             xml = self._getXML(requesturl, basepostdata)
@@ -841,22 +1034,37 @@ class API:
                                     print element
                         walletdict[int(row["refID"])]["_kills_"] = kills
             return walletdict
-
         elif Request.lower() == "transacts":
             requesturl = os.path.join(self.API_URL, "char/WalletTransactions.xml.aspx")
             xml = self._getXML(requesturl, basepostdata)
             print xml
             #1000 results
             #can use beforeTransID=TransID to see more
-
+            
     def Account(self, Request):
-        """ Methods related to an account:
-            **********************************************
-            characters : returns a list of characters (L)
-            status : account status (F)
-            **********************************************
-            (L) = limited API key required
-            (F) = full API key required
+        """ Methods for retrieving account-related data
+        
+            Keyword arguments:
+            ----------------------------------------------------------------------------------------
+            * Request  -- defines which method will be used
+            ----------------------------------------------------------------------------------------
+            * = required
+            
+            Request:
+            +--------------------------------------------------------------------------------------+
+            | (L) characters                                                                       |
+            | description : returns a list of characters                                           |
+            | inputs      : none                                                                   |
+            | returns     : dict with key characterName (str) with value a dict with keys:         |
+            |                 corporationName, corporationID, name, characterID                    |
+            +--------------------------------------------------------------------------------------+
+            | (F) status                                                                           |
+            | description : returns account status                                                 |
+            | inputs      : none                                                                   |
+            | returns     : dict with keys logonMinutes, createDate, paidUntil, logonCount         |
+            +--------------------------------------------------------------------------------------+
+            (L) = Limited API key required
+            (F) = Full API key required
         """
 
         if Request.lower() == "characters":
@@ -966,13 +1174,37 @@ class API:
                 "logonMinutes" : logonMinutes
             }
     def Map(self, Request, systemname):
-        """ Methods related to systems:
-            ************************************************
-            jumps : number of jumps into a specified system (N)
-            kills : number of ship and pod kills in a specified system (N)
-            sov : system sovereignty information (N)
-            ************************************************
+        """
+            Methods for map-related data
+            
+            Keyword arguments:
+            ----------------------------------------------------------------------------------------
+            * Request     -- the particular request
+            * systemname  -- name of the system of interest
+            ----------------------------------------------------------------------------------------
+            * = required
+            
+            Request:
+            +--------------------------------------------------------------------------------------+
+            | (N) jumps    *** IN DEVELOPMENT ***                                                  |
+            | description : returns the number of jumps into the given system                      |
+            | inputs      : none                                                                   |
+            | returns     : none                                                                   |
+            +--------------------------------------------------------------------------------------+
+            | (N) kills                                                                            |
+            | description : returns the number of (PvP) kills in the given system                  |
+            | inputs      : systemname*                                                            |
+            | returns     : dict with keys podKills, npcKills, solarSystemID, shipKills,           |
+            |               solarSystemName                                                        |
+            +--------------------------------------------------------------------------------------+
+            | (N) sov                                                                              |
+            | description : returns sovreignty information for a given system                      |
+            | inputs      : systemname*                                                            |
+            | returns     : dict with keys corporationID, allianceID, solarSystemName, factionName,|
+            |               allianceTicker, allianceName, factionID, corporationName, solarSystemID|
+            +--------------------------------------------------------------------------------------+
             (N) = no API key required
+             *  = required input
         """
         if Request.lower() == "jumps":
             requesturl = os.path.join(self.API_URL, "map/Jumps.xml.aspx")
@@ -1046,17 +1278,30 @@ class API:
                         }
 
     def Server(self, Request):
-        """ Methods related to the server:
-            ************************************************
-            status : server status (N)
-            ************************************************
-            (N) = no API key required
+        """
+            Methods for server-related data
+            
+            Keyword Arguments:
+            ----------------------------------------------------------------------------------------
+            * Request -- defines which method will be used
+            ----------------------------------------------------------------------------------------
+            * = required
+            
+            Request:
+            +--------------------------------------------------------------------------------------+
+            | (N) status                                                                           |
+            | description : returns the current server status                                      |
+            | inputs      : none                                                                   |
+            | returns     : dict with keys status, online                                          |
+            +--------------------------------------------------------------------------------------+
+            (N) = No API key required
         """
 
         if Request.lower() == "status":
             requesturl = os.path.join(self.API_URL, "server/ServerStatus.xml.aspx")
             xml = urllib2.urlopen(requesturl).read()
             status = re.search("\<serverOpen\>(.*?)\<\/serverOpen\>", xml).group(1)
+            servertime_string = re.search("\<currentTime\>(.*?)\<\/currentTime\>", xml).group(1)
             if status == "True":
                 status = "Online"
             else:
@@ -1064,5 +1309,6 @@ class API:
             online = int(re.search("\<onlinePlayers\>(\d+)\<\/onlinePlayers\>", xml).group(1))
             return {
                 "status" : status,
-                "online" : online
+                "online" : online,
+                "time" : servertime_string
             }
