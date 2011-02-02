@@ -39,8 +39,8 @@ def index(connection, event):
                 connection.privmsg(sourceNick, "Incorrect password")
             else:
                 #check details are correct
-                API = api.API(userid=userID, apikey=apiKey, characterName=charName)
                 try:
+                    API = api.API(userid=userID, apikey=apiKey, characterName=charName)
                     API.Account("characters")
                 except api.APIError:
                     connection.privmsg(sourceNick, "Update failed with error: %s" % " ".join(traceback.format_exc().splitlines()[-1].split()[1:]))
