@@ -1301,6 +1301,7 @@ class API:
             requesturl = os.path.join(self.API_URL, "server/ServerStatus.xml.aspx")
             xml = urllib2.urlopen(requesturl).read()
             status = re.search("\<serverOpen\>(.*?)\<\/serverOpen\>", xml).group(1)
+            servertime_string = re.search("\<currentTime\>(.*?)\<\/currentTime\>", xml).group(1)
             if status == "True":
                 status = "Online"
             else:
@@ -1308,5 +1309,6 @@ class API:
             online = int(re.search("\<onlinePlayers\>(\d+)\<\/onlinePlayers\>", xml).group(1))
             return {
                 "status" : status,
-                "online" : online
+                "online" : online,
+                "time" : servertime_string
             }
