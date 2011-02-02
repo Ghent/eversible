@@ -14,7 +14,7 @@ def index(connection, event):
     serverstatus = API.Server("status")
     status = serverstatus["status"]
     online = serverstatus["online"]
-    servertime = serverstatus["time"]
+    servertime = serverstatus["time"].split()[1]
     if status == "Online":
         if online >= 50000:
             players = "\x035 " + locale.format("%d", online, True) + "\x03"
@@ -26,7 +26,7 @@ def index(connection, event):
             players = "\x033 " + locale.format("%d", online, True) + "\x03"
             players = players + " \x0314(Space is empty...)\x03"
 
-        message = "\x02Server\x02: \x0311Tranquility\x03  \x02Status\x02: \x039Online\x03  \x02Players\x02:%s \x02Time\x02:%s" % (players, servertime)
+        message = "\x02Server\x02: \x0311Tranquility\x03  \x02Status\x02: \x039Online\x03  \x02Players\x02:%s \x02Time\x02: %s" % (players, servertime)
 
     elif status == "Offline":
         message = "\x02Server\x02: \x0310Tranquility\x03  \x02Status\x02: \x034Offline\x04"
