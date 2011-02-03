@@ -7,6 +7,15 @@ import os
 import sys
 import sqlite3
 
+def testEveDB():
+    try:
+        EVEDB = DUMP()
+        EVEDB.getSystemIDByName("Jita")
+    except sqlite3.OperationalError:
+        return False
+    else:
+        return True
+
 class DUMP:
     def __init__(self):
         conn = sqlite3.connect("evedb/current.db")

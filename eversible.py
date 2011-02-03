@@ -7,9 +7,9 @@ import irc.bot
 import sqlite3
 from core.options import options
 from core.config import config
-from misc import functions
+import evedb
 
-database = functions.testDB()
+database = evedb.testEveDB()
 if not database:
     print "WARNING: your static database is not up to date"
 
