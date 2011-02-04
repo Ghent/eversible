@@ -985,55 +985,99 @@ class API:
             return returndict
         elif Request.lower() == "wallet":
             requesturl = os.path.join(self.API_URL, "char/WalletJournal.xml.aspx")
-            xml = self._getXML(requesturl, Request, basepostdata)
+            
+            cached_URLs = self.CACHE.requestURLs("char", Request)
+            cached_refIDs = []
+            for URL in cached_URLs:
+                try:
+                    refID = int(URL.split("fromID=")[1])
+                except IndexError:
+                    pass
+                else:
+                    cached_refIDs += [refID]
+                    
+            cached_refIDs.sort()
+            lowest_refID = cached_refIDs[0]
+            
+            
             
             walletdict = {}
-            rows = re.finditer("\<row date=\"(?P<date>\d+-\d+-\d+ \d+:\d+:\d+)\" refID=\"(?P<refID>\d+)\" refTypeID=\"(?P<refTypeID>\d+)\" ownerName1=\"(?P<ownerName1>.*?)\" ownerID1=\"(?P<ownerID1>\d+)\" ownerName2=\"(?P<ownerName2>.*?)\" ownerID2=\"(?P<ownerID2>\d+)\" argName1=\"(?P<argName1>.*?)\" argID1=\"(?P<argID1>\d+)\" amount=\"(?P<amount>\d+\.\d\d)\" balance=\"(?P<balance>\d+\.\d\d)\" reason=\"(?P<reason>.*?)\" taxReceiverID=\"(?P<taxReceiverID>\d+)\" taxAmount=\"(?P<taxAmount>\d+\.\d\d)\" \/\>", xml)
-            refTypes = self.Eve("reftypes")
             
-            while True:
-                try:
-                    row = rows.next().groupdict()
-                except StopIteration:
-                    break
-                    
-                else:
-                    walletdict[int(row["refID"])] = {
-                        "refID" : int(row["refID"]),
-                        "refTypeID" : int(row["refTypeID"]),
-                        "refTypeName" : refTypes[int(row["refTypeID"])],
-                        "date" : calendar.timegm(time.strptime(row["date"], "%Y-%m-%d %H:%M:%S")),
-                        "amount" : float(row["amount"]),
-                        "taxAmount" : float(row["taxAmount"]),
-                        "taxReceiverID" : int(row["taxReceiverID"]),
-                        "taxReceiverName" : self.Eve("getname",nameID=int(row["taxReceiverID"]))["Name"],
-                        "ownerID1" : int(row["ownerID1"]),
-                        "ownerName1" : row["ownerName1"],
-                        "ownerID2" : int(row["ownerID2"]),
-                        "ownerName2" : row["ownerName2"],
-                        "argID1" : int(row["argID1"]),
-                        "argName1" : row["argName1"],
-                        "reason" : row["reason"],
-                        "balance" : row["balance"],
+            def getrows(startID=None):
+                if not startID:
+                    postdata = {
+                        "apiKey" : self.API_KEY,
+                        "characterID" : self.CHAR_ID,
+                        "userID" : self.USER_ID,
+                        "rowCount" : 256
                     }
-                    if int(row["refTypeID"]) == 85:
-                        reason = row["reason"]
-                        elements = reason.split(",")
-                        kills = []
-                        for element in elements:
-                            if element != "":
-                                try:
-                                    NPCid = int(element.split(":")[0])
-                                    NPCName = self.Eve("getname", nameID=NPCid)["Name"]
-                                    count = int(element.split(":")[1])
-                                    kills += [{
-                                        "shipID" : NPCid,
-                                        "shipName" : NPCName,
-                                        "count" : count
-                                    }]
-                                except ValueError:
-                                    print element
-                        walletdict[int(row["refID"])]["_kills_"] = kills
+                else:
+                    postdata = {
+                        "apiKey" : self.API_KEY,
+                        "characterID" : self.CHAR_ID,
+                        "userID" : self.USER_ID,
+                        "rowCount" : 256,
+                        "fromID" : startID
+                    }
+                try:
+                    xml = self._getXML(requesturl, Request, postdata)
+                except APIError:
+                    return None
+                
+                rows = re.finditer("\<row date=\"(?P<date>\d+-\d+-\d+ \d+:\d+:\d+)\" refID=\"(?P<refID>\d+)\" refTypeID=\"(?P<refTypeID>\d+)\" ownerName1=\"(?P<ownerName1>.*?)\" ownerID1=\"(?P<ownerID1>\d+)\" ownerName2=\"(?P<ownerName2>.*?)\" ownerID2=\"(?P<ownerID2>\d+)\" argName1=\"(?P<argName1>.*?)\" argID1=\"(?P<argID1>\d+)\" amount=\"(?P<amount>\d+\.\d\d)\" balance=\"(?P<balance>\d+\.\d\d)\" reason=\"(?P<reason>.*?)\" taxReceiverID=\"(?P<taxReceiverID>\d+)\" taxAmount=\"(?P<taxAmount>\d+\.\d\d)\" \/\>", xml)
+                refTypes = self.Eve("reftypes")
+                
+                while True:
+                    try:
+                        row = rows.next().groupdict()
+                    except StopIteration:
+                        return int(row["refID"])
+                        
+                    else:
+                        if int(row["refID"]) == lowest_refID:
+                            return lowest_refID
+                        
+                        walletdict[int(row["refID"])] = {
+                            "refID" : int(row["refID"]),
+                            "refTypeID" : int(row["refTypeID"]),
+                            "refTypeName" : refTypes[int(row["refTypeID"])],
+                            "date" : calendar.timegm(time.strptime(row["date"], "%Y-%m-%d %H:%M:%S")),
+                            "amount" : float(row["amount"]),
+                            "taxAmount" : float(row["taxAmount"]),
+                            "taxReceiverID" : int(row["taxReceiverID"]),
+                            "taxReceiverName" : self.Eve("getname",nameID=int(row["taxReceiverID"]))["Name"],
+                            "ownerID1" : int(row["ownerID1"]),
+                            "ownerName1" : row["ownerName1"],
+                            "ownerID2" : int(row["ownerID2"]),
+                            "ownerName2" : row["ownerName2"],
+                            "argID1" : int(row["argID1"]),
+                            "argName1" : row["argName1"],
+                            "reason" : row["reason"],
+                            "balance" : row["balance"],
+                        }
+                        if int(row["refTypeID"]) == 85:
+                            reason = row["reason"]
+                            elements = reason.split(",")
+                            kills = []
+                            for element in elements:
+                                if element != "":
+                                    try:
+                                        NPCid = int(element.split(":")[0])
+                                        NPCName = self.Eve("getname", nameID=NPCid)["Name"]
+                                        count = int(element.split(":")[1])
+                                        kills += [{
+                                            "shipID" : NPCid,
+                                            "shipName" : NPCName,
+                                            "count" : count
+                                        }]
+                                    except ValueError:
+                                        print element
+                            walletdict[int(row["refID"])]["_kills_"] = kills
+                            
+            lastid = getrows()
+            while lastid != None:
+                lastid = getrows()
+                
             return walletdict
         elif Request.lower() == "transacts":
             requesturl = os.path.join(self.API_URL, "char/WalletTransactions.xml.aspx")
