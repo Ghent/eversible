@@ -11,13 +11,13 @@ class DB:
     def __init__(self):
         pass
     
-    def getLatestMailID(self, charID):
+    def getMessageID(self, charID):
         conn = sqlite3.connect("users/eversible.db")
         cursor = conn.cursor()
         
         try:
             cursor.execute("""
-                           SELECT messageID
+                           SELECT messageID, sentTime
                            FROM mail
                            WHERE charID="%s"
                            """ % charID)
@@ -30,7 +30,7 @@ class DB:
             else:
                 return None
             
-    def insertLatestMailID(self, charID, messageID, sentTime):
+    def insertMessageID(self, charID, messageID, sentTime):
         conn = sqlite3.connect("users/eversible.db")
         cursor = conn.cursor()
         
