@@ -23,6 +23,8 @@ class Scheduler:
         ### DEBUG ###
         print "checkAPIurls called @ %s" % time.asctime().split()[3]
         lowest_expire = 999999999999
+        lowest_value = ""
+        lowest_table = ""
         ### END DEBUG ###
         CACHE = cache.CACHE()
         API = api.API()
@@ -41,6 +43,8 @@ class Scheduler:
                 ### DEBUG ###
                 if expireTime < lowest_expire:
                     lowest_expire = expireTime
+                    lowest_value = requestName
+                    lowest_table = tablename
                 ### END DEBUG ###
                 if time.time() > expireTime:
                     #remove old entry
@@ -56,7 +60,7 @@ class Scheduler:
                         new_expireTime = API._getCachedUntil(xml)
                         CACHE.insertXML(url, requestName, xml, new_expireTime, postdata=None)
         ### DEBUG ###
-        print "Next expire in %ss (%s)" % (lowest_expire - time.time(), time.asctime(time.localtime(lowest_expire)).split()[3])
+        print "Next expire (%s/%s) in %ss (%s)" % (lowest_table, lowest_value, int(lowest_expire - time.time()), time.asctime(time.localtime(lowest_expire)).split()[3])
         ### END DEBUG ###
     
 class _QUEUE:

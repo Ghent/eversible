@@ -17,7 +17,7 @@ if not database:
 
 sched = schedule.Scheduler()
 
-thread.start_new_thread(sched.start, (30,))
+thread.start_new_thread(sched.start, ())
 
 """ Start the IRC bot """
 irc.bot.start(config.get("irc", "host"),
