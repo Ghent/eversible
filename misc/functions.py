@@ -76,6 +76,18 @@ def parseIRCBBCode(string):
                 string = string.replace(bbtag, "\x03%s\x02\x02" % colourdict[colour.lower().replace(" ","_")])
         except StopIteration:
             break
+        
+    bgcolourBBtags = re.finditer("(\[bgcolour=(.*?)])", string)
+    while True:
+        try:
+            match = bgcolourBBtags.next()
+            bbtag = match.group(1)
+            colour = match.group(2)
+            if colour.lower().replace(" ","_") in colourdict.keys():
+                string = string.replace(bbtag, "\x03,%s\x02\x02" % colourdict[colour.lower().replace(" ","_")])
+        except StopIteration:
+            break
+    
     return string
         
     
