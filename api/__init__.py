@@ -1008,6 +1008,7 @@ class API:
             
             
             walletdict = {}
+            refTypes = self.Eve("reftypes")
             
             def getrows(walletdict, startID=None):
                 if not startID:
@@ -1032,10 +1033,9 @@ class API:
                     return (walletdict, None)
                                 
                 rows = re.finditer("\<row date=\"(?P<date>.*?)\" refID=\"(?P<refID>\d+)\" refTypeID=\"(?P<refTypeID>.*?)\" ownerName1=\"(?P<ownerName1>.*?)\" ownerID1=\"(?P<ownerID1>.*?)\" ownerName2=\"(?P<ownerName2>.*?)\" ownerID2=\"(?P<ownerID2>.*?)\" argName1=\"(?P<argName1>.*?)\" argID1=\"(?P<argID1>.*?)\" amount=\"(?P<amount>.*?)\" balance=\"(?P<balance>.*?)\" reason=\"(?P<reason>.*?)\" taxReceiverID=\"(?P<taxReceiverID>.*?)\" taxAmount=\"(?P<taxAmount>.*?)\" \/\>", xml)
-                refTypes = self.Eve("reftypes")
                 
+                refIDs = []
                 while True:
-                    refIDs = []
                     try:
                         row = rows.next().groupdict()
                     except StopIteration:
@@ -1108,12 +1108,8 @@ class API:
                             walletdict[int(row["refID"])]["_kills_"] = kills
                             
             walletdict, lastid = getrows(walletdict)
-            print "lastid:", lastid
-            print "ids in walletdict:", len(walletdict)
             while lastid != None:
                 walletdict, lastid = getrows(walletdict, lastid)
-                print "lastid:", lastid
-                print "ids in walletdict:", len(walletdict)
                 
             return walletdict
         elif Request.lower() == "transacts":
