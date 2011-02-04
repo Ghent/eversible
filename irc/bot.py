@@ -18,6 +18,10 @@ USERS = users.DB()
 
 import evedb
 
+import schedule
+
+import thread
+
 if "-v" in sys.argv:
     irclib.DEBUG = True
 
@@ -70,6 +74,10 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
 
     def on_welcome(self, connection, event):
         connection.join(self.CHANNEL)
+        #start scheduler
+        sched = scheduler.Scheduler()
+        thread.start_new_thread(sched.start(), (connection,))
+        
 
     def on_privmsg(self, connection, event):
         if event.arguments()[0][0] == self.PREFIX:

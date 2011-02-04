@@ -13,11 +13,19 @@ class Scheduler:
     def __init__(self):
         self.QUEUE = _QUEUE()
     
-    def start(self, refreshtime=300):
+    def start(self, refreshtime=300, connection=None):
         while True:
             self.QUEUE.insert(self.checkAPIurls, None, time.time())
+            self.QUEUE.insert(self.testIRC, self.testIRCHandler, time.time(), connection)
             self.QUEUE.run()
             time.sleep(refreshtime)
+        
+    def testIRC(self, connection):
+        print "TESTING TESTING 1 2 3"
+        return connection
+    
+    def testIRCHandler(self, connection):
+        connection.privmsg("#eversible", "Test worked!")
         
     def checkAPIurls(self):
         ### DEBUG ###
