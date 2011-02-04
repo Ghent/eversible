@@ -75,7 +75,7 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
     def on_welcome(self, connection, event):
         connection.join(self.CHANNEL)
         #start scheduler
-        sched = scheduler.Scheduler()
+        sched = schedule.Scheduler()
         thread.start_new_thread(sched.start(), (connection,))
         
 
