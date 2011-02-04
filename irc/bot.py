@@ -16,7 +16,7 @@ import irc.lib.irclib as irclib
 import users
 USERS = users.DB()
 
-from misc import functions
+import evedb
 
 if "-v" in sys.argv:
     irclib.DEBUG = True
@@ -89,7 +89,7 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
                             for line in tb.split("\n"):
                                connection.privmsg(event.source().split("!")[0], line)
                 else:
-                    if not functions.testDB():
+                    if not evedb.testEveDB():
                         connection.privmsg(event.source().split("!")[0], "The static CCP dump database is not up to date / not installed correctly")
                     else:
                         connection.privmsg(event.source().split("!")[0], "Reloading database, please try again")
@@ -118,7 +118,7 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
                             for line in tb.split("\n"):
                                 connection.privmsg(event.target(), line)
                 else:
-                    if not functions.testDB():
+                    if not evedb.testEveDB():
                         connection.privmsg(event.target(), "The static CCP dump database is not up to date / not installed correctly")
                     else:
                         self.DATABASE = True

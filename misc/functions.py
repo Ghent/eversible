@@ -3,15 +3,6 @@
 import evedb
 import sqlite3
 
-def testDB():
-    try:
-        EVEDB = evedb.DUMP()
-        EVEDB.getSystemIDByName("Jita")
-    except sqlite3.OperationalError:
-        return False
-    else:
-        return True
-    
 def security(systemID=None, systemInfo=None):
     EVEDB = evedb.DUMP()
     """
