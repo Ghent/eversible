@@ -17,16 +17,16 @@ class Scheduler:
         while True:
             self.QUEUE.insert(self.checkAPIurls, None, time.time())
             if connection:
-                self.QUEUE.insert(self.testIRC, self.testIRCHandler, time.time(), connection)
+                #self.QUEUE.insert(self.testIRC, self.testIRCHandler, time.time(), connection)
+                pass
             self.QUEUE.run()
             time.sleep(refreshtime)
         
-    def testIRC(self, connection):
-        print "TESTING TESTING 1 2 3"
+    def mailCheck(self, connection):
         return connection
     
-    def testIRCHandler(self, connection):
-        connection.privmsg("#eversible", "Test worked!")
+    def mailHandler(self, nick, message, connection):
+        connection.privmsg(nick, message)
         
     def checkAPIurls(self):
         ### DEBUG ###
