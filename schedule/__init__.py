@@ -6,11 +6,13 @@ import string
 import api
 import cache
 import sqlite3
+import urllib
 import urllib2
 import sys
 import users
 import os
 import calendar
+import re
 from misc import functions
 
 class Scheduler:
@@ -26,7 +28,7 @@ class Scheduler:
         while True:
             self.QUEUE.insert(self.checkAPIurls, None, time.time())
             if connection:
-                self.QUEUE.insert(self.mailCheck, None, time.time())
+                self.QUEUE.insert(self.mailCheck, None, time.time(), connection)
             self.QUEUE.run()
             time.sleep(refreshtime)
         
@@ -34,7 +36,7 @@ class Scheduler:
         #get identified users
         loggedInHostnames = self.USERS.getHostnames()
         loggedIn = {}
-        for id, hostname in loggedInHostnames:
+        for id, hostname in loggedInHostnames.iteritems():
             nick = hostname.split("!")[0]
             API = self.USERS.retrieveUserByHostname(hostname)["apiObject"]
             
@@ -45,6 +47,9 @@ class Scheduler:
                 "characterID" : API.CHAR_ID,
             }
             mailXML = self.CACHE.requestXML(requesturl, postdata, deleteOld=False)
+            if not mailXML:
+                mailXML = urllib2.urlopen(requesturl, urllib.urlencode(postdata)).read()
+                self.CACHE.insertXML(requesturl, "char", mailXML, API._getCachedUntil(mailXML), postdata)
             
             if API.CHAR_ID in self.MAIL_RECORD.keys():
                 latest_time = self.MAIL_RECORD[API.CHAR_ID]["sentTime"]
@@ -52,8 +57,11 @@ class Scheduler:
             else:
                 result = self.USERS.getMessageID(API.CHAR_ID)
                 if result:
+                    self.MAIL_RECORD[API.CHAR_ID] = {}
                     self.MAIL_RECORD[API.CHAR_ID]["sentTime"] = result[0]
                     self.MAIL_RECORD[API.CHAR_ID]["messageID"] = result[1]
+                    latest_time = result[0]
+                    latest_id = result[0]
                 else:
                     latest_time = None
                     latest_id = None
@@ -63,7 +71,7 @@ class Scheduler:
             new_latest_id = None
             
             newIDs = []
-            rows = re.finditer("\<row messageID=\"(?P<messageID>\d+)\" senderID=\"(?P<senderID>\d+)\" sentDate=\"(?P<sentDate>\d+-\d+-\d+ \d+:\d+:\d+)\" title=\"(?P<title>.*?)\" toCorpOrAllianceID=\"(?P<toCorpOrAllianceID>\d+)\" toCharacterIDs=\"(?P<toCharacterIDs>.*?)\" toListID=\"(?P<toListID>.*?)\" \/\>", xml)
+            rows = re.finditer("\<row messageID=\"(?P<messageID>\d+)\" senderID=\"(?P<senderID>\d+)\" sentDate=\"(?P<sentDate>\d+-\d+-\d+ \d+:\d+:\d+)\" title=\"(?P<title>.*?)\" toCorpOrAllianceID=\"(?P<toCorpOrAllianceID>\d+)\" toCharacterIDs=\"(?P<toCharacterIDs>.*?)\" toListID=\"(?P<toListID>.*?)\" \/\>", mailXML)
             #cycle through
             while True:
                 try:
@@ -87,7 +95,7 @@ class Scheduler:
                 ids = []
                 for i in range(5):
                     try:
-                        ids += [newIDs[i]]
+                        ids += [str(newIDs[i])]
                         count += 1
                     except IndexError:
                         break
