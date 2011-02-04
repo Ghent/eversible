@@ -22,6 +22,7 @@ class Scheduler:
     def checkAPIurls(self):
         ### DEBUG ###
         print "checkAPIurls called @ %s" % time.asctime().split()[3]
+        lowest_expire = 999999999999
         ### END DEBUG ###
         CACHE = cache.CACHE()
         API = api.API()
@@ -36,7 +37,11 @@ class Scheduler:
                            FROM %s
                            """ % tablename)
             rows = cursor.fetchall()
-            for url, expireTime, requestName in rows:                
+            for url, expireTime, requestName in rows:
+                ### DEBUG ###
+                if expireTime < lowest_expire:
+                    lowest_expire = expireTime
+                ### END DEBUG ###
                 if time.time() > expireTime:
                     #remove old entry
                     CACHE.requestXML(url, postdata=None)
@@ -50,6 +55,9 @@ class Scheduler:
                     else:
                         new_expireTime = API._getCachedUntil(xml)
                         CACHE.insertXML(url, requestName, xml, new_expireTime, postdata=None)
+        ### DEBUG ###
+        print "Next expire in %ss (%s)" % (lowest_expire - time.time(), time.asctime(time.localtime(lowest_expire)).split()[3])
+        ### END DEBUG ###
     
 class _QUEUE:
     def __init__(self):
