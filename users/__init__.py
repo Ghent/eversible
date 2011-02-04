@@ -17,7 +17,7 @@ class DB:
         
         try:
             cursor.execute("""
-                           SELECT mailID
+                           SELECT messageID
                            FROM mail
                            WHERE charID="%s"
                            """ % charID)
@@ -26,18 +26,18 @@ class DB:
         else:
             result = cursor.fetchone()
             if result:
-                return int(result[0])
+                return (int(result[0]), float(result[1]))
             else:
                 return None
             
-    def insertLatestMailID(self, mailID, charID):
+    def insertLatestMailID(self, charID, messageID, sentTime):
         conn = sqlite3.connect("users/eversible.db")
         cursor = conn.cursor()
         
         try:
             cursor.execute("""
                            CREATE TABLE mail
-                           (charID integer, mailID, integer)
+                           (charID integer, messageID integer, sentTime real)
                            """)
         except sqlite3.OperationalError:
             pass
@@ -52,9 +52,9 @@ class DB:
         
         cursor.execute("""
                        INSERT INTO mail
-                       (charID, mailID)
-                       VALUES ("%s","%s")
-                       """ % (charID, mailID)
+                       (charID, messageID, sentTime)
+                       VALUES ("%s","%s", "%s")
+                       """ % (charID, messageID, sentTime)
                       )
         
         conn.commit()
