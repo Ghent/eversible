@@ -68,7 +68,7 @@ class CACHE:
             return [str(x[0]) for x in results]
         else:
             return None
-    def requestXML(self, requesturl, postdata={}):
+    def requestXML(self, requesturl, postdata={}, deleteOld=True):
         def shutdown(returnable):
             conn.commit()
             cursor.close()
@@ -90,7 +90,7 @@ class CACHE:
             row = cursor.fetchone()
             if row:
                 expireTime = row[2]
-                if time.time() > expireTime:
+                if time.time() > expireTime and deleteOld:
                     #remove row
                     cursor.execute("""
                                         DELETE
