@@ -55,13 +55,14 @@ class API:
             self.CHAR_ID = charid
         
 
-    def _getXML(self, requesturl, postdata={}):
+    def _getXML(self, requesturl, Request, postdata={}):
         """
             Request XML for a given URL, associated with POST data
             
             Keyword arguments:
             -------------------------------------------------------------------
             * requesturl -- the base URL of a particular API request
+            * Request    -- the Request
               postdata   -- a dictionary object containing POST keys / values
             -------------------------------------------------------------------
             * = required
@@ -69,7 +70,7 @@ class API:
         xml = self.CACHE.requestXML(requesturl, postdata)
         if not xml:
             xml = urllib2.urlopen(requesturl, urllib.urlencode(postdata)).read()
-            self.CACHE.insertXML(requesturl, xml, self._getCachedUntil(xml), postdata)
+            self.CACHE.insertXML(requesturl, Request, xml, self._getCachedUntil(xml), postdata)
         self._errorCheck(xml)
         return xml
         
@@ -162,7 +163,7 @@ class API:
         """
         if Request.lower() == "alliances":
             requesturl = os.path.join(self.API_URL, "eve/AllianceList.xml.aspx")
-            xml = self._getXML(requesturl)
+            xml = self._getXML(requesturl, Request)
             if allianceID:
                 try:
                     allianceName, allianceTicker = re.findall("\<row name=\"(.*?)\" shortName=\"(.*?)\" allianceID=\"%s\"" % (allianceID), xml)[0]
@@ -204,7 +205,7 @@ class API:
                 postdata = {
                     "ids" : nameID
                 }
-                xml = self._getXML(requesturl, postdata)
+                xml = self._getXML(requesturl, Request, postdata)
                 try:
                     charName, charID = re.findall("\<row name=\"(.*?)\" characterID=\"(\d+)\" \/\>", xml)[0]
                 except IndexError:
@@ -220,7 +221,7 @@ class API:
                 postdata = {
                     "names" : nameName
                 }
-                xml = self._getXML(requesturl, postdata)
+                xml = self._getXML(requesturl, Request, postdata)
                 try:
                     charName, charID = re.findall("\<row name=\"(.*?)\" characterID=\"(\d+)\" \/\>", xml)[0]
                 except IndexError:
@@ -245,7 +246,7 @@ class API:
                     "characterID" : characterID
                 }
                 try:
-                    xml = self._getXML(requesturl, postdata)
+                    xml = self._getXML(requesturl, Request, postdata)
                 except APIError:
                     return None
                 else:
@@ -283,7 +284,7 @@ class API:
             return refTypes
         elif Request.lower() == "skilltree" and typeID:
             requesturl = os.path.join(self.API_URL, "eve/SkillTree.xml.aspx")
-            xml = self._getXML(requesturl)
+            xml = self._getXML(requesturl, Request)
             
             split_on = re.search("(\<row typeName=\"(.*?)\" groupID=\"(\d+)\" typeID=\"%s\" published=\"(\d+)\"\>)" % typeID, xml)
             if not split_on:
@@ -332,7 +333,7 @@ class API:
                 else:
                     return None
                 try:
-                    xml = self._getXML(requesturl, postdata)
+                    xml = self._getXML(requesturl, Request, postdata)
                 except APIError:
                     return None
                 
@@ -490,7 +491,7 @@ class API:
 
         if Request.lower() == "balance":
             requesturl = os.path.join(self.API_URL, "char/AccountBalance.xml.aspx")
-            xml = self._getXML(requesurl, basepostdata)
+            xml = self._getXML(requesturl, Request, basepostdata)
             row = re.search("\<row accountID=\"(?P<accountID>\d+)\" accountKey=\"(?P<accountKey>\d+)\" balance=\"(?P<balance>\d+\.\d+)\" \/\>", xml)
             return {
                 "accountID" : int(row.group("accountID")),
@@ -499,7 +500,7 @@ class API:
             }
         elif Request.lower() == "assets":
             requesturl = os.path.join(self.API_URL, "char/AssetList.xml.aspx")
-            xml = self._getXML(requesturl, basepostdata)
+            xml = self._getXML(requesturl, Request, basepostdata)
             assetDict = {}
             rows = re.findall("\<row itemID=\"(\d+)\" locationID=\"(\d+)\" typeID=\"(\d+)\" quantity=\"(\d+)\" flag=\"(\d+)\" singleton=\"(\d+)\" \/\>", xml)
             for row in rows:
@@ -573,7 +574,7 @@ class API:
             return assetDict
         elif Request.lower() == "charsheet":
             requesturl = os.path.join(self.API_URL, "char/CharacterSheet.xml.aspx")
-            xml = self._getXML(requesturl, basepostdata)
+            xml = self._getXML(requesturl, Request, basepostdata)
             
             def getBasicValue(valueName, xml=xml):
                 try:
@@ -668,7 +669,7 @@ class API:
             }
         elif Request.lower() == "industry":
             requesturl = os.path.join(self.API_URL, "char/IndustryJobs.xml.aspx")
-            xml = self._getXML(requesturl, basepostdata)
+            xml = self._getXML(requesturl, Request, basepostdata)
             
             regex = re.compile(r"""
                               \<row\ jobID="(?P<jobID>\d+)"\ #unique ID
@@ -719,7 +720,7 @@ class API:
             return industrydict
         elif Request.lower() == "kills":
             requesturl = os.path.join(self.API_URL, "char/Killlog.xml.aspx")
-            xml = self._getXML(requesturl, basepostdata)
+            xml = self._getXML(requesturl, Request, basepostdata)
             if "Kills exhausted" in xml:
                 return None
             #open("output.xml","w").write(xml)
@@ -851,7 +852,7 @@ class API:
         elif Request.lower() == "mail":
             if not mailID:
                 requesturl = os.path.join(self.API_URL, "char/MailMessages.xml.aspx")
-                xml = self._getXML(requesturl, basepostdata)
+                xml = self._getXML(requesturl, Request, basepostdata)
                 rows = re.finditer("\<row messageID=\"(?P<messageID>\d+)\" senderID=\"(?P<senderID>\d+)\" sentDate=\"(?P<sentDate>\d+-\d+-\d+ \d+:\d+:\d+)\" title=\"(?P<title>.*?)\" toCorpOrAllianceID=\"(?P<toCorpOrAllianceID>\d+)\" toCharacterIDs=\"(?P<toCharacterIDs>.*?)\" toListID=\"(?P<toListID>.*?)\" \/\>", xml)
                 maildict = {}
                 while True:
@@ -917,7 +918,7 @@ class API:
                 }
 
                 requesturl = os.path.join(self.API_URL, "char/MailBodies.xml.aspx")
-                xml = self._getXML(requesturl, postdata)
+                xml = self._getXML(requesturl, Request, postdata)
                 try:
                     message = xml.split("<row messageID=\"%s\"><![CDATA[" % mailID)[1].split("]]></row>")[0]
                 except IndexError:
@@ -926,7 +927,7 @@ class API:
                     return message
         elif Request.lower() == "market":
             requesturl = os.path.join(self.API_URL, "char/MarketOrders.xml.aspx")
-            xml = self._getXML(requesturl, basepostdata)
+            xml = self._getXML(requesturl, Request, basepostdata)
             rows = re.finditer("\<row orderID=\"(?P<orderID>\d+)\" charID=\"(?P<charID>\d+)\" stationID=\"(?P<stationID>\d+)\" volEntered=\"(?P<volEntered>\d+)\" volRemaining=\"(?P<volRemaining>\d+)\" minVolume=\"(?P<minVolume>\d+)\" orderState=\"(?P<orderState>\d+)\" typeID=\"(?P<typeID>\d+)\" range=\"(?P<range>\d+)\" accountKey=\"(?P<accountKey>\d+)\" duration=\"(?P<duration>\d+)\" escrow=\"(?P<escrow>\d+\.\d+)\" bid=\"(?P<bid>\d+)\" issued=\"(?P<issued>\d+-\d+-\d+ \d+:\d+:\d+)\" \/\>", xml)
             returndict = {}
             while True:
@@ -939,11 +940,11 @@ class API:
             return returndict
         elif Request.lower() == "research":
             requesturl = os.path.join(self.API_URL, "char/Research.xml.aspx")
-            xml = self._getXML(requesturl, basepostdata)
+            xml = self._getXML(requesturl, Request, basepostdata)
             print xml
         elif Request.lower() == "currentskill":
             requesturl = os.path.join(self.API_URL, "char/SkillInTraining.xml.aspx")
-            xml = self._getXML(requesturl, basepostdata)
+            xml = self._getXML(requesturl, Request, basepostdata)
             def getValue(id):
                 try:
                     value = re.search("\<%s\>(.*?)\<\/%s\>" % (id, id), xml).group(1)
@@ -962,7 +963,7 @@ class API:
             }
         elif Request.lower() == "skillqueue":
             requesturl = os.path.join(self.API_URL, "char/SkillQueue.xml.aspx")
-            xml = self._getXML(requesturl, basepostdata)
+            xml = self._getXML(requesturl, Request, basepostdata)
             
             rows = re.finditer("\<row queuePosition=\"(?P<queuePosition>\d+)\" typeID=\"(?P<typeID>\d+)\" level=\"(?P<level>\d+)\" startSP=\"(?P<startSP>\d+)\" endSP=\"(?P<endSP>\d+)\" startTime=\"(?P<startTime>\d+-\d+-\d+ \d+:\d+:\d+)\" endTime=\"(?P<endTime>\d+-\d+-\d+ \d+:\d+:\d+)\"", xml)
             returndict = {}
@@ -984,7 +985,7 @@ class API:
             return returndict
         elif Request.lower() == "wallet":
             requesturl = os.path.join(self.API_URL, "char/WalletJournal.xml.aspx")
-            xml = self._getXML(requesturl, basepostdata)
+            xml = self._getXML(requesturl, Request, basepostdata)
             
             walletdict = {}
             rows = re.finditer("\<row date=\"(?P<date>\d+-\d+-\d+ \d+:\d+:\d+)\" refID=\"(?P<refID>\d+)\" refTypeID=\"(?P<refTypeID>\d+)\" ownerName1=\"(?P<ownerName1>.*?)\" ownerID1=\"(?P<ownerID1>\d+)\" ownerName2=\"(?P<ownerName2>.*?)\" ownerID2=\"(?P<ownerID2>\d+)\" argName1=\"(?P<argName1>.*?)\" argID1=\"(?P<argID1>\d+)\" amount=\"(?P<amount>\d+\.\d\d)\" balance=\"(?P<balance>\d+\.\d\d)\" reason=\"(?P<reason>.*?)\" taxReceiverID=\"(?P<taxReceiverID>\d+)\" taxAmount=\"(?P<taxAmount>\d+\.\d\d)\" \/\>", xml)
@@ -1036,7 +1037,7 @@ class API:
             return walletdict
         elif Request.lower() == "transacts":
             requesturl = os.path.join(self.API_URL, "char/WalletTransactions.xml.aspx")
-            xml = self._getXML(requesturl, basepostdata)
+            xml = self._getXML(requesturl, Request, basepostdata)
             print xml
             #1000 results
             #can use beforeTransID=TransID to see more
@@ -1073,7 +1074,7 @@ class API:
                 "apiKey" : self.API_KEY,
                 "userID" : self.USER_ID
             }
-            xml = self._getXML(requesturl, postdata)
+            xml = self._getXML(requesturl, Request, postdata)
 
             #parse xml
             result = xml.split("<result>")[1].split("</result>")[0]
@@ -1141,7 +1142,7 @@ class API:
                 "apiKey" : self.API_KEY,
                 "userID" : self.USER_ID
             }
-            xml = self._getXML(requesturl, postdata)
+            xml = self._getXML(requesturl, Request, postdata)
             result = xml.split("<result>")[1].split("</result>")[0].strip()
             def getTag(tag):
                 return result.split("<%s>" % tag)[1].split("</%s>" % tag)[0].strip()
@@ -1208,14 +1209,14 @@ class API:
         """
         if Request.lower() == "jumps":
             requesturl = os.path.join(self.API_URL, "map/Jumps.xml.aspx")
-            xml = self._getXML(requesturl)
+            xml = self._getXML(requesturl, Request)
             print xml
 
         if Request.lower() == "kills":
             solarSystemID_str = self.EVE.getSystemIDByName(systemname)
             if solarSystemID_str:
                 requesturl = os.path.join(self.API_URL, "map/Kills.xml.aspx")
-                xml = self._getXML(requesturl)
+                xml = self._getXML(requesturl, Request)
                 solarSystemID = int(solarSystemID_str)
                 try:
                     shipKills, factionKills, podKills = re.findall("\<row solarSystemID=\"%i\" shipKills=\"(\d+)\" factionKills=\"(\d+)\" podKills=\"(\d+)\" \/\>" % (solarSystemID), xml)[0]
@@ -1240,7 +1241,7 @@ class API:
             solarSystemID_str = self.EVE.getSystemIDByName(systemname.upper())
             if solarSystemID_str:
                 requesturl = os.path.join(self.API_URL, "map/Sovereignty.xml.aspx")
-                xml = self._getXML(requesturl)
+                xml = self._getXML(requesturl, Request)
                 solarSystemID = int(solarSystemID_str)
                 try:
                     allianceID, factionID, solarSystemName, corporationID = re.findall("\<row solarSystemID=\"%i\" allianceID=\"(\d+)\" factionID=\"(\d+)\" solarSystemName=\"(.*?)\" corporationID=\"(\d+)\" \/\>" % (solarSystemID), xml)[0]
