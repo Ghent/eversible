@@ -270,7 +270,7 @@ class API:
             if not xml:
                 xml = urllib2.urlopen(requesturl).read()
                 self._errorCheck(xml)
-                self.CACHE.insertXML(requesturl, xml, 2147483647.0, {})
+                self.CACHE.insertXML(requesturl, Request, xml, 2147483647.0, {})
             
             rows = re.finditer("\<row refTypeID=\"(?P<refTypeID>\d+)\" refTypeName=\"(?P<refTypeName>.*?)\" \/\>", xml)
             refTypes = {}
