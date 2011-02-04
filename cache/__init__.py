@@ -54,7 +54,20 @@ class CACHE:
         conn.commit()
         cursor.close()
         conn.close()
-        
+    
+    def requestURLs(self, table, requestName):
+        conn = sqlite3.connect("cache/cache.db")
+        cursor = conn.cursor()
+        cursor.execute("""
+                       SELECT url
+                       FROM %s
+                       WHERE requestName='%s'
+                       """ % (table.lower(), requestName.lower()))
+        results = cursor.fetchall()
+        if results:
+            return [str(x[0]) for x in results]
+        else:
+            return None
     def requestXML(self, requesturl, postdata={}):
         def shutdown(returnable):
             conn.commit()
