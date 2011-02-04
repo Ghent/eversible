@@ -8,10 +8,16 @@ import sqlite3
 from core.options import options
 from core.config import config
 import evedb
+import thread
+import sched
 
 database = evedb.testEveDB()
 if not database:
     print "WARNING: your static database is not up to date"
+
+schedule = sched.Scheduler()
+
+thread.start_new_thread(schedule.start)
 
 """ Start the IRC bot """
 irc.bot.start(config.get("irc", "host"),
