@@ -16,7 +16,8 @@ class Scheduler:
     def start(self, refreshtime=300, connection=None):
         while True:
             self.QUEUE.insert(self.checkAPIurls, None, time.time())
-            self.QUEUE.insert(self.testIRC, self.testIRCHandler, time.time(), connection)
+            if connection:
+                self.QUEUE.insert(self.testIRC, self.testIRCHandler, time.time(), connection)
             self.QUEUE.run()
             time.sleep(refreshtime)
         

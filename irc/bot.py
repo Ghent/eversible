@@ -76,7 +76,7 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
         connection.join(self.CHANNEL)
         #start scheduler
         sched = schedule.Scheduler()
-        thread.start_new_thread(sched.start(), (connection,))
+        thread.start_new_thread(sched.start, connection=connection)
         
 
     def on_privmsg(self, connection, event):
