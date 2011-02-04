@@ -9,15 +9,15 @@ from core.options import options
 from core.config import config
 import evedb
 import thread
-import sched
+import schedule
 
 database = evedb.testEveDB()
 if not database:
     print "WARNING: your static database is not up to date"
 
-schedule = sched.Scheduler()
+sched = schedule.Scheduler()
 
-thread.start_new_thread(schedule.start)
+thread.start_new_thread(sched.start, (5,))
 
 """ Start the IRC bot """
 irc.bot.start(config.get("irc", "host"),
