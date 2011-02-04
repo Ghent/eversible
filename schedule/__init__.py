@@ -8,30 +8,105 @@ import cache
 import sqlite3
 import urllib2
 import sys
+import users
+import os
+import calendar
+from misc import functions
 
 class Scheduler:
     def __init__(self):
         self.QUEUE = _QUEUE()
-    
+        self.USERS = users.DB()
+        self.CACHE = cache.CACHE()
+        
+        self.MAIL_RECORD = {}
+        #char ID : {messageID: last mailID, sentTime : sent time}
+        
     def start(self, refreshtime=300, connection=None):
         while True:
             self.QUEUE.insert(self.checkAPIurls, None, time.time())
             if connection:
-                #self.QUEUE.insert(self.testIRC, self.testIRCHandler, time.time(), connection)
-                pass
+                self.QUEUE.insert(self.mailCheck, None, time.time())
             self.QUEUE.run()
             time.sleep(refreshtime)
         
     def mailCheck(self, connection):
-        return connection
-    
-    def mailHandler(self, nick, message, connection):
-        connection.privmsg(nick, message)
+        #get identified users
+        loggedInHostnames = self.USERS.getHostnames()
+        loggedIn = {}
+        for id, hostname in loggedInHostnames:
+            nick = hostname.split("!")[0]
+            API = self.USERS.retrieveUserByHostname(hostname)["apiObject"]
+            
+            requesturl = os.path.join(API.API_URL, "char/MailMessages.xml.aspx")
+            postdata = {
+                "apiKey" : API.API_KEY,
+                "userID" : API.USER_ID,
+                "characterID" : API.CHAR_ID,
+            }
+            mailXML = self.CACHE.requestXML(requesturl, postdata, deleteOld=False)
+            
+            if API.CHAR_ID in self.MAIL_RECORD.keys():
+                latest_time = self.MAIL_RECORD[API.CHAR_ID]["sentTime"]
+                latest_id = self.MAIL_RECORD[API.CHAR_ID]["messageID"]
+            else:
+                result = self.USERS.getMessageID(API.CHAR_ID)
+                if result:
+                    self.MAIL_RECORD[API.CHAR_ID]["sentTime"] = result[0]
+                    self.MAIL_RECORD[API.CHAR_ID]["messageID"] = result[1]
+                else:
+                    latest_time = None
+                    latest_id = None
+                
+                
+            new_latest_time = None
+            new_latest_id = None
+            
+            newIDs = []
+            rows = re.finditer("\<row messageID=\"(?P<messageID>\d+)\" senderID=\"(?P<senderID>\d+)\" sentDate=\"(?P<sentDate>\d+-\d+-\d+ \d+:\d+:\d+)\" title=\"(?P<title>.*?)\" toCorpOrAllianceID=\"(?P<toCorpOrAllianceID>\d+)\" toCharacterIDs=\"(?P<toCharacterIDs>.*?)\" toListID=\"(?P<toListID>.*?)\" \/\>", xml)
+            #cycle through
+            while True:
+                try:
+                    row = rows.next().groupdict()
+                except StopIteration:
+                    break
+                else:
+                    messageID = int(row["messageID"])
+                    sentDate = calendar.timegm(time.strptime(row["sentDate"], "%Y-%m-%d %H:%M:%S"))
+                    
+                    if sentDate > latest_time:
+                        if sentDate > new_latest_time:
+                            new_latest_time = sentDate
+                            new_latest_id = messageID
+                        newIDs += [messageID]
+            if newIDs:
+                newIDs_len = len(newIDs)
+                connection.notice(nick, functions.parseIRCBBCode("You have [colour=red]%i[/colour] new mails" % newIDs_len))
+                
+                count = 0
+                ids = []
+                for i in range(5):
+                    try:
+                        ids += [newIDs[i]]
+                        count += 1
+                    except IndexError:
+                        break
+                
+                if newIDs_len == count:
+                    connection.notice(nick, functions.parseIRCBBCode("ids are: [b]%s[/b]" % ("[/b], [b]".join(ids))))
+                else:
+                    connection.notice(nick, functions.parseIRCBBCode("First %i ids are: [b]%s[/b]" % (count, "[/b], [b]".join(ids))))
+                    
+                #insert new data into users
+                self.USERS.insertMessageID(API.CHAR_ID, new_latest_id, new_latest_time)
+                self.MAIL_RECORD[API.CHAR_ID] = {
+                    "messageID" : new_latest_id,
+                    "sentTime" : new_latest_time
+                }
         
     def checkAPIurls(self):
-        CACHE = cache.CACHE()
         API = api.API()
-        tablenames = CACHE.getTableNames()
+        tablenames = self.CACHE.getTableNames()
         
         conn = sqlite3.connect("cache/cache.db")
         cursor = conn.cursor()
@@ -45,7 +120,7 @@ class Scheduler:
             for url, expireTime, requestName in rows:
                 if time.time() > expireTime:
                     #remove old entry
-                    CACHE.requestXML(url, postdata=None)
+                    self.CACHE.requestXML(url, postdata=None)
                     xml = urllib2.urlopen(url).read()
                     #check for error
                     try:
@@ -55,7 +130,7 @@ class Scheduler:
                         pass
                     else:
                         new_expireTime = API._getCachedUntil(xml)
-                        CACHE.insertXML(url, requestName, xml, new_expireTime, postdata=None)
+                        self.CACHE.insertXML(url, requestName, xml, new_expireTime, postdata=None)
     
 class _QUEUE:
     def __init__(self):
