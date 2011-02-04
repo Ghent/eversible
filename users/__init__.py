@@ -11,14 +11,75 @@ class DB:
     def __init__(self):
         pass
     
-    def _dropDB(self):
-        """For debugging purposes"""
+    def getLatestMailID(self, charID):
         conn = sqlite3.connect("users/eversible.db")
         cursor = conn.cursor()
-        cursor.execute("DROP TABLE hostnames")
-        cursor.execute("DROP TABLE users")
+        
+        try:
+            cursor.execute("""
+                           SELECT mailID
+                           FROM mail
+                           WHERE charID="%s"
+                           """ % charID)
+        except sqlite3.OperationalError:
+            return None
+        else:
+            result = cursor.fetchone()
+            if result:
+                return int(result[0])
+            else:
+                return None
+            
+    def insertLatestMailID(self, mailID, charID):
+        conn = sqlite3.connect("users/eversible.db")
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute("""
+                           CREATE TABLE mail
+                           (charID integer, mailID, integer)
+                           """)
+        except sqlite3.OperationalError:
+            pass
+        else:
+            conn.commit()
+            
+        #remove old entry
+        cursor.execute("""
+                       DELETE FROM mail
+                       WHERE charID="%s"
+                       """ % charID)
+        
+        cursor.execute("""
+                       INSERT INTO mail
+                       (charID, mailID)
+                       VALUES ("%s","%s")
+                       """ % (charID, mailID)
+                      )
+        
+        conn.commit()
         cursor.close()
         conn.close()
+        
+    def getHostnames(self):
+        conn = sqlite3.connect("users/eversible.db")
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+                       SELECT id, hostname
+                       FROM hostnames
+                       """)
+        
+        results = cursor.fetchall()
+        
+        cursor.close()
+        conn.close()
+        
+        result_dict = {}
+        for result in results:
+            result_dict[result[0]] = result[1]
+            
+        return result_dict
 
     def createUser(self, apiKey, userID, characterName, password, hostname):
         API = api.API(apikey=apiKey, userid=userID, charid=None)
