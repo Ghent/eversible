@@ -24,8 +24,9 @@ class Scheduler:
         self.MAIL_RECORD = {}
         #char ID : {messageID: last mailID, sentTime : sent time}
         
-    def start(self, refreshtime=300, connection=None):
+    def start(self, refreshtime=30, connection=None):
         while True:
+            print self.MAIL_RECORD
             self.QUEUE.insert(self.checkAPIurls, None, time.time())
             if connection:
                 self.QUEUE.insert(self.mailCheck, None, time.time(), connection)
@@ -35,7 +36,6 @@ class Scheduler:
     def mailCheck(self, connection):
         #get identified users
         loggedInHostnames = self.USERS.getHostnames()
-        loggedIn = {}
         for id, hostname in loggedInHostnames.iteritems():
             nick = hostname.split("!")[0]
             API = self.USERS.retrieveUserByHostname(hostname)["apiObject"]
@@ -58,14 +58,13 @@ class Scheduler:
                 result = self.USERS.getMessageID(API.CHAR_ID)
                 if result:
                     self.MAIL_RECORD[API.CHAR_ID] = {}
-                    self.MAIL_RECORD[API.CHAR_ID]["sentTime"] = result[0]
-                    self.MAIL_RECORD[API.CHAR_ID]["messageID"] = result[1]
-                    latest_time = result[0]
+                    self.MAIL_RECORD[API.CHAR_ID]["sentTime"] = result[1]
+                    self.MAIL_RECORD[API.CHAR_ID]["messageID"] = result[0]
+                    latest_time = result[1]
                     latest_id = result[0]
                 else:
                     latest_time = None
-                    latest_id = None
-                
+                    latest_id = None                
                 
             new_latest_time = None
             new_latest_id = None
