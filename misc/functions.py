@@ -7,7 +7,6 @@ import evedb
 import sqlite3
 import re
 
-<<<<<<< HEAD
 
 def testDB():
     try:
@@ -18,19 +17,18 @@ def testDB():
     else:
         return True
 
-=======
 def parseIRCBBCode(string):
     """
         Parses artificial "IRC BBCode"
         i.e. [b]test[/b] -> \x02test\x02
-        
+
         currently very basic,
         e.g. [b]test[b] will return the same as [b]test[/b] or [/b]test[b]
-        
+
         TO DO:
         make bgcolour and colour no overlap (i.e. closing tag for bgcolour to [/bgcolour]
         us \x03 but retain set [colour])
-        
+
         Supported tags:
             +--------------+-----------+-------------+
             |  opening     |  closing  | description |
@@ -40,14 +38,14 @@ def parseIRCBBCode(string):
             | [colour=x]   | [/colour] | colour      |
             | [bgcolour=x] | [/colour] | background  |
             +--------------+-----------+-------------+
-            
+
         Supported colours:
             white, grey, dark_grey, blue, dark_blue,
             green, dark_green, red, light_red, dark_red,
             purple, dark_purple, yellow, dark_yellow,
             light_yellow, light_green, cyan, dark_cyan,
             light_blue, light_purple, light_grey, silver
-            
+
         N.B. dark variants are the same as colours with no
              shade specified
              e.g. red is the same as dark_red
@@ -76,7 +74,7 @@ def parseIRCBBCode(string):
         "light_grey" : "14",
         "silver" : "15"  
     }
-    
+
     string = string.replace("[b]","\x02").replace("[/b]","\x02")
     string = string.replace("[u]","\x1f").replace("[/u]", "\x1f")
     string = string.replace("[/colour]","\x03\x02\x02")
@@ -91,7 +89,7 @@ def parseIRCBBCode(string):
                 string = string.replace(bbtag, "\x03%s\x02\x02" % colourdict[colour.lower().replace(" ","_")])
         except StopIteration:
             break
-        
+
     bgcolourBBtags = re.finditer("(\[bgcolour=(.*?)])", string)
     while True:
         try:
@@ -102,10 +100,9 @@ def parseIRCBBCode(string):
                 string = string.replace(bbtag, "\x03,%s\x02\x02" % colourdict[colour.lower().replace(" ","_")])
         except StopIteration:
             break
-    
+
     return string
-    
->>>>>>> f3d688a5383726b0be431777b82eb9917d8636ba
+
 def security(systemID=None, systemInfo=None):
     EVEDB = evedb.DUMP()
     """

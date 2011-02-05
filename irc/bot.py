@@ -9,23 +9,15 @@ import imp
 import glob
 import traceback
 import time
+import schedule
+import thread
 
 import irc.lib.ircbot as ircbot
 import irc.lib.irclib as irclib
 
-import users
-<<<<<<< HEAD
 from misc import functions
-=======
-USERS = users.DB()
-
 import evedb
-
-import schedule
-
-import thread
->>>>>>> f3d688a5383726b0be431777b82eb9917d8636ba
-
+import users
 
 
 USERS = users.DB()
@@ -80,7 +72,6 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
         #start scheduler
         sched = schedule.Scheduler()
         thread.start_new_thread(sched.start, (), {"connection":connection})
-        
 
     def on_privmsg(self, connection, event):
         if event.arguments()[0][0] == self.PREFIX:
