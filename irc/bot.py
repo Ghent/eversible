@@ -14,15 +14,11 @@ import irc.lib.ircbot as ircbot
 import irc.lib.irclib as irclib
 
 import users
-USERS = users.DB()
-
 from misc import functions
 
-if "-v" in sys.argv:
-    irclib.DEBUG = True
 
-VERSION = "0.0.1"
 
+USERS = users.DB()
 publicCommands = {}
 privateCommands = {}
 
@@ -42,31 +38,32 @@ def scan():
         privateCommands[name] = module
 
 class EVErsibleBot(ircbot.SingleServerIRCBot):
-    def __init__(self, host, port, nick, realname, channel, botpass, prefix, debug_level, database):
-        ircbot.SingleServerIRCBot.__init__(self, [(host, port)], nick, realname)
-        self.CHANNEL = channel
-        self.BOTPASS = botpass
-        self.PREFIX = prefix
-        self.DEBUG_LEVEL = debug_level
+    def __init__(self, config, database):
+        self.HOST = config["irc"]["host"]
+        self.PORT = int(config["irc"]["port"])
+        self.CHANNEL = config["irc"]["channel"]
+        self.NICK = config["irc"]["nick"]
+        self.NAME = config["irc"]["name"]
+        self.IRCPASS = config["irc"]["password"]
+        self.BOTPASS = config["bot"]["password"]
+        self.PREFIX = config["bot"]["prefix"]
+        self.DEBUG_LEVEL = int(config["bot"]["debug_level"])
+        self.VERSION = config["internal"]["version"]
         self.DATABASE = database
+
+        if config["internal"]["verbose"] == "True":
+            irclib.DEBUG = True
+
+        ircbot.SingleServerIRCBot.__init__(self, [(self.HOST, self.PORT)], self.NICK, self.NAME)
 
     def on_ctcp(self, connection, event):
         if event.arguments()[0].upper() == self.BOTPASS.upper():
             scan()
             connection.notice(event.source().split("!")[0], "reloaded modules successfully")
         elif event.arguments()[0].upper() == "VERSION":
-            connection.ctcp_reply(event.source().split("!")[0], "VERSION EVErsible v%s" % VERSION)
+            connection.ctcp_reply(event.source().split("!")[0], "VERSION EVErsible v%s" % self.VERSION)
         elif event.arguments()[0].upper() == "TIME":
             connection.ctcp_reply(event.source().split("!")[0], "TIME " + time.asctime())
-
-    def on_erroneusnickname(self, connection, event):
-        pass
-
-    def on_chanoprivsneeded(self, connection, event):
-        connection.privmsg(event.arguments()[0], "ERROR: I need op for that command")
-
-    def on_privnotice(self, connection, event):
-        pass
 
     def on_welcome(self, connection, event):
         connection.join(self.CHANNEL)
@@ -93,7 +90,7 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
                         connection.privmsg(event.source().split("!")[0], "The static CCP dump database is not up to date / not installed correctly")
                     else:
                         connection.privmsg(event.source().split("!")[0], "Reloading database, please try again")
-                    
+
     def on_pubmsg(self, connection, event):
         #check if prefix used
         if event.arguments()[0][0] == self.PREFIX:
@@ -124,33 +121,17 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
                         self.DATABASE = True
                         connection.privmsg(event.target(), "Reloading database, please try again") # this is because I'm lazy and totally fake
 
-    def on_whoisuser(self, connection, event):
-        pass
-
-    def on_kick(self, connection, event):
-        USERS.removeHostnameByNick(event.arguments()[0])
-
-    def on_join(self, connection, event):
-        #check for banregex
-        pass
-
-    def on_namreply(self, connection, event):
-        pass
-
     def on_part(self, connection, event):
         USERS.removeHostname(event.source())
-    
+
     def on_nick(self, connection, event):
         USERS.removeHostname(event.source())
 
     def on_quit(self, connection, event):
         USERS.removeHostname(event.source())
 
-    def on_mode(self, connection, event):
-        pass
 
-
-def start(host, port, nick, realname, channel, botpass, prefix, debug_level, database):
+def start(config, database):
     scan()
-    bot = EVErsibleBot(host, port, nick, realname, channel, botpass, prefix, debug_level, database)
+    bot = EVErsibleBot(config, database)
     bot.start()

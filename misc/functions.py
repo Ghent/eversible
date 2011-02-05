@@ -1,7 +1,11 @@
 #!/usr/bin/env python
+#
+# vim: filetype=python tabstop=4 expandtab:
+
 
 import evedb
 import sqlite3
+
 
 def testDB():
     try:
@@ -11,7 +15,7 @@ def testDB():
         return False
     else:
         return True
-    
+
 def security(systemID=None, systemInfo=None):
     EVEDB = evedb.DUMP()
     """
@@ -71,7 +75,7 @@ def convert_to_human(Time):
     hours, mins = divmod(mins, 60)
     days, hours = divmod(hours, 24)
     weeks, days = divmod(days, 7)
-    
+
     time_str = ""
     if weeks > 0:
         time_str += "%iw " % weeks
