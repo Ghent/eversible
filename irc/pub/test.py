@@ -1,13 +1,8 @@
 #!/usr/bin/env python
 
-import users
+from misc import functions
 
 def index(connection, event):
-    USERS = users.DB()
+    args = event.arguments()[0].split()
     
-    sourceHostname = event.source()
-    response = USERS.retrieveUserByHostname(sourceHostname)
-    if response:
-        connection.privmsg(event.target(), "Yes! You are %s, and you are registered and identified" % response["characterName"])
-    else:
-        connection.privmsg(event.target(), "No :( I have no record of you here")
+    connection.privmsg(event.target(), functions.setIRCColour(*args))

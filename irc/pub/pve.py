@@ -2,6 +2,7 @@
 
 import users
 import api
+import time
 
 def index(connection, event):
     #no args
@@ -30,6 +31,8 @@ def index(connection, event):
             refIDs.sort()
             bounties = {}
             total_bounty = 0
+            earliest_date = 2147483646
+            latest_date = 0
             for refID in refIDs:
                 refTypeID = walletdict[refID]["refTypeID"]
                 if refTypeID == 85:
@@ -41,6 +44,12 @@ def index(connection, event):
                         else:
                             bounties[kill["shipName"]] += kill["count"]
                     total_bounty += walletdict[refID]["amount"]
+                    
+                    bounty_date = walletdict[refID]["date"]
+                    if bounty_date > latest_date:
+                        latest_date = bounty_date
+                    if bounty_date < earliest_date:
+                        earliest_date = bounty_date
             
             #put thousand seperator into total_bounty
             bounty_temp = str(total_bounty).split(".")[0][::-1]
@@ -57,7 +66,7 @@ def index(connection, event):
             else:
                 bounty = "0.0"
             bounties_list = sorted(bounties.items(), key=lambda ship: ship[1], reverse=True)
-            connection.privmsg(event.target(), "\x02PvE stats for character \x038\x02\x02%s\x03 in the past week\x02" % APItest["characterName"])
+            connection.privmsg(event.target(), "\x02PvE stats for character \x038\x02\x02%s\x03 between %s and %s\x02" % (APItest["characterName"], time.asctime(time.gmtime(earliest_date)), time.asctime(time.gmtime(latest_date))))
             connection.privmsg(event.target(), "\x02Total bounty earned\x02: \x039\x02\x02%s ISK\x03\x02\x02" % bounty)
             if total_bounty != 0:
                 connection.privmsg(event.target(), "\x02Top 5 NPC ships killed:\x02")

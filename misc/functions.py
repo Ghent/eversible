@@ -5,7 +5,9 @@
 
 import evedb
 import sqlite3
+import re
 
+<<<<<<< HEAD
 
 def testDB():
     try:
@@ -16,6 +18,94 @@ def testDB():
     else:
         return True
 
+=======
+def parseIRCBBCode(string):
+    """
+        Parses artificial "IRC BBCode"
+        i.e. [b]test[/b] -> \x02test\x02
+        
+        currently very basic,
+        e.g. [b]test[b] will return the same as [b]test[/b] or [/b]test[b]
+        
+        TO DO:
+        make bgcolour and colour no overlap (i.e. closing tag for bgcolour to [/bgcolour]
+        us \x03 but retain set [colour])
+        
+        Supported tags:
+            +--------------+-----------+-------------+
+            |  opening     |  closing  | description |
+            +--------------+-----------+-------------+
+            |    [b]       |   [/b]    | bold        |
+            |    [u]       |   [/u]    | underlined  |
+            | [colour=x]   | [/colour] | colour      |
+            | [bgcolour=x] | [/colour] | background  |
+            +--------------+-----------+-------------+
+            
+        Supported colours:
+            white, grey, dark_grey, blue, dark_blue,
+            green, dark_green, red, light_red, dark_red,
+            purple, dark_purple, yellow, dark_yellow,
+            light_yellow, light_green, cyan, dark_cyan,
+            light_blue, light_purple, light_grey, silver
+            
+        N.B. dark variants are the same as colours with no
+             shade specified
+             e.g. red is the same as dark_red
+    """
+    colourdict = {
+        "white" : "0",
+        "grey" : "1",
+        "dark_grey" : "1",
+        "blue" : "2",
+        "dark_blue" : "2",
+        "green" : "3",
+        "dark_green" : "3",
+        "red" : "4",
+        "light_red" : "4",
+        "dark_red" : "5",
+        "purple" : "6",
+        "dark_purple" : "6",
+        "yellow" : "7",
+        "dark_yellow" : "7",
+        "light_yellow" : "8",
+        "light_green" : "9",
+        "cyan" : "10",
+        "dark_cyan" : "10",
+        "light_blue" : "12",
+        "light_purple" : "13",
+        "light_grey" : "14",
+        "silver" : "15"  
+    }
+    
+    string = string.replace("[b]","\x02").replace("[/b]","\x02")
+    string = string.replace("[u]","\x1f").replace("[/u]", "\x1f")
+    string = string.replace("[/colour]","\x03\x02\x02")
+    #get colours
+    colourBBtags = re.finditer("(\[colour=(.*?)\])", string)
+    while True:
+        try:
+            match = colourBBtags.next()
+            bbtag = match.group(1)
+            colour = match.group(2)
+            if colour.lower().replace(" ","_") in colourdict.keys():
+                string = string.replace(bbtag, "\x03%s\x02\x02" % colourdict[colour.lower().replace(" ","_")])
+        except StopIteration:
+            break
+        
+    bgcolourBBtags = re.finditer("(\[bgcolour=(.*?)])", string)
+    while True:
+        try:
+            match = bgcolourBBtags.next()
+            bbtag = match.group(1)
+            colour = match.group(2)
+            if colour.lower().replace(" ","_") in colourdict.keys():
+                string = string.replace(bbtag, "\x03,%s\x02\x02" % colourdict[colour.lower().replace(" ","_")])
+        except StopIteration:
+            break
+    
+    return string
+    
+>>>>>>> f3d688a5383726b0be431777b82eb9917d8636ba
 def security(systemID=None, systemInfo=None):
     EVEDB = evedb.DUMP()
     """

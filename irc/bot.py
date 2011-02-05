@@ -14,7 +14,17 @@ import irc.lib.ircbot as ircbot
 import irc.lib.irclib as irclib
 
 import users
+<<<<<<< HEAD
 from misc import functions
+=======
+USERS = users.DB()
+
+import evedb
+
+import schedule
+
+import thread
+>>>>>>> f3d688a5383726b0be431777b82eb9917d8636ba
 
 
 
@@ -67,6 +77,10 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
 
     def on_welcome(self, connection, event):
         connection.join(self.CHANNEL)
+        #start scheduler
+        sched = schedule.Scheduler()
+        thread.start_new_thread(sched.start, (), {"connection":connection})
+        
 
     def on_privmsg(self, connection, event):
         if event.arguments()[0][0] == self.PREFIX:
@@ -86,7 +100,7 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
                             for line in tb.split("\n"):
                                connection.privmsg(event.source().split("!")[0], line)
                 else:
-                    if not functions.testDB():
+                    if not evedb.testEveDB():
                         connection.privmsg(event.source().split("!")[0], "The static CCP dump database is not up to date / not installed correctly")
                     else:
                         connection.privmsg(event.source().split("!")[0], "Reloading database, please try again")
@@ -115,7 +129,7 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
                             for line in tb.split("\n"):
                                 connection.privmsg(event.target(), line)
                 else:
-                    if not functions.testDB():
+                    if not evedb.testEveDB():
                         connection.privmsg(event.target(), "The static CCP dump database is not up to date / not installed correctly")
                     else:
                         self.DATABASE = True
