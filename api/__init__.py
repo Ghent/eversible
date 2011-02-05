@@ -854,7 +854,7 @@ class API:
             if not mailID:
                 requesturl = os.path.join(self.API_URL, "char/MailMessages.xml.aspx")
                 xml = self._getXML(requesturl, Request, basepostdata)
-                rows = re.finditer("\<row messageID=\"(?P<messageID>\d+)\" senderID=\"(?P<senderID>\d+)\" sentDate=\"(?P<sentDate>\d+-\d+-\d+ \d+:\d+:\d+)\" title=\"(?P<title>.*?)\" toCorpOrAllianceID=\"(?P<toCorpOrAllianceID>\d+)\" toCharacterIDs=\"(?P<toCharacterIDs>.*?)\" toListID=\"(?P<toListID>.*?)\" \/\>", xml)
+                rows = re.finditer("\<row messageID=\"(?P<messageID>\d+)\" senderID=\"(?P<senderID>\d+)\" sentDate=\"(?P<sentDate>\d+-\d+-\d+ \d+:\d+:\d+)\" title=\"(?P<title>.*?)\" toCorpOrAllianceID=\"(?P<toCorpOrAllianceID>.*?)\" toCharacterIDs=\"(?P<toCharacterIDs>.*?)\" toListID=\"(?P<toListID>.*?)\" \/\>", xml)
                 maildict = {}
                 while True:
                     try:
@@ -863,24 +863,27 @@ class API:
                         break
                     else:
                         #resolve corp / alliance recipient
-                        tCOAID = int(row["toCorpOrAllianceID"])
-                        corpCheck = self.Corporation("publicsheet", tCOAID)
-                        if corpCheck:
-                            corpID = tCOAID
-                            corpName = corpCheck["corporationName"]
-                            allianceID = None
-                            allianceName = None
-                            allianceTicker = None
+                        if row["toCorpOrAllianceID"] == "":
+                            (corpID, corpName, allianceID, allianceName, allianceTicker) = (None, None, None, None, None)
                         else:
-                            allianceCheck = self.Eve("alliances", allianceID=tCOAID)
-                            if allianceCheck:
-                                corpID = None
-                                corpName = None
-                                allianceID = tCOAID
-                                allianceName = allianceCheck["allianceName"]
-                                allianceTicker = allianceCheck["allianceTicker"]
+                            tCOAID = int(row["toCorpOrAllianceID"])
+                            corpCheck = self.Corporation("publicsheet", tCOAID)
+                            if corpCheck:
+                                corpID = tCOAID
+                                corpName = corpCheck["corporationName"]
+                                allianceID = None
+                                allianceName = None
+                                allianceTicker = None
                             else:
-                                (corpID, corpName, allianceID, allianceName, allianceTicker) = (None, None, None, None, None)
+                                allianceCheck = self.Eve("alliances", allianceID=tCOAID)
+                                if allianceCheck:
+                                    corpID = None
+                                    corpName = None
+                                    allianceID = tCOAID
+                                    allianceName = allianceCheck["allianceName"]
+                                    allianceTicker = allianceCheck["allianceTicker"]
+                                else:
+                                    (corpID, corpName, allianceID, allianceName, allianceTicker) = (None, None, None, None, None)
                                 
                         #resolve charIDs
                         toCharIDs = row["toCharacterIDs"]
@@ -919,7 +922,7 @@ class API:
                 }
 
                 requesturl = os.path.join(self.API_URL, "char/MailBodies.xml.aspx")
-                xml = self._getXML(requesturl, Request, postdata)
+                xml = self._getXML(requesturl, "mailbodies", postdata)
                 try:
                     message = xml.split("<row messageID=\"%s\"><![CDATA[" % mailID)[1].split("]]></row>")[0]
                 except IndexError:
