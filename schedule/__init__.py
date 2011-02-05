@@ -24,9 +24,8 @@ class Scheduler:
         self.MAIL_RECORD = {}
         #char ID : {messageID: last mailID, sentTime : sent time}
         
-    def start(self, refreshtime=30, connection=None):
+    def start(self, refreshtime=300, connection=None):
         while True:
-            print self.MAIL_RECORD
             self.QUEUE.insert(self.checkAPIurls, None, time.time())
             if connection:
                 self.QUEUE.insert(self.mailCheck, None, time.time(), connection)
