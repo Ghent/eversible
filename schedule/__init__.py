@@ -37,23 +37,34 @@ class Scheduler:
         loggedInHostnames = self.USERS.getHostnames()
         for id, hostname in loggedInHostnames.iteritems():
             nick = hostname.split("!")[0]
+            print "Currently checking mail for %s" % nick
             API = self.USERS.retrieveUserByHostname(hostname)["apiObject"]
-            
+            print "> Got API object"
             requesturl = os.path.join(API.API_URL, "char/MailMessages.xml.aspx")
             postdata = {
                 "apiKey" : API.API_KEY,
                 "userID" : API.USER_ID,
                 "characterID" : API.CHAR_ID,
             }
+            print "> Getting mail XML"
+            print ">> Querying CACHE"
             mailXML = self.CACHE.requestXML(requesturl, postdata, deleteOld=False)
             if not mailXML:
+                print ">> CACHE failed"
+                print ">> Querying API"
                 mailXML = urllib2.urlopen(requesturl, urllib.urlencode(postdata)).read()
+                print ">> Inserting XML into CACHE"
                 self.CACHE.insertXML(requesturl, "char", mailXML, API._getCachedUntil(mailXML), postdata)
+            print ">> Got XML"
             
+            
+            print "> Checking if last mail recorded in memory"
             if API.CHAR_ID in self.MAIL_RECORD.keys():
                 latest_time = self.MAIL_RECORD[API.CHAR_ID]["sentTime"]
                 latest_id = self.MAIL_RECORD[API.CHAR_ID]["messageID"]
+                print ">> Recorded! latest_time: %s, latest_id: %s" % (latest_time, latest_id)
             else:
+                print ">> Not recorded! Checking user database"
                 result = self.USERS.getMessageID(API.CHAR_ID)
                 if result:
                     self.MAIL_RECORD[API.CHAR_ID] = {}
@@ -61,7 +72,9 @@ class Scheduler:
                     self.MAIL_RECORD[API.CHAR_ID]["messageID"] = result[0]
                     latest_time = result[1]
                     latest_id = result[0]
+                    print ">>> Stored in database! latest_time: %s, latest_id: %s" % (latest_time, latest_id)
                 else:
+                    print ">>> No record for this char, setting to None"
                     latest_time = None
                     latest_id = None                
                 
@@ -69,6 +82,7 @@ class Scheduler:
             new_latest_id = None
             
             newIDs = []
+            print "> Parsing XML"
             rows = re.finditer("\<row messageID=\"(?P<messageID>\d+)\" senderID=\"(?P<senderID>\d+)\" sentDate=\"(?P<sentDate>\d+-\d+-\d+ \d+:\d+:\d+)\" title=\"(?P<title>.*?)\" toCorpOrAllianceID=\"(?P<toCorpOrAllianceID>\d+)\" toCharacterIDs=\"(?P<toCharacterIDs>.*?)\" toListID=\"(?P<toListID>.*?)\" \/\>", mailXML)
             #cycle through
             while True:
@@ -85,7 +99,9 @@ class Scheduler:
                             new_latest_time = sentDate
                             new_latest_id = messageID
                         newIDs += [messageID]
+                        print "> New mail! sentDate: %s, messageID: %s" % (sentDate, messageID)
             if newIDs:
+                print "> There is definitely new mail -> reporting it"
                 newIDs_len = len(newIDs)
                 connection.notice(nick, functions.parseIRCBBCode("You have [colour=red]%i[/colour] new mails" % newIDs_len))
                 
@@ -104,11 +120,14 @@ class Scheduler:
                     connection.notice(nick, functions.parseIRCBBCode("First %i ids are: [b]%s[/b]" % (count, "[/b], [b]".join(ids))))
                     
                 #insert new data into users
+                print "> Inserting new data into user database"
                 self.USERS.insertMessageID(API.CHAR_ID, new_latest_id, new_latest_time)
+                print "> Adding new data to memory"
                 self.MAIL_RECORD[API.CHAR_ID] = {
                     "messageID" : new_latest_id,
                     "sentTime" : new_latest_time
                 }
+                print ">>>>>> DONE <<<<<<<"
         
     def checkAPIurls(self):
         API = api.API()
