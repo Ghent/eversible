@@ -134,6 +134,9 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
 
     def on_quit(self, connection, event):
         USERS.removeHostname(event.source())
+        
+    def on_kick(self, connection, event):
+        USERS.removeHostnameByNick(event.arguments()[0])
 
 
 def start(config, database):

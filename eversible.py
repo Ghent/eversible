@@ -6,11 +6,8 @@
 from optparse import OptionParser
 import ConfigParser
 import pdb
-
 import irc.bot
-
-from misc import functions
-
+import evedb
 
 __version__ = "0.0.2"
 
@@ -41,7 +38,7 @@ if __name__ == "__main__":
         config[section] = dict(tmpConf.items(section))
 
     # Check to see if a valid EVE db exists
-    database = functions.testDB()
+    database = evedb.testEveDB()
     if not database:
         print "WARNING: your static database is not up to date"
 

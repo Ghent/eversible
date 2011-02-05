@@ -4,18 +4,7 @@
 
 
 import evedb
-import sqlite3
 import re
-
-
-def testDB():
-    try:
-        EVEDB = evedb.DUMP()
-        EVEDB.getSystemIDByName("Jita")
-    except sqlite3.OperationalError:
-        return False
-    else:
-        return True
 
 def parseIRCBBCode(string):
     """
