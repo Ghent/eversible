@@ -13,6 +13,8 @@ import users
 import os
 import calendar
 import re
+import rss
+import ConfigParser
 from misc import functions
         
 class Scheduler:
@@ -20,18 +22,32 @@ class Scheduler:
         self.QUEUE = _QUEUE()
         self.USERS = users.DB()
         self.CACHE = cache.CACHE()
-        
+        self.RSS = rss.RSS()
         self.MAIL_RECORD = {}
         #char ID : {messageID: last mailID, sentTime : sent time}
                 
     def start(self, refreshtime=300, connection=None):
+        self.connection = connection
         while True:
             self.QUEUE.insert(self.checkAPIurls, None, time.time())
             if connection:
                 self.QUEUE.insert(self.mailCheck, None, time.time(), connection)
+                self.QUEUE.insert(self.RSS.checkFeeds, rssHandler, time.time())
             self.QUEUE.run()
             time.sleep(refreshtime)
         
+    def rssHandler(self, feedDict):
+        for feedName, results in feedDict.iteritems():
+            if results:
+                newcount = len(results)
+                keys = results.keys()
+                keys.sort()
+                keys.reverse()
+                if newcount > 2:
+                    #use #eversible whilst testing
+                    self.connection.privmsg("#eversible", functions.parseIRCBBCode("There are [colour=green]%i[/colour] new items for feed: [b]%s[/b]" % (newcount, feedName)))
+                self.connection.privmsg("#eversible", functions.parseIRCBBCode("%s: ([colour=grey]%s[/colour]) [colour=light_green]%s[/colour] [[colour=blue]%s[/colour]]" % (feedName, time.asctime(time.gmtime(results[keys[0]].date)), results[keys[0]].title, results[keys[0]].link)))
+            
     def mailCheck(self, connection):
         #get identified users
         loggedInHostnames = self.USERS.getHostnames()
