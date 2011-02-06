@@ -73,7 +73,7 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
         #start scheduler
         sched = schedule.Scheduler()
         try:
-            thread.start_new_thread(sched.start, (), {"connection":connection})
+            thread.start_new_thread(sched.start, (), {"connection":connection, "IRCconfig":self.config})
         except:
             connection.privmsg(self.CHANNEL, "There was an error in the scheduler")
             traceback.print_exc()
