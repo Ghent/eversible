@@ -41,6 +41,7 @@ def scan():
 
 class EVErsibleBot(ircbot.SingleServerIRCBot):
     def __init__(self, config, database):
+        self.config = config
         self.HOST = config["irc"]["host"]
         self.PORT = int(config["irc"]["port"])
         self.CHANNEL = config["irc"]["channel"]
@@ -76,7 +77,7 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
         except:
             connection.privmsg(self.CHANNEL, "There was an error in the scheduler")
             traceback.print_exc()
-            thread.start_new_thread(sched.start, (), {"connection":connection})
+            thread.start_new_thread(sched.start, (), {"connection":connection, "IRCconfig":self.config})
 
     def on_privmsg(self, connection, event):
         if event.arguments()[0][0] == self.PREFIX:

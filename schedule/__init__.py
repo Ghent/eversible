@@ -26,13 +26,14 @@ class Scheduler:
         self.MAIL_RECORD = {}
         #char ID : {messageID: last mailID, sentTime : sent time}
                 
-    def start(self, refreshtime=300, connection=None):
+    def start(self, refreshtime=300, connection=None, IRCconfig=None):
         try:
             self.connection = connection
+            self.IRCconfig = IRCconfig
             while True:
                 self.QUEUE.insert(self.checkAPIurls, None, time.time())
-                if connection:
-                    self.QUEUE.insert(self.mailCheck, None, time.time(), connection)
+                if self.connection:
+                    self.QUEUE.insert(self.mailCheck, None, time.time())
                     self.QUEUE.insert(self.RSS.checkFeeds, self.rssHandler, time.time())
                 self.QUEUE.run()
                 time.sleep(refreshtime)
@@ -50,10 +51,10 @@ class Scheduler:
                     keys.reverse()
                     if newcount > 2:
                         #use #eversible whilst testing
-                        self.connection.privmsg("#eversible", functions.parseIRCBBCode("There are [colour=green]%i[/colour] new items for feed: [b]%s[/b]" % (newcount, feedName)))
-                    self.connection.privmsg("#eversible", functions.parseIRCBBCode("%s: ([colour=grey]%s[/colour]) [colour=light_green]%s[/colour] [[colour=blue]%s[/colour]]" % (feedName, time.asctime(time.gmtime(results[keys[0]].date)), results[keys[0]].title, results[keys[0]].link)))
+                        self.connection.privmsg(self.config["irc"]["channel"], functions.parseIRCBBCode("There are [colour=green]%i[/colour] new items for feed: [b]%s[/b]" % (newcount, feedName)))
+                    self.connection.privmsg(self.config["irc"]["channel"], functions.parseIRCBBCode("%s: ([colour=grey]%s[/colour]) [colour=light_green]%s[/colour] [[colour=blue]%s[/colour]]" % (feedName, time.asctime(time.gmtime(results[keys[0]]["date"])), results[keys[0]]["title"], results[keys[0]]["link"])))
             
-    def mailCheck(self, connection):
+    def mailCheck(self):
         #get identified users
         loggedInHostnames = self.USERS.getHostnames()
         for id, hostname in loggedInHostnames.iteritems():
@@ -112,7 +113,7 @@ class Scheduler:
                         newIDs += [messageID]
             if newIDs:
                 newIDs_len = len(newIDs)
-                connection.notice(nick, functions.parseIRCBBCode("You have [colour=red]%i[/colour] new mails" % newIDs_len))
+                self.connection.notice(nick, functions.parseIRCBBCode("You have [colour=red]%i[/colour] new mails" % newIDs_len))
                 
                 count = 0
                 ids = []
@@ -124,9 +125,9 @@ class Scheduler:
                         break
                 
                 if newIDs_len == count:
-                    connection.notice(nick, functions.parseIRCBBCode("ids are: [b]%s[/b]" % ("[/b], [b]".join(ids))))
+                    self.connection.notice(nick, functions.parseIRCBBCode("ids are: [b]%s[/b]" % ("[/b], [b]".join(ids))))
                 else:
-                    connection.notice(nick, functions.parseIRCBBCode("First %i ids are: [b]%s[/b]" % (count, "[/b], [b]".join(ids))))
+                    self.connection.notice(nick, functions.parseIRCBBCode("First %i ids are: [b]%s[/b]" % (count, "[/b], [b]".join(ids))))
                     
                 #insert new data into users
                 self.USERS.insertMessageID(API.CHAR_ID, new_latest_id, new_latest_time)
@@ -143,25 +144,26 @@ class Scheduler:
         cursor = conn.cursor()
         
         for tablename in tablenames:
-            cursor.execute("""
-                           SELECT url, expireTime, requestName
-                           FROM %s
-                           """ % tablename)
-            rows = cursor.fetchall()
-            for url, expireTime, requestName in rows:
-                if time.time() > expireTime:
-                    #remove old entry
-                    self.CACHE.requestXML(url, postdata=None)
-                    xml = urllib2.urlopen(url).read()
-                    #check for error
-                    try:
-                        API._errorCheck(xml)
-                    except api.APIError:
-                        #this will prune out erroneous API calls from the cache
-                        pass
-                    else:
-                        new_expireTime = API._getCachedUntil(xml)
-                        self.CACHE.insertXML(url, requestName, xml, new_expireTime, postdata=None)
+            if tablename != "rss":
+                cursor.execute("""
+                               SELECT url, expireTime, requestName
+                               FROM %s
+                               """ % tablename)
+                rows = cursor.fetchall()
+                for url, expireTime, requestName in rows:
+                    if time.time() > expireTime:
+                        #remove old entry
+                        self.CACHE.requestXML(url, postdata=None)
+                        xml = urllib2.urlopen(url).read()
+                        #check for error
+                        try:
+                            API._errorCheck(xml)
+                        except api.APIError:
+                            #this will prune out erroneous API calls from the cache
+                            pass
+                        else:
+                            new_expireTime = API._getCachedUntil(xml)
+                            self.CACHE.insertXML(url, requestName, xml, new_expireTime, postdata=None)
     
 class _QUEUE:
     def __init__(self):
