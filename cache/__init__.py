@@ -11,6 +11,51 @@ class CACHE:
     def __init__(self):
         pass
         
+    def insertRSSDate(self, feedName, date):
+        conn = sqlite3.connect("cache/cache.db")
+        cursor = conn.cursor()
+        try:
+            cursor.execute("""
+                           CREATE TABLE rss
+                           (feedName text, date real)
+                           """)
+        except sqlite3.OperationalError:
+            pass
+        
+        cursor.execute("""
+                       DELETE FROM rss
+                       WHERE feedName='%s'
+                       """ % feedName)
+        cursor.execute("""
+                       INSERT INTO rss
+                       (feedName, date)
+                       VALUES ("%s","%s")
+                       """ % (feedName, date))
+        conn.commit()
+        cursor.close()
+        conn.close()
+    def getRSSDate(self, feedName):
+        conn = sqlite3.connect("cache/cache.db")
+        cursor = conn.cursor()
+        try:
+            cursor.execute("""
+                        SELECT date
+                        FROM rss
+                        WHERE feedName='%s'
+                        """ % feedName)
+        except sqlite3.OperationalError:
+            cursor.close()
+            conn.close()
+            return None
+        else:
+            row = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            if row:
+                return float(row[0])
+            else:
+                return None
+        
     def getTableNames(self):
         conn = sqlite3.connect("cache/cache.db")
         cursor = conn.cursor()
