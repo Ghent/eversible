@@ -37,8 +37,9 @@ class RSS:
                 "title" : item.title,
                 "link" : item.link
             }
-        self.LASTUPDATE[feedName] = lastupdate
-        self.CACHE.insertRSSDate(feedName, lastupdate)
+        if newitems:
+            self.LASTUPDATE[feedName] = lastupdate
+            self.CACHE.insertRSSDate(feedName, lastupdate)
         
         return item_dict
     def checkFeeds(self):
