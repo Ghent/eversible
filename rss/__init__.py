@@ -49,3 +49,4 @@ class RSS:
                 feed_dict[feedName] = None
             else:
                 feed_dict[feedName] = result
+        return feed_dict
