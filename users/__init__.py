@@ -258,13 +258,16 @@ class DB:
                 result = cursor.fetchone()
                 cursor.close()
                 conn.close()
-                return {
-                    "characterName" : result[1],
-                    "characterID" : result[2],
-                    "userID" : result[3],
-                    "apiKey" : result[4],
-                    "apiObject" : api.API(userid=result[3], apikey=result[4], charid=result[2], characterName=result[1])
-                }
+                if result:
+                    return {
+                        "characterName" : result[1],
+                        "characterID" : result[2],
+                        "userID" : result[3],
+                        "apiKey" : result[4],
+                        "apiObject" : api.API(userid=result[3], apikey=result[4], charid=result[2], characterName=result[1])
+                    }
+                else:
+                    return None
         cursor.close()
         conn.close()
     
