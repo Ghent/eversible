@@ -52,7 +52,7 @@ class Scheduler:
                     if newcount > 2:
                         #use #eversible whilst testing
                         self.connection.privmsg(self.IRCconfig["irc"]["channel"], functions.parseIRCBBCode("There are [colour=green]%i[/colour] new items for feed: [b]%s[/b]" % (newcount, feedName)))
-                    self.connection.privmsg(self.IRCconfig["irc"]["channel"], functions.parseIRCBBCode("%s: ([colour=yellow]%s[/colour]) [colour=light_green]%s[/colour] [ [colour=blue]%s[/colour] ]" % (feedName, functions.convert_to_human(time.time() - results[keys[0]]["date"]), results[keys[0]]["title"], results[keys[0]]["link"])))
+                    self.connection.privmsg(self.IRCconfig["irc"]["channel"], functions.parseIRCBBCode("%s: ([colour=yellow]%s ago[/colour]) [colour=light_green]%s[/colour] [ [colour=blue]%s[/colour] ]" % (feedName, functions.convert_to_human(time.time() - results[keys[0]]["date"]), results[keys[0]]["title"], results[keys[0]]["link"])))
             
     def mailCheck(self):
         #get identified users
