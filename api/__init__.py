@@ -1358,6 +1358,36 @@ class API:
                             "corporationName" : None
                         }
 
+    def EveCentral(self, Request, itemID, regionID=None):
+
+        if Request.lower() == "marketstat":
+            ecURL = "http://api.eve-central.com/api/"
+            if regionID:
+                requesturl = ecURL + "marketstat?typeid=" + itemID + "&regionlimit=" + regionID
+            else:
+                requesturl = ecURL + "marketstat?typeid=" + itemID
+            xml = urllib2.urlopen(requesturl).read()
+            try:
+                buyVolume, buyAvg, buyMax, buyMin, buyMedian, sellVolume, sellAvg, sellMax, sellMin, sellMedian = re.findall("(?s)\<buy\>.*\<volume\>(\d+).*\<avg\>(\d+).*\<max\>(\d+).*\<min\>(\d+).*\<median\>(\d+).[0-9]{0,2}\</median\>.*\<sell\>.*\<volume\>(\d+).*\<avg\>(\d+).*\<max\>(\d+).*\<min\>(\d+).*\<median\>(\d+)", xml)[0]
+            except IndexError:
+                return None
+            else:
+                return {
+                    "buyVolume" : int(buyVolume),
+                    "buyAvg" : int(buyAvg),
+                    "buyMax" : int(buyMax),
+                    "buyMin" : int(buyMin),
+                    "buyMedian" : int(buyMedian),
+                    "sellVolume" : int(sellVolume),
+                    "sellAvg" : int(sellAvg),
+                    "sellMax" : int(sellMax),
+                    "sellMin" : int(sellMin),
+                    "sellMedian" : int(sellMedian)
+                }
+
+
+
+
     def Server(self, Request):
         """
             Methods for server-related data
