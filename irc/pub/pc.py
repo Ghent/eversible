@@ -22,13 +22,10 @@ def index(connection, event):
     except (IndexError, ValueError):
         connection.privmsg(event.target(),
             "Syntax is: pc [itemname] - [order type (buy|sell)] - [system name] (ex. !pc 425mm Autocannon II - sell - Jita)")
-        orderType = ""
-        systemName = ""
-        regionID = ""
         itemID = ""
 
     if not itemID:
-        itemID = ""
+        connection.privmsg(event.target(), "Item Unknown")
     else:
         if not regionID:
             EC = API.EveCentral("marketstat", str(itemID))
@@ -44,14 +41,15 @@ def index(connection, event):
             sellMin = EC["sellMin"]
             sellMedian = EC["sellMedian"]
             regionName = "Empire"
-            if orderType == str.lower("sell") and itemID:
+
+            if orderType == str.lower("sell"):
                 connection.privmsg(event.target(), "Item ID: %s Region: %s Sell Volume: %s Sell Avg: %s Sell Max: %s Sell Min: %s Sell Median: %s"
                 % (itemID, regionName, sellVolume, sellAvg, sellMax, sellMin, sellMedian))
-            elif orderType == str.lower("buy") and itemID:
+            elif orderType == str.lower("buy"):
                 connection.privmsg(event.target(), "Item ID:%s  Region: %s Buy Volume: %s Buy Avg: %s Buy Max: %s Buy Min: %s Buy Median: %s"
                 % (itemID, regionName, buyVolume, buyAvg, buyMax, buyMin, buyMedian))
             else:
-               connection.privmsg(event.target(), "Item Unknown")
+                connection.privmsg(event.target(), "Unknown order type")
 
 
         else:
@@ -68,12 +66,13 @@ def index(connection, event):
             sellMin = EC["sellMin"]
             sellMedian = EC["sellMedian"]
             regionName = systemInfo["regionName"]
-            if orderType == str.lower("sell") and itemID:
+
+            if orderType == str.lower("sell"):
                 connection.privmsg(event.target(), "Item ID: %s Region: %s Sell Volume: %s Sell Avg: %s Sell Max: %s Sell Min: %s Sell Median: %s"
                 % (itemID, regionName, sellVolume, sellAvg, sellMax, sellMin, sellMedian))
-            elif orderType == str.lower("buy") and itemID:
+            elif orderType == str.lower("buy"):
                 connection.privmsg(event.target(), "Item ID:%s  Region: %s Buy Volume: %s Buy Avg: %s Buy Max: %s Buy Min: %s Buy Median: %s"
                 % (itemID, regionName, buyVolume, buyAvg, buyMax, buyMin, buyMedian))
             else:
-               connection.privmsg(event.target(), "Item Unknown")
+                connection.privmsg(event.target(), "Unknown order type")
 
