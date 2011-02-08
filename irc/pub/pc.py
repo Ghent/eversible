@@ -8,7 +8,7 @@ import evedb
 API = api.API()
 DB = evedb.DUMP()
 
-def index(connection, event):
+def index(connection, event, config):
 
     try:
         dataIn = event.arguments()[0].split(' ', 1)[1].split(' - ')
@@ -21,7 +21,7 @@ def index(connection, event):
         itemID = DB.getItemIDByName(itemName)
     except (IndexError, ValueError):
         connection.privmsg(event.target(),
-            "Syntax is: pc [itemname] - [order type (buy|sell)] - [system name] (ex. !pc 425mm Autocannon II - sell - Jita)")
+            "Syntax is: %spc [itemname] - [order type (buy|sell)] - [system name] (ex. !pc 425mm Autocannon II - sell - Jita)" % config["bot"]["prefix"])
         itemID = ""
 
     if not itemID:

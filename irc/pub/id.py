@@ -10,12 +10,12 @@ import evedb
 API = api.API()
 DB = evedb.DUMP()
 
-def index(connection, event):
+def index(connection, event, config):
     try:
        idSearch = event.arguments()[0].split(None, 1)[1]
     except (IndexError, ValueError):
         connection.privmsg(event.target(),
-            "Syntax is: id [itemName]")
+            "Syntax is: %sid [itemName]" % config["bot"]["prefix"])
     else:
         responseItemName = DB.getItemIDByName(idSearch)
     if not responseItemName:

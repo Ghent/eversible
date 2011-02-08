@@ -4,7 +4,7 @@ import users
 import api
 import time
 
-def index(connection, event):
+def index(connection, event, config):
     #no args
     # perhaps system name in the future
     

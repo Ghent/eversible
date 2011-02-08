@@ -11,11 +11,11 @@ from misc import functions
 API = api.API()
 EVE = evedb.DUMP()
 
-def index(connection, event):
+def index(connection, event, config):
     try:
         systemName = event.arguments()[0].split()[1]
     except IndexError:
-        connection.privmsg(event.target(), "Syntax is: kills [system name]")
+        connection.privmsg(event.target(), "Syntax is: %skills [system name]" % config["bot"]["prefix"])
     else:
         response = API.Map("kills", systemName)
         if not response:

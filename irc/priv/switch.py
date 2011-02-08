@@ -2,7 +2,7 @@
 
 import users
 
-def index(connection, event):
+def index(connection, event, config):
     sourceHostname = event.source()
     sourceNick = event.source().split("!")[0]
     try:

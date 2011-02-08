@@ -3,6 +3,6 @@
 # vim: filetype=python tabstop=4 expandtab:
 
 
-def index(connection, event):
+def index(connection, event, config):
     #required
     pass

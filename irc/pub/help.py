@@ -4,7 +4,7 @@
 
 #simple help placeholder. 
 
-def index(connection, event):
+def index(connection, event, config):
     try:
         helpID = event.arguments()[0].split()[1]
     except (IndexError, ValueError):

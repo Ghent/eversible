@@ -2,7 +2,7 @@
 
 import users
 
-def index(connection, event):
+def index(connection, event, config):
     """
         SYNTAX: register [character name] [user ID] [API key] [password]
     """
@@ -14,7 +14,7 @@ def index(connection, event):
         apiKey = event.arguments()[0].split()[3]
         password = event.arguments()[0].split()[4]
     except IndexError:
-        connection.privmsg(sourceNick, "Syntax is: register [character name] [user ID] [API key] [password]")
+        connection.privmsg(sourceNick, "Syntax is: %sregister [character name] [user ID] [API key] [password]" % config["bot"]["prefix"])
     else:
         USERS = users.DB()
         response = USERS.createUser(apiKey, userID, characterName, password, sourceHostname)

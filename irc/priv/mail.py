@@ -6,7 +6,7 @@ import time
 import traceback
 import re
 
-def index(connection,event):
+def index(connection,event, config):
     #process search_from
     def process_search_from(search_from):
         #check all:
@@ -225,7 +225,7 @@ def index(connection,event):
                     connection.privmsg(sourceNick, " (\x02%i\x02): \x1f%s\x1f from \x034\x02%s\x02\x03 to %s (%s ago)" % (header, title, From, TO, human_time))
                     count += 1
                 
-                connection.privmsg(sourceNick, "\x02Use syntax: \x02\x1fmail [mail ID]\x1f\x02 to get the message body of a mail")
+                connection.privmsg(sourceNick, "\x02Use syntax: \x02\x1f%smail [mail ID]\x1f\x02 to get the message body of a mail" % config["bot"]["prefix"])
         else:
             try:
                 mailID = int(mailID)

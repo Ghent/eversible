@@ -6,7 +6,7 @@ import time
 import traceback
 from misc import functions
 
-def index(connection,event):
+def index(connection,event,config):
     #requires limited api key
     
     #check identify

@@ -5,16 +5,14 @@
 
 import api
 import evedb
-from core.config import config
 from misc import functions
 
 
 API = api.API()
 EVE = evedb.DUMP()
 
-prefix = config.get("bot", "prefix")
 
-def index(connection, event):
+def index(connection, event, config):
     dotlan = "http://evemaps.dotlan.net/route/"
 
     try:
@@ -24,7 +22,7 @@ def index(connection, event):
 
     except IndexError:
         connection.privmsg(event.target(),
-            "Syntax is: %sroute [Origin system] [Endpoint system] (Safe, Fast or Low) (Systems to avoid separated by spaces)" % prefix)
+            "Syntax is: %sroute [Origin system] [Endpoint system] (Safe, Fast or Low) (Systems to avoid separated by spaces)" % config["bot"]["prefix"])
         connection.privmsg(event.target(),
             "           [ ] = required items      ( ) = optional items     * case insensitive")
     else:
@@ -68,7 +66,7 @@ def index(connection, event):
             unknown = []
             count = 0
             for entry in data:
-                if entry == prefix + "route":
+                if entry == config["bot"]["prefix"] + "route":
                     count = count + 1
                     continue
                 if not functions.findName(entry, data, count):

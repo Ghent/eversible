@@ -8,11 +8,11 @@ import evedb
 
 EVE = evedb.DUMP()
 
-def index(connection, event):
+def index(connection, event, config):
     try:
         itemName_user = event.arguments()[0].split()[1]
     except IndexError:
-        connection.privmsg(event.target(), "Syntax is: bp [item name]")
+        connection.privmsg(event.target(), "Syntax is: %sbp [item name]" % config["bot"]["prefix"])
     else:
         itemID = EVE.getItemIDByName(itemName_user)
         materials = EVE.getMaterialsByTypeID(itemID)

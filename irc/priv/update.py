@@ -5,7 +5,7 @@ import api
 import traceback
 USERS = users.DB()
 
-def index(connection, event):
+def index(connection, event, config):
     """
         Changes saved settings for your registered user
         SYNTAX: update [char name] [user ID] [new API key] [old password] (new password)
@@ -27,7 +27,7 @@ def index(connection, event):
             apiKey = event.arguments()[0].split()[3]
             password = event.arguments()[0].split()[4]
         except IndexError:
-            connection.privmsg(sourceNick, "SYNTAX: update [char name] [user ID] [new API key] [old password] (new password)")
+            connection.privmsg(sourceNick, "SYNTAX: %supdate [char name] [user ID] [new API key] [old password] (new password)" % config["bot"]["prefix"])
         else:
             try:
                 new_password = event.arguments()[0].split()[5]
