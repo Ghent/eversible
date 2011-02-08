@@ -27,144 +27,152 @@ class Scheduler:
         #char ID : {messageID: last mailID, sentTime : sent time}
                 
     def start(self, refreshtime=300, connection=None, IRCconfig=None):
-        try:
-            self.connection = connection
-            self.IRCconfig = IRCconfig
-            while True:
-                self.QUEUE.insert(self.checkAPIurls, None, time.time())
-                if self.connection:
-                    self.QUEUE.insert(self.mailCheck, None, time.time())
-                    self.QUEUE.insert(self.RSS.checkFeeds, self.rssHandler, time.time())
-                self.QUEUE.run()
-                time.sleep(refreshtime)
-        except:
-            traceback.print_exc()
-            raise TypeError
+        self.connection = connection
+        self.IRCconfig = IRCconfig
+        while True:
+            self.QUEUE.insert(self.checkAPIurls, None, time.time())
+            if self.connection:
+                self.QUEUE.insert(self.mailCheck, None, time.time())
+                self.QUEUE.insert(self.RSS.checkFeeds, self.rssHandler, time.time())
+            self.QUEUE.run()
+            time.sleep(refreshtime)
         
     def rssHandler(self, feedDict):
-        if feedDict:
-            for feedName, results in feedDict.iteritems():
-                if results:
-                    newcount = len(results)
-                    keys = results.keys()
-                    keys.sort()
-                    keys.reverse()
-                    if newcount > 2:
-                        #use #eversible whilst testing
-                        self.connection.privmsg(self.IRCconfig["irc"]["channel"], functions.parseIRCBBCode("There are [colour=green]%i[/colour] new items for feed: [b]%s[/b]" % (newcount, feedName)))
-                    self.connection.privmsg(self.IRCconfig["irc"]["channel"], functions.parseIRCBBCode("%s: ([colour=yellow]%s ago[/colour]) [colour=light_green]%s[/colour] [ [colour=blue]%s[/colour] ]" % (feedName, functions.convert_to_human(time.time() - results[keys[0]]["date"]), results[keys[0]]["title"], results[keys[0]]["link"])))
+        try:
+            if feedDict:
+                for feedName, results in feedDict.iteritems():
+                    if results:
+                        newcount = len(results)
+                        keys = results.keys()
+                        keys.sort()
+                        keys.reverse()
+                        if newcount > 2:
+                            #use #eversible whilst testing
+                            self.connection.privmsg(self.IRCconfig["irc"]["channel"], functions.parseIRCBBCode("There are [colour=green]%i[/colour] new items for feed: [b]%s[/b]" % (newcount, feedName)))
+                        self.connection.privmsg(self.IRCconfig["irc"]["channel"], functions.parseIRCBBCode("%s: ([colour=yellow]%s ago[/colour]) [colour=light_green]%s[/colour] [ [colour=blue]%s[/colour] ]" % (feedName, functions.convert_to_human(time.time() - results[keys[0]]["date"]), results[keys[0]]["title"], results[keys[0]]["link"])))
+        except:
+            print "Error in scheduler thread (rssHandler):"
+            traceback.print_exc()
             
     def mailCheck(self):
         #get identified users
-        loggedInHostnames = self.USERS.getHostnames()
-        for id, hostname in loggedInHostnames.iteritems():
-            API = None
-            mailXML = None
-            nick = hostname.split("!")[0]
-            API = self.USERS.retrieveUserByHostname(hostname)["apiObject"]
-            requesturl = os.path.join(API.API_URL, "char/MailMessages.xml.aspx")
-            postdata = {
-                "apiKey" : API.API_KEY,
-                "userID" : API.USER_ID,
-                "characterID" : API.CHAR_ID,
-            }
-            mailXML = self.CACHE.requestXML(requesturl, postdata, deleteOld=False)
-            if not mailXML:
-                mailXML = urllib2.urlopen(requesturl, urllib.urlencode(postdata)).read()
-            
-            
-            if API.CHAR_ID in self.MAIL_RECORD.keys():
-                latest_time = self.MAIL_RECORD[API.CHAR_ID]["sentTime"]
-                latest_id = self.MAIL_RECORD[API.CHAR_ID]["messageID"]
-            else:
-                result = self.USERS.getMessageID(API.CHAR_ID)
-                if result:
-                    self.MAIL_RECORD[API.CHAR_ID] = {}
-                    self.MAIL_RECORD[API.CHAR_ID]["sentTime"] = result[1]
-                    self.MAIL_RECORD[API.CHAR_ID]["messageID"] = result[0]
-                    latest_time = result[1]
-                    latest_id = result[0]
-                else:
-                    latest_time = None
-                    latest_id = None                
-                
-            new_latest_time = None
-            new_latest_id = None
-            
-            newIDs = []
-            rows = re.finditer("\<row messageID=\"(?P<messageID>\d+)\" senderID=\"(?P<senderID>\d+)\" sentDate=\"(?P<sentDate>\d+-\d+-\d+ \d+:\d+:\d+)\" title=\"(?P<title>.*?)\" toCorpOrAllianceID=\"(?P<toCorpOrAllianceID>.*?)\" toCharacterIDs=\"(?P<toCharacterIDs>.*?)\" toListID=\"(?P<toListID>.*?)\" \/\>", mailXML)
-            #cycle through
-            count = 0
-            while True:
-                try:
-                    row = rows.next().groupdict()
-                except StopIteration:
-                    break
-                else:
-                    messageID = int(row["messageID"])
-                    sentDate = calendar.timegm(time.strptime(row["sentDate"], "%Y-%m-%d %H:%M:%S"))
-                    if count < 5:
-                        count += 1
-                    
-                    if sentDate > latest_time:
-                        if sentDate > new_latest_time:
-                            new_latest_time = sentDate
-                            new_latest_id = messageID
-                        newIDs += [messageID]
-            if newIDs:
-                newIDs_len = len(newIDs)
-                self.connection.notice(nick, functions.parseIRCBBCode("You have [colour=red]%i[/colour] new mails" % newIDs_len))
-                
-                count = 0
-                ids = []
-                for i in range(5):
-                    try:
-                        ids += [str(newIDs[i])]
-                        count += 1
-                    except IndexError:
-                        break
-                
-                if newIDs_len == count:
-                    self.connection.notice(nick, functions.parseIRCBBCode("ids are: [b]%s[/b]" % ("[/b], [b]".join(ids))))
-                else:
-                    self.connection.notice(nick, functions.parseIRCBBCode("First %i ids are: [b]%s[/b]" % (count, "[/b], [b]".join(ids))))
-                    
-                #insert new data into users
-                self.USERS.insertMessageID(API.CHAR_ID, new_latest_id, new_latest_time)
-                self.MAIL_RECORD[API.CHAR_ID] = {
-                    "messageID" : new_latest_id,
-                    "sentTime" : new_latest_time
+        try:
+            loggedInHostnames = self.USERS.getHostnames()
+            for id, hostname in loggedInHostnames.iteritems():
+                API = None
+                mailXML = None
+                nick = hostname.split("!")[0]
+                API = self.USERS.retrieveUserByHostname(hostname)["apiObject"]
+                requesturl = os.path.join(API.API_URL, "char/MailMessages.xml.aspx")
+                postdata = {
+                    "apiKey" : API.API_KEY,
+                    "userID" : API.USER_ID,
+                    "characterID" : API.CHAR_ID,
                 }
-        
-    def checkAPIurls(self):
-        API = api.API()
-        tablenames = self.CACHE.getTableNames()
-        
-        conn = sqlite3.connect("cache/cache.db")
-        cursor = conn.cursor()
-        
-        for tablename in tablenames:
-            if tablename != "rss":
-                cursor.execute("""
-                               SELECT url, expireTime, requestName
-                               FROM %s
-                               """ % tablename)
-                rows = cursor.fetchall()
-                for url, expireTime, requestName in rows:
-                    if time.time() > expireTime:
-                        #remove old entry
-                        self.CACHE.requestXML(url, postdata=None)
-                        xml = urllib2.urlopen(url).read()
-                        #check for error
+                mailXML = self.CACHE.requestXML(requesturl, postdata, deleteOld=False)
+                if not mailXML:
+                    mailXML = urllib2.urlopen(requesturl, urllib.urlencode(postdata)).read()
+                
+                
+                if API.CHAR_ID in self.MAIL_RECORD.keys():
+                    latest_time = self.MAIL_RECORD[API.CHAR_ID]["sentTime"]
+                    latest_id = self.MAIL_RECORD[API.CHAR_ID]["messageID"]
+                else:
+                    result = self.USERS.getMessageID(API.CHAR_ID)
+                    if result:
+                        self.MAIL_RECORD[API.CHAR_ID] = {}
+                        self.MAIL_RECORD[API.CHAR_ID]["sentTime"] = result[1]
+                        self.MAIL_RECORD[API.CHAR_ID]["messageID"] = result[0]
+                        latest_time = result[1]
+                        latest_id = result[0]
+                    else:
+                        latest_time = None
+                        latest_id = None                
+                    
+                new_latest_time = None
+                new_latest_id = None
+                
+                newIDs = []
+                rows = re.finditer("\<row messageID=\"(?P<messageID>\d+)\" senderID=\"(?P<senderID>\d+)\" sentDate=\"(?P<sentDate>\d+-\d+-\d+ \d+:\d+:\d+)\" title=\"(?P<title>.*?)\" toCorpOrAllianceID=\"(?P<toCorpOrAllianceID>.*?)\" toCharacterIDs=\"(?P<toCharacterIDs>.*?)\" toListID=\"(?P<toListID>.*?)\" \/\>", mailXML)
+                #cycle through
+                count = 0
+                while True:
+                    try:
+                        row = rows.next().groupdict()
+                    except StopIteration:
+                        break
+                    else:
+                        messageID = int(row["messageID"])
+                        sentDate = calendar.timegm(time.strptime(row["sentDate"], "%Y-%m-%d %H:%M:%S"))
+                        if count < 5:
+                            count += 1
+                        
+                        if sentDate > latest_time:
+                            if sentDate > new_latest_time:
+                                new_latest_time = sentDate
+                                new_latest_id = messageID
+                            newIDs += [messageID]
+                if newIDs:
+                    newIDs_len = len(newIDs)
+                    self.connection.notice(nick, functions.parseIRCBBCode("You have [colour=red]%i[/colour] new mails" % newIDs_len))
+                    
+                    count = 0
+                    ids = []
+                    for i in range(5):
                         try:
-                            API._errorCheck(xml)
-                        except api.APIError:
-                            #this will prune out erroneous API calls from the cache
-                            pass
-                        else:
-                            new_expireTime = API._getCachedUntil(xml)
-                            self.CACHE.insertXML(url, requestName, xml, new_expireTime, postdata=None)
-    
+                            ids += [str(newIDs[i])]
+                            count += 1
+                        except IndexError:
+                            break
+                    
+                    if newIDs_len == count:
+                        self.connection.notice(nick, functions.parseIRCBBCode("ids are: [b]%s[/b]" % ("[/b], [b]".join(ids))))
+                    else:
+                        self.connection.notice(nick, functions.parseIRCBBCode("First %i ids are: [b]%s[/b]" % (count, "[/b], [b]".join(ids))))
+                        
+                    #insert new data into users
+                    self.USERS.insertMessageID(API.CHAR_ID, new_latest_id, new_latest_time)
+                    self.MAIL_RECORD[API.CHAR_ID] = {
+                        "messageID" : new_latest_id,
+                        "sentTime" : new_latest_time
+                    }
+        except:
+            print "Error in scheduler thread (mailCheck):"
+            traceback.print_exc()
+            
+    def checkAPIurls(self):
+        try:
+            API = api.API()
+            tablenames = self.CACHE.getTableNames()
+            
+            conn = sqlite3.connect("cache/cache.db")
+            cursor = conn.cursor()
+            
+            for tablename in tablenames:
+                if tablename != "rss":
+                    cursor.execute("""
+                                   SELECT url, expireTime, requestName
+                                   FROM %s
+                                   """ % tablename)
+                    rows = cursor.fetchall()
+                    for url, expireTime, requestName in rows:
+                        if time.time() > expireTime:
+                            #remove old entry
+                            self.CACHE.requestXML(url, postdata=None)
+                            xml = urllib2.urlopen(url).read()
+                            #check for error
+                            try:
+                                API._errorCheck(xml)
+                            except api.APIError:
+                                #this will prune out erroneous API calls from the cache
+                                pass
+                            else:
+                                new_expireTime = API._getCachedUntil(xml)
+                                self.CACHE.insertXML(url, requestName, xml, new_expireTime, postdata=None)
+        except:
+            print "Error in scheduler thread (checkAPIurls):"
+            traceback.print_exc()
+            
 class _QUEUE:
     def __init__(self):
         self.QUEUE = {}        
