@@ -1,9 +1,15 @@
 #!/usr/bin/env python
+#
+# vim: filetype=python tabstop=4 expandtab:
+
 
 import time
-import feedparser
 import calendar
+
+import feedparser
+
 import cache
+
 
 class RSS:
     def __init__(self):
@@ -18,7 +24,7 @@ class RSS:
             "Alliances" : self.CACHE.getRSSDate("Alliances"),
             "Devblog" : self.CACHE.getRSSDate("Devblog")
         }
-        
+
     def checkFeed(self, feedName):
         feed = feedparser.parse(self.RSSFEEDS[feedName])
         lastupdate = 0
@@ -29,7 +35,7 @@ class RSS:
                 if date > lastupdate:
                     lastupdate = date
                 newitems += [item]
-                
+
         item_dict = {}
         for item in newitems:
             item_dict[calendar.timegm(time.strptime(item.date, "%Y-%m-%dT%H:%M+00:00"))] = {
@@ -40,8 +46,9 @@ class RSS:
         if newitems:
             self.LASTUPDATE[feedName] = lastupdate
             self.CACHE.insertRSSDate(feedName, lastupdate)
-        
+
         return item_dict
+
     def checkFeeds(self):
         feed_dict = {}
         for feedName in self.RSSFEEDS.keys():
