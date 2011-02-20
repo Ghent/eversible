@@ -599,21 +599,36 @@ class API:
                 xml_aE = xml_aE.strip()
                 intelligence_xml = getBasicValue("intelligenceBonus", xml_aE)
                 if intelligence_xml:
-                    intelligence_bonus_name = getBasicValue("augmentatorName", intelligence_xml)
-                    intelligence_bonus_value = int(getBasicValue("augmentatorValue", intelligence_xml))
-                    attrib_dict["intelligence"] += intelligence_bonus_value
+                    try:
+                        intelligence_bonus_name = getBasicValue("augmentatorName", intelligence_xml)
+                        intelligence_bonus_value = int(getBasicValue("augmentatorValue", intelligence_xml))
+                        attrib_dict["intelligence"] += intelligence_bonus_value
+                    except AttributeError:
+                        pass
                 memory_xml = getBasicValue("memoryBonus", xml_aE)
                 if memory_xml:
-                    attrib_dict["memory"] += int(getBasicValue("augmentatorValue", memory_xml))
+                    try:
+                        attrib_dict["memory"] += int(getBasicValue("augmentatorValue", memory_xml))
+                    except AttributeError:
+                        pass
                 charisma_xml = getBasicValue("charismaBonus", xml_aE)
                 if charisma_xml:
-                    attrib_dict["charisma"] += int(getBasicValue("augmentatorValue", memory_xml))
+                    try:
+                        attrib_dict["charisma"] += int(getBasicValue("augmentatorValue", memory_xml))
+                    except AttributeError:
+                        pass
                 perception_xml = getBasicValue("perceptionBonus", xml_aE)
                 if perception_xml:
-                    attrib_dict["perception"] += int(getBasicValue("augmentatorValue", memory_xml))
+                    try:
+                        attrib_dict["perception"] += int(getBasicValue("augmentatorValue", memory_xml))
+                    except AttributeError:
+                        pass
                 willpower_xml = getBasicValue("willpowerBonus", xml_aE)
                 if willpower_xml:
-                    attrib_dict["willpower"] += int(getBasicValue("augmentatorValue", memory_xml))
+                    try:
+                        attrib_dict["willpower"] += int(getBasicValue("augmentatorValue", memory_xml))
+                    except AttributeError:
+                        pass
                     
             #get skills
             xml_skills = xml.split("<rowset name=\"skills\"")[1].split(">", 1)[1].split("</rowset>")[0]
