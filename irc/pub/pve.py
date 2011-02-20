@@ -124,4 +124,4 @@ def index(connection, event, config):
                 connection.privmsg(event.target(), functions.parseIRCBBCode("[b]Latest date in range[/b]: %s" % time.strftime("%Y-%b-%d %H:%M", time.gmtime(latest_date))))
             else:
                 connection.privmsg(event.target(), functions.parseIRCBBCode("No PvE kills found"))
-                connection.privmsg(event.target(), functions.parseIRCBBCode("[colour=light_grey]Syntax: %spve [time ago] [system][/colour]" % config["bot"]["prefix"]))
+                connection.privmsg(event.target(), functions.parseIRCBBCode("[b]Syntax[/b]: %spve [time ago] [system]" % config["bot"]["prefix"]))
