@@ -12,6 +12,8 @@ import api
 import evedb
 DUMP = evedb.DUMP()
 
+from misc import functions
+
 def index(connection, event, config):
     locale.setlocale(locale.LC_ALL, config["core"]["locale"])
     sourceHostName = event.source()
@@ -43,23 +45,23 @@ def index(connection, event, config):
         results = re.search("((?P<weeksago>\d+)w)?((?P<daysago>\d+)d)?((?P<hoursago>\d+)h)?((?P<minutesago>\d+)m)?((?P<secondsago>\d+)s)?", daterange, re.I).groupdict()
         try:
             weeks = int(results["weeksago"])
-        except ValueError:
+        except TypeError:
             weeks = 0
         try:
             days = int(results["daysago"])
-        except ValueError:
+        except TypeError:
             days = 0
         try:
             hours = int(results["hoursago"])
-        except ValueError:
+        except TypeError:
             hours = 0
         try:
             minutes = int(results["minutesago"])
-        except ValueError:
+        except TypeError:
             minutes = 0
         try:
             seconds = int(results["secondsago"])
-        except ValueError:
+        except TypeError:
             seconds = 0
         delta = seconds + minutes * 60 + hours * 60 * 60 + days * 24 * 60 * 60 + weeks * 7 * 24 * 60 * 60
         starttime = time.time() - delta
@@ -68,6 +70,10 @@ def index(connection, event, config):
         #now check system
         if system:
             system_ID = DUMP.getSystemIDByName(system)
+            if not system_ID:
+                system_ID = "None"
+        else:
+            system_ID = None
         
         try:
             walletdict = API.Char("wallet")
@@ -104,9 +110,17 @@ def index(connection, event, config):
                             total_bounty += walletdict[refID]["amount"]
 
             bounties_list = sorted(bounties.items(), key=lambda ship: ship[1], reverse=True)
-            connection.privmsg(event.target(), "\x02PvE stats for character \x038\x02\x02%s\x03 between %s and %s\x02" % (APItest["characterName"], time.asctime(time.gmtime(earliest_date)), time.asctime(time.gmtime(latest_date))))
-            connection.privmsg(event.target(), "\x02Total bounty earned\x02: \x039\x02\x02%s ISK\x03\x02\x02" % locale.format("%.2f", total_bounty, True))
-            if total_bounty != 0:
+            if total_bounty > 0:
+                datestring = "for the past %s" % daterange
+                systemstring = ""
+                if system:
+                    systemstring = "in system [colour=red]%s[/colour]" % DUMP.getSystemNameByID(system_ID)
+                connection.privmsg(event.target(), functions.parseIRCBBCode("[b]PvE stats for character [colour=light_yellow]%s[/colour] %s %s [/b]" % (APItest["characterName"], datestring, systemstring)))
+                connection.privmsg(event.target(), functions.parseIRCBBCode("[b]Total bounty earned[/b]: [colour=light_green]%s ISK[/colour]" % locale.format("%.2f", total_bounty, True)))
                 connection.privmsg(event.target(), "\x02Top 5 NPC ships killed:\x02")
                 for shiptype in bounties_list[:5]:
                     connection.privmsg(event.target(), "\x034\x02%-25s\x03\x02:  \x033\x02\x02%1i\x03" % (shiptype[0], shiptype[1]))
+                connection.privmsg(event.target(), functions.parseIRCBBCode("[b]Earliest date in range[/b]: %s" % time.strftime("%Y-%b-%d %H:%M", time.gmtime(earliest_date))))
+                connection.privmsg(event.target(), functions.parseIRCBBCode("[b]Latest date in range[/b]: %s" % time.strftime("%Y-%b-%d %H:%M", time.gmtime(latest_date))))
+            else:
+                connection.privmsg(event.target(), functions.parseIRCBBCode("No PvE kills found"))
