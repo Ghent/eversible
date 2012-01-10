@@ -6,8 +6,8 @@
 from optparse import OptionParser
 import ConfigParser
 import pdb
-import irc.bot
-import evedb
+from modules.irc import bot
+from modules import evedb
 
 __version__ = "0.0.2"
 
@@ -43,4 +43,4 @@ if __name__ == "__main__":
         print "WARNING: your static database is not up to date"
 
     # Start the IRC bot
-    irc.bot.start(config, database)
+    bot.start(config, database)
