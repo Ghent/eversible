@@ -6,6 +6,8 @@
 import os
 import sys
 import sqlite3
+import urllib
+import urllib2
 
 def testEveDB():
     try:
@@ -18,8 +20,14 @@ def testEveDB():
 
 class DUMP:
     def __init__(self):
-        conn = sqlite3.connect("evedb/current.db")
-        self.cursor = conn.cursor()
+        try:
+            conn = sqlite3.connect("evedb/current.db")
+            self.cursor = conn.cursor()
+        except sqlite3.OperationalError:
+            print "Database doesn't exist!"
+            currentDB = os.path.dirname(os.readlink("evedb/current.db"))
+            print currentDB
+
 
     def getItemInfoByID(self, ID):
         #invTypes
