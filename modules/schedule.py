@@ -145,7 +145,7 @@ class Scheduler:
             API = api.API()
             tablenames = self.CACHE.getTableNames()
             
-            conn = sqlite3.connect("cache/cache.db")
+            conn = sqlite3.connect("var/eve/cache/cache.db")
             cursor = conn.cursor()
             
             for tablename in tablenames:

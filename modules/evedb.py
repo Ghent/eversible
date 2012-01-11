@@ -8,6 +8,10 @@ import sys
 import sqlite3
 import urllib
 import urllib2
+import re
+import bz2
+
+from modules.misc import progressbar
 
 def testEveDB():
     try:
@@ -24,10 +28,114 @@ class DUMP:
             conn = sqlite3.connect("var/eve/current.db")
             self.cursor = conn.cursor()
         except sqlite3.OperationalError:
-            print "Database doesn't exist!"
-            currentDB = os.path.dirname(os.readlink("var/eve/current.db"))
-            print currentDB
+            currentLink = os.readlink("var/eve/current.db")
+            currentDB = os.path.dirname(currentLink)
+            currentFile = os.path.basename(currentLink)
+            print "The EVE database is missing"
+            fetch = raw_input("Would you like EVErsible to attempt to download it for you? [N]: ")
+            if fetch.upper() == "YES" or fetch.upper() == "Y":
+                self._getDatabase(currentDB, currentFile)
+            else:
+                print "Not downloading, exiting..."
+                sys.exit(0)
             sys.exit(0)
+            
+    def _getDatabase(self, currentDB, targetFile):
+        SRC_URI = "http://zofu.no-ip.de/"
+        print "Searching http://zofu.no-ip.de"
+        SRC_FILES = re.findall("<li>.*? <a href=\"(.*?)\/\">(.*?)<\/a><\/li>", urllib2.urlopen(SRC_URI).read())
+        for src_file in SRC_FILES:
+            if src_file[0] == src_file[1] and src_file[0] == currentDB:
+                print "Found correct release %s" % src_file[0]
+                SRC_FILE_URI = "%s%s" % (SRC_URI, src_file[1])
+                SQLITE_FILES = re.findall("<a href=\"(.*?)\">%s-sqlite3-v(\d+).*?<\/a>" % (currentDB), urllib2.urlopen(SRC_FILE_URI).read())
+                SQLITE_FILE_HREF = None
+                SQLITE_FILE_VERSION = 0
+                try:
+                    for sqlite_file_href, sqlite_file_version in SQLITE_FILES:
+                        if int(sqlite_file_version) > SQLITE_FILE_VERSION:
+                            SQLITE_FILE_HREF = sqlite_file_href
+                            SQLITE_FILE_VERSION = sqlite_file_version
+                except:
+                    pass
+                if not SQLITE_FILE_HREF:
+                    print "Couldn't find file, exiting ..."
+                    sys.exit(0)
+                
+                SQLITE_FILE_URI = "%s/%s" % (SRC_FILE_URI, SQLITE_FILE_HREF)
+                SQLITE_URLFILE = urllib2.urlopen(SQLITE_FILE_URI)
+                SQLITE_FILE_LENGTH = int(SQLITE_URLFILE.info().get("Content-Length"))
+                print "Downloading", SQLITE_FILE_URI
+                SQLITE_FILE_SIZE = self._convert_size_to_human(SQLITE_FILE_LENGTH)
+                
+                #start downloading
+                chunksize = 1024
+                if not os.path.exists("var/eve/temp"):
+                    os.mkdir("var/eve/temp")
+                TEMP_PATH = os.path.join("var/eve/temp", SQLITE_FILE_HREF)
+                if os.path.exists(TEMP_PATH):
+                    os.remove(TEMP_PATH)
+                    
+                OUTPUT_FILE = open(TEMP_PATH, "ab")
+                
+                class MyWidget(progressbar.ProgressBarWidget):
+                    def update(self, pbar):
+                        return "%s / %s" % (self._convert_size_to_human(pbar.currval), SQLITE_FILE_SIZE)
+                        
+                    def _convert_size_to_human(self, SIZE_BYTES):
+                       if SIZE_BYTES >= 1024*1024*1024:
+                           #gb
+                           return "%.02f GiB" % (float(SIZE_BYTES)/1024**3)
+                       elif SIZE_BYTES >= 1024*1024:
+                           #mb
+                           return "%.02f MiB" % (float(SIZE_BYTES)/1024**2)
+                       elif SIZE_BYTES >= 1024:
+                           return "%.02f KiB" % (float(SIZE_BYTES)/1024)
+                       else:
+                           return "%i B" % SIZE_BYTES
+                        
+                P_WIDGETS = [
+                    MyWidget(), " ", progressbar.Percentage(), " ", progressbar.Bar(marker="=",left="[", right="]"),
+                    " ", progressbar.ETA(), " ", progressbar.FileTransferSpeed()
+                ]
+                P = progressbar.ProgressBar(widgets=P_WIDGETS, maxval=SQLITE_FILE_LENGTH).start()
+                progress = 0
+                
+                while True:
+                    data = SQLITE_URLFILE.read(chunksize)
+                    if not data:
+                        P.finish()
+                        OUTPUT_FILE.flush()
+                        OUTPUT_FILE.close()
+                        break
+                    OUTPUT_FILE.write(data) 
+                    progress += len(data)
+                    P.update(progress)
+                
+                TARGET_DIR = os.path.dirname(os.path.join("var/eve/", os.readlink("var/eve/current.db")))
+                if not os.path.exists(TARGET_DIR):
+                    os.mkdir(TARGET_DIR)
+                    
+                print "Extracting file"
+                open(os.path.join(TARGET_DIR, targetFile),"wb").write(bz2.decompress( open(TEMP_PATH,"rb").read() ))
+                
+                
+                
+    def _convert_size_to_human(self, SIZE_BYTES):
+       if SIZE_BYTES >= 1024*1024*1024:
+           #gb
+           return "%.02f GiB" % (float(SIZE_BYTES)/1024**3)
+       elif SIZE_BYTES >= 1024*1024:
+           #mb
+           return "%.02f MiB" % (float(SIZE_BYTES)/1024**2)
+       elif SIZE_BYTES >= 1024:
+           return "%.02f KiB" % (float(SIZE_BYTES)/1024)
+       else:
+           return "%i B" % SIZE_BYTES
+                
+                
+    def _download(self, url):
+        pass
 
     def getItemInfoByID(self, ID):
         #invTypes

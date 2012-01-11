@@ -12,7 +12,7 @@ from modules import api
 from modules import evedb
 DUMP = evedb.DUMP()
 
-from misc import functions
+from modules.misc import functions
 
 def index(connection, event, config):
     locale.setlocale(locale.LC_ALL, config["core"]["locale"])
