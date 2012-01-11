@@ -5,8 +5,8 @@ EVERSIBLE - EVE Online IRC Bot
 
 
 AUTHORS
-  * Ghent
   * mountainpenguin
+  * Ghent
   * petllama (aka Fr0gOfWar)
 
 
