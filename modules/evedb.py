@@ -18,8 +18,17 @@ def testEveDB():
     try:
         EVEDB = DUMP()
         EVEDB.getSystemIDByName("Jita")
-    except sqlite3.OperationalError:
-        return False
+    except (sqlite3.OperationalError, sqlite3.DatabaseError):
+        currentLink = os.readlink("var/eve/current.db")
+        currentDB = os.path.dirname(currentLink)
+        currentFile = os.path.basename(currentLink)
+        print "Your static database is invalid or not up to date"
+        fetch = raw_input("Would you like EVErsible to attempt to download a new version for you? [N]: ")
+        if fetch.upper() == "YES" or fetch.upper() == "Y":
+            EVEDB._getDatabase(currentDB, currentFile)
+            return False
+        else:
+            return False
     else:
         return True
 
@@ -77,16 +86,18 @@ class DUMP:
                 #start downloading
                 chunksize = 1024
                 if not os.path.exists("var/eve/temp"):
+                    print "Creating temporary directory var/eve/temp"
                     os.mkdir("var/eve/temp")
                 TEMP_PATH = os.path.join("var/eve/temp", SQLITE_FILE_HREF)
                 if os.path.exists(TEMP_PATH):
+                    print "Temporary file %s already exists, removing ..." % TEMP_PATH
                     os.remove(TEMP_PATH)
                     
                 OUTPUT_FILE = open(TEMP_PATH, "ab")
                 
                 class DLWidget(progressbar.ProgressBarWidget):
                     def update(self, pbar):
-                        return "%s / %s" % (self._convert_size_to_human(pbar.currval), self._convert_size_to_human(pbar.maxval))
+                        return "%s / %s" % (self._convert_size_to_human(pbar.currval).rjust(len(self._convert_size_to_human(pbar.maxval))), self._convert_size_to_human(pbar.maxval).rjust(len(self._convert_size_to_human(pbar.maxval))))
                         
                     def _convert_size_to_human(self, SIZE_BYTES):
                        if SIZE_BYTES >= 1024*1024*1024:
@@ -124,19 +135,25 @@ class DUMP:
                     
                 print "Extracting file"
                 BZFILE = open(TEMP_PATH, "rb")
+                if os.path.exists(os.path.join(TARGET_DIR, targetFile)):
+                    print "Target file %s already exists, removing ..." % os.path.join(TARGET_DIR, targetFile)
+                    os.remove(os.path.join(TARGET_DIR, targetFile))
                 TARGET_FILE = open(os.path.join(TARGET_DIR, targetFile), "ab")
                 chunksize = 4096
                 read = 0
                 uncomp = 0
                 D = bz2.BZ2Decompressor()
                 
+                class DL2Widget(DLWidget):
+                    def update(self, pbar):
+                        return "%s" % self._convert_size_to_human(pbar.currval).rjust(len(self._convert_size_to_human(pbar.maxval)))
                 class WrittenWidget(DLWidget):
                     def update(self, pbar):
                         return self._convert_size_to_human(uncomp)
                         
                 P_WIDGETS = [
-                    "Read: ", DLWidget(), " <", progressbar.Percentage(), "> Written: ", WrittenWidget(), " ", progressbar.ReverseBar(marker="-",left="[", right="]"),
-                    " ", progressbar.FileTransferSpeed()
+                    DL2Widget(), " --> ", WrittenWidget(), " ", progressbar.Percentage(), " ", progressbar.Bar(marker="-",left="[", right="]"),
+                    " ", progressbar.ETA(), " ", progressbar.FileTransferSpeed()
                 ]
 
                 P = progressbar.ProgressBar(widgets=P_WIDGETS, maxval=SQLITE_FILE_LENGTH).start()
@@ -154,7 +171,7 @@ class DUMP:
                     TARGET_FILE.write(data)
                 
                 print "Cleaning up"
-                print " rm -rf var/eve/temp"
+                print "Removing var/eve/temp"
                 shutil.rmtree("var/eve/temp")
                 print "All Done"
                 

@@ -8,6 +8,7 @@ import ConfigParser
 import pdb
 from modules.irc import bot
 from modules import evedb
+import sys
 
 __version__ = "0.0.2"
 
@@ -40,7 +41,8 @@ if __name__ == "__main__":
     # Check to see if a valid EVE db exists
     database = evedb.testEveDB()
     if not database:
-        print "WARNING: your static database is not up to date"
+        print "Exiting ..."
+        sys.exit(0)
 
     # Start the IRC bot
     bot.start(config, database)
