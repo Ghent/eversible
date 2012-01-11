@@ -40,9 +40,12 @@ PLANNED FEATURES
 TECHNICAL FEATURES
   * SQLite3 Backend
 
-
 REQUIREMENTS
   * Python
   * EVE Online Data Export (in SQLite3)
     - http://www.eveonline.com/community/toolkit.asp
     - http://zofu.no-ip.de/
+
+COPYRIGHT
+  Copyright (C) 2011-2012 eve-irc.net
+  See COPYING.txt and LICENSE.txt
