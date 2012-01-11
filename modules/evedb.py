@@ -63,6 +63,12 @@ class DUMP:
                     sys.exit(0)
                 
                 SQLITE_FILE_URI = "%s/%s" % (SRC_FILE_URI, SQLITE_FILE_HREF)
+        ###debug###
+        #if True:
+        #    if True:
+        #        SQLITE_FILE_URI = "https://mountainpenguin.org.uk/~irc/inc15-sqlite3-v1.db.bz2"
+        #        SQLITE_FILE_HREF = "inc15-sqlite3-v1.db.bz2"
+        ###enddebug###
                 SQLITE_URLFILE = urllib2.urlopen(SQLITE_FILE_URI)
                 SQLITE_FILE_LENGTH = int(SQLITE_URLFILE.info().get("Content-Length"))
                 print "Downloading", SQLITE_FILE_URI
@@ -78,9 +84,9 @@ class DUMP:
                     
                 OUTPUT_FILE = open(TEMP_PATH, "ab")
                 
-                class MyWidget(progressbar.ProgressBarWidget):
+                class DLWidget(progressbar.ProgressBarWidget):
                     def update(self, pbar):
-                        return "%s / %s" % (self._convert_size_to_human(pbar.currval), SQLITE_FILE_SIZE)
+                        return "%s / %s" % (self._convert_size_to_human(pbar.currval), self._convert_size_to_human(pbar.maxval))
                         
                     def _convert_size_to_human(self, SIZE_BYTES):
                        if SIZE_BYTES >= 1024*1024*1024:
@@ -95,7 +101,7 @@ class DUMP:
                            return "%i B" % SIZE_BYTES
                         
                 P_WIDGETS = [
-                    MyWidget(), " ", progressbar.Percentage(), " ", progressbar.Bar(marker="=",left="[", right="]"),
+                    DLWidget(), " ", progressbar.Percentage(), " ", progressbar.Bar(marker="=",left="[", right="]"),
                     " ", progressbar.ETA(), " ", progressbar.FileTransferSpeed()
                 ]
                 P = progressbar.ProgressBar(widgets=P_WIDGETS, maxval=SQLITE_FILE_LENGTH).start()
@@ -108,7 +114,7 @@ class DUMP:
                         OUTPUT_FILE.flush()
                         OUTPUT_FILE.close()
                         break
-                    OUTPUT_FILE.write(data) 
+                    OUTPUT_FILE.write(data)
                     progress += len(data)
                     P.update(progress)
                 
@@ -117,7 +123,36 @@ class DUMP:
                     os.mkdir(TARGET_DIR)
                     
                 print "Extracting file"
-                open(os.path.join(TARGET_DIR, targetFile),"wb").write(bz2.decompress( open(TEMP_PATH,"rb").read() ))
+                BZFILE = open(TEMP_PATH, "rb")
+                TARGET_FILE = open(os.path.join(TARGET_DIR, targetFile), "ab")
+                chunksize = 4096
+                read = 0
+                uncomp = 0
+                D = bz2.BZ2Decompressor()
+                
+                class WrittenWidget(DLWidget):
+                    def update(self, pbar):
+                        return self._convert_size_to_human(uncomp)
+                        
+                P_WIDGETS = [
+                    "Read: ", DLWidget(), " <", progressbar.Percentage(), "> Written: ", WrittenWidget(), " ", progressbar.ReverseBar(marker="-",left="[", right="]"),
+                    " ", progressbar.FileTransferSpeed()
+                ]
+
+                P = progressbar.ProgressBar(widgets=P_WIDGETS, maxval=SQLITE_FILE_LENGTH).start()
+                while True:
+                    compr_data = BZFILE.read(chunksize)
+                    if not compr_data:
+                        P.finish()
+                        TARGET_FILE.flush()
+                        TARGET_FILE.close()
+                        break
+                    read += len(compr_data)
+                    P.update(read)
+                    data = D.decompress(compr_data)
+                    uncomp += len(data)
+                    TARGET_FILE.write(data)
+                
                 print "Cleaning up"
                 print " rm -rf var/eve/temp"
                 shutil.rmtree("var/eve/temp")
