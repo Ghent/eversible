@@ -10,6 +10,7 @@ import urllib
 import urllib2
 import re
 import bz2
+import shutil
 
 from modules.misc import progressbar
 
@@ -37,7 +38,6 @@ class DUMP:
                 self._getDatabase(currentDB, currentFile)
             else:
                 print "Not downloading, exiting..."
-                sys.exit(0)
             sys.exit(0)
             
     def _getDatabase(self, currentDB, targetFile):
@@ -118,6 +118,10 @@ class DUMP:
                     
                 print "Extracting file"
                 open(os.path.join(TARGET_DIR, targetFile),"wb").write(bz2.decompress( open(TEMP_PATH,"rb").read() ))
+                print "Cleaning up"
+                print " rm -rf var/eve/temp"
+                shutil.rmtree("var/eve/temp")
+                print "All Done"
                 
                 
                 
