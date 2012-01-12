@@ -46,7 +46,7 @@ def index(connection, event, config):
         else:
             players = "[colour=green]" + locale.format("%d", online, True) + "[/colour]"
 
-        message = functions.parseIRCBBCode("[b]Server[/b]: [colour=light_cyan]Tranquility[/colour]  [b]Status[/b]: [colour=light_green]Online[/colour]  [b]Players[/b]: %{players}s  [b]Server Time (GMT)[/b]: %{servertime}s" % {
+        message = functions.parseIRCBBCode("[b]Server[/b]: [colour=light_cyan]Tranquility[/colour]  [b]Status[/b]: [colour=light_green]Online[/colour]  [b]Players[/b]: %(players)s  [b]Server Time (GMT)[/b]: %(servertime)s" % {
             "players" : players,
             "servertime" : servertime,
         })
