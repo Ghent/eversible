@@ -28,6 +28,7 @@
 import locale
 
 from modules import api
+from modules.misc import functions
 
 API = api.API()
 
@@ -39,15 +40,18 @@ def index(connection, event, config):
     servertime = serverstatus["time"].split()[1]
     if status == "Online":
         if online >= 50000:
-            players = "\x035 " + locale.format("%d", online, True) + "\x03"
+            players = "[colour=red]" + locale.format("%d", online, True) + "[/colour]"
         elif online >= 30000:
-            players = "\x037 " + locale.format("%d", online, True) + "\x03"
+            players = "[colour=yellow]" + locale.format("%d", online, True) + "[/colour]"
         else:
-            players = "\x033 " + locale.format("%d", online, True) + "\x03"
+            players = "[colour=green]" + locale.format("%d", online, True) + "[/colour]"
 
-        message = "\x02Server\x02: \x0311Tranquility\x03  \x02Status\x02: \x039Online\x03  \x02Players\x02:%s  \x02Server Time (GMT)\x02: %s" % (players, servertime)
+        message = functions.parseIRCBBCode("[b]Server[/b]: [colour=light_cyan]Tranquility[/colour]  [b]Status[/b]: [colour=light_green]Online[/colour]  [b]Players[/b]: %{players}s  [b]Server Time (GMT)[/b]: %{servertime}s" % {
+            "players" : players,
+            "servertime" : servertime,
+        })
 
     elif status == "Offline":
-        message = "\x02Server\x02: \x0310Tranquility\x03  \x02Status\x02: \x034Offline\x03"
+        message = functions.parseIRCBBCode("[b]Server[/b]: [colour=light_cyan]Tranquility[/colour]  [b]Status[/b]: [colour=light_red]Offline[/colour]")
 
     connection.privmsg(event.target(), message)

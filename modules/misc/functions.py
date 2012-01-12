@@ -55,7 +55,8 @@ def parseIRCBBCode(string):
             green, dark_green, red, light_red, dark_red,
             purple, dark_purple, yellow, dark_yellow,
             light_yellow, light_green, cyan, dark_cyan,
-            light_blue, light_purple, light_grey, silver
+            light_cyan, light_blue, light_purple, light_grey,
+            silver
 
         N.B. dark variants are the same as colours with no
              shade specified
@@ -69,7 +70,7 @@ def parseIRCBBCode(string):
         "dark_blue" : "2",
         "green" : "3",
         "dark_green" : "3",
-        "red" : "4",
+        "red" : "5",
         "light_red" : "4",
         "dark_red" : "5",
         "purple" : "6",
@@ -80,6 +81,7 @@ def parseIRCBBCode(string):
         "light_green" : "9",
         "cyan" : "10",
         "dark_cyan" : "10",
+        "light_cyan" : "11",
         "light_blue" : "12",
         "light_purple" : "13",
         "light_grey" : "14",
