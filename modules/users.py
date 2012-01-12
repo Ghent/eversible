@@ -32,7 +32,24 @@ import traceback
 
 class DB:
     def __init__(self):
-        pass
+        conn = sqlite3.connect("var/users/eversible.db")
+        cursor = conn.cursor()
+        #test if users / hostnames tables exist
+        try:
+            cursor.execute("""
+                           CREATE TABLE users
+                           (id text, characterName text, characterID integer, userID integer, apiKey text, password text)
+                           """)
+        except sqlite3.OperationalError:
+            pass
+        
+        try:
+            cursor.execute("""
+                           CREATE TABLE hostnames
+                           (id text, hostname text)
+                           """)
+        except sqlite3.OperationalError:
+            pass
     
     def getMessageID(self, charID):
         conn = sqlite3.connect("var/users/eversible.db")
@@ -87,6 +104,8 @@ class DB:
     def getHostnames(self):
         conn = sqlite3.connect("var/users/eversible.db")
         cursor = conn.cursor()
+
+        #this fails if database not initialised
         
         cursor.execute("""
                        SELECT id, hostname
@@ -116,21 +135,6 @@ class DB:
             charID = characters[characterName]["characterID"]
             conn = sqlite3.connect("var/users/eversible.db")
             cursor = conn.cursor()
-            try:
-                cursor.execute("""
-                               CREATE TABLE users
-                               (id text, characterName text, characterID integer, userID integer, apiKey text, password text)
-                               """)
-            except sqlite3.OperationalError:
-                pass
-            
-            try:
-                cursor.execute("""
-                               CREATE TABLE hostnames
-                               (id text, hostname text)
-                               """)
-            except sqlite3.OperationalError:
-                pass
             
             randomid = "".join([
                 random.choice(string.ascii_letters + string.digits) for x in range(20)
@@ -210,6 +214,7 @@ class DB:
             cursor.close()
             conn.close()
             return results
+        
     def lookupAlt(self, apiKey, userID, characterName, altName):
         API = api.API(apikey=apiKey, userid=userID)
         characters = API.Account("characters")
@@ -308,6 +313,7 @@ class DB:
         conn.commit()
         cursor.close()
         conn.close()
+        
     def updateUser(self, characterName, userID, password, new_apiKey, new_password, hostname):
         conn = sqlite3.connect("var/users/eversible.db")
         cursor = conn.cursor()
@@ -364,6 +370,7 @@ class DB:
         conn.commit()
         cursor.close()
         conn.close()
+        
     def verifyPassword(self, characterName, password):
         conn = sqlite3.connect("var/users/eversible.db")
         cursor = conn.cursor()
