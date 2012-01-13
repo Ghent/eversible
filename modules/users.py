@@ -345,7 +345,7 @@ class DB:
                                    DELETE
                                    FROM users
                                    WHERE characterName=?
-                                   """ % (altName,)
+                                   """, (altName,)
                                   )
                 except sqlite3.OperationalError:
                     pass

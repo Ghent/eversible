@@ -30,7 +30,6 @@ from modules import evedb
 from modules.misc import functions
 
 
-API = api.API()
 EVE = evedb.DUMP()
 
 
