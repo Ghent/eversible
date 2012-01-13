@@ -129,13 +129,13 @@ def security(systemID=None, systemInfo=None):
         systemInfo = EVEDB.getSystemInfoByID(systemID)
     security = systemInfo["security"]
     if security >= 0.5:
-        sec = "\x033\x02\x02%.01f\x03" % security
+        sec = "[colour=green]%.01f[/colour]" % security
     elif security < 0.5 and security > 0.0:
-        sec = "\x037\x02\x02%.01f\x03" % security
+        sec = "[colour=yellow]%.01f[/colour]" % security
     else:
-        sec = "\x035\x02\x02%.02f\x03" % security
+        sec = "[colour=red]%.02f[/colour]" % security
 
-    return sec
+    return parseIRCBBCode(sec)
 
 def findSecurity(systemName):
     EVEDB = evedb.DUMP()
@@ -149,14 +149,7 @@ def findSecurity(systemName):
     if sysInfo == None:
         return None
 
-    security = sysInfo["security"]
-    if security >= 0.5:
-        sec = "(\x033\x02\x02%.01f\x03)" % security
-    elif security < 0.5 and security > 0.0:
-        sec = "(\x037\x02\x02%.01f\x03)" % security
-    else:
-        sec = "(\x035\x02\x02%.02f\x03)" % security
-    return sec
+    return security(systemInfo=sysInfo)
 
 def findName(name, list, count):
     EVEDB = evedb.DUMP()
