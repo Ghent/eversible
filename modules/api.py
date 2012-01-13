@@ -37,33 +37,47 @@ from modules import evedb
 from modules import cache
 import calendar
 import traceback
+from xml.etree import ElementTree as etree
+import cStringIO as StringIO
+from modules.misc import functions
 
+class DictToObject:
+    # copied from Eli Bendersky on stackoverflow
+    # <http://stackoverflow.com/questions/1305532/convert-python-dict-to-object>
+    def __init__(self, **entries):
+        self.__dict__.update(entries)
+        
 class APIError(Exception):
-    def __init__(self, value):
+    def __init__(self, code, value):
+        self.code = int(code)
         self.value = value
     def __str__(self):
-        return repr(self.value)
+        return repr((self.code, self.value))
 
 class API:
     """
         Wrapper for API requests
     """
-    def __init__(self, userid=None, apikey=None, charid=None, characterName=None, debug=False):
+    def __init__(self, keyID=None, vCode=None, charid=None, characterName=None, debug=False):
         """
             If no arguments are specified, functions that require no API information will still be functional
             
             Keyword arguments:
             -------------------------------------------------------------------------------------------
-              userid        -- user ID (defaults to None)
-              apikey        -- the API key associated with given user ID (defaults to None)
+              keyID         -- API key ID (defaults to None)
+              vCode         -- the verification code associated with keyID (defaults to None)
               charid        -- the character ID, can be omitted if not known (defaults to None)
               characterName -- if charid is not specified, characterName should be (defaults to None)
               debug         -- defaults to False, this argument is deprecated and does nothing
             --------------------------------------------------------------------------------------------
             all arguments are optional
         """
-        self.USER_ID = userid
-        self.API_KEY = apikey
+        if not keyID or not vCode:
+            raise APIError(0, "keyID and/or vCode not specified")
+        if not charid and not characterName:
+            raise APIError(1, "Character not specified")
+        self.KEY_ID = self.keyID = keyID
+        self.V_CODE = self.vCode = vCode
         self.API_URL = "http://api.eve-online.com"
         self.DEBUG = debug
         self.EVE = evedb.DUMP()
@@ -74,10 +88,14 @@ class API:
             if chardict and characterName in chardict.keys():
                 self.CHAR_ID = chardict[characterName]["characterID"]
         else:
-            self.CHAR_ID = charid
+            self.CHAR_ID = int(charid)
         
-
-    def _getXML(self, requesturl, Request, postdata={}):
+    def _convertEveToUnix(self, timestamp):
+        try:
+            return calendar.timegm(time.strptime(timestamp, "%Y-%m-%d %H:%M:%S"))
+        except:
+            return None
+    def _getXML(self, requesturl, Request, postdata={}, permanent=False, raw=False):
         """
             Request XML for a given URL, associated with POST data
             
@@ -88,42 +106,49 @@ class API:
               postdata   -- a dictionary object containing POST keys / values
             -------------------------------------------------------------------
             * = required
+            
+            Returns: ElementTree object
         """
         xml = self.CACHE.requestXML(requesturl, postdata)
         if not xml:
             xml = urllib2.urlopen(requesturl, urllib.urlencode(postdata)).read()
-            self.CACHE.insertXML(requesturl, Request, xml, self._getCachedUntil(xml), postdata)
-        self._errorCheck(xml)
-        return xml
+            if not permanent:
+                self.CACHE.insertXML(requesturl, Request, xml, self._getCachedUntil(xml), postdata)
+            else:
+                self.CACHE.insertXML(requesturl, Request, xml, 2147483647.0, postdata)
+        if raw:
+            return xml
+        xmltree = etree.parse(StringIO.StringIO(xml))
+        self._errorCheck(xmltree)
+        return xmltree
         
-    def _errorCheck(self, xml):
+    def _errorCheck(self, xmltree):
         """
             Parses errors from API returned XML and raises an appropriate APIError
             
             Keyword arguments:
             ------------------------------------------
-            * xml  -- the XML returned by an API call
+            * xmltree  -- the parsed XML returned by an API call
             ------------------------------------------
             * = required
         """
-        try:
-            error = re.findall("\<error code=\"(\d+)\"\>(.*?)\<\/error\>",xml)[0]
-        except IndexError:
-            return None
-        else:
-            raise APIError("%s : %s" % (error[0], error[1]))
+        if xmltree.find("error") is not None:
+            error = xmltree.find("error")
+            raise APIError(error.attrib["code"], error.text)
         
-    def _getCachedUntil(self, xml):
+    def _getCachedUntil(self, xmltree):
         """
             Parses the <cachedUntil> value from the XML returned from an API call
             
             Keyword arguments:
             ------------------------------------------
-            * xml  -- the XML returned by an API call
+            * xmltree  -- the parsed XML returned by an API call
             ------------------------------------------
             * = required
         """
-        cachedUntil = calendar.timegm(time.strptime(re.findall("\<cachedUntil\>(.*?)\<\/cachedUntil\>", xml)[0], "%Y-%m-%d %H:%M:%S"))
+        if type(xmltree) != etree.ElementTree:
+            xmltree = etree.parse(StringIO.StringIO(xmltree))
+        cachedUntil = self._convertEveToUnix(xmltree.find("cachedUntil").text)
         return cachedUntil
     
     def Eve(self,Request, allianceID=None, nameID=None, nameName=None, allianceName=None, allianceTicker=None, characterID=None, typeID=None):
@@ -150,17 +175,18 @@ class API:
             | (N) alliances                                                                        |
             | description : returns alliance info for a given alliance ID, name or ticker          |
             | inputs      : allianceID, allianceName or allianceTicker                             |
-            | returns     : dict with keys allianceID, allianceName, allianceTicker                |
+            | returns     : dict with keys allianceID, allianceName, allianceTicker, startDate,    |
+            |               startTime (unix timestamp), memberCount, and executorCorpID            |
             +--------------------------------------------------------------------------------------+
             | (N) getName                                                                          |
             | description : returns the name for a given character, corp or alliance ID            |
             | inputs      : nameID*                                                                |
-            | returns     : dict with keys Name and ID                                             |
+            | returns     : dict with keys name and ID                                             |
             +--------------------------------------------------------------------------------------+
             | (N) getID                                                                            |
             | description : returns the ID for a given character, corp or alliance name            |
             | inputs      : nameName*                                                              |
-            | returns     : dict with keys Name and ID                                             |
+            | returns     : dict with keys name and ID                                             |
             +--------------------------------------------------------------------------------------+
             | (N) characterinfo                                                                    |
             | description : returns the public info for a given character ID                       |
@@ -177,65 +203,68 @@ class API:
             +--------------------------------------------------------------------------------------+
             | (N) skillTree                                                                        |
             | description : returns limited information about a particular skill                   |
-            | inputs      : typeID*                                                                | 
-            | returns     : dict with keys typeID, typeName, primaryAttribute, secondaryAttribute  |
+            | inputs      : none                                                                   | 
+            | returns     : dict with keys typeID                                                  |
             +--------------------------------------------------------------------------------------+
             (N) = No API key required
              *  = required input
         """
         if Request.lower() == "alliances":
             requesturl = os.path.join(self.API_URL, "eve/AllianceList.xml.aspx")
-            xml = self._getXML(requesturl, Request)
+            xmltree = self._getXML(requesturl, Request)
+            allianceList = xmltree.findall("result/rowset/row")
+            result = False
             if allianceID:
-                try:
-                    allianceName, allianceTicker = re.findall("\<row name=\"(.*?)\" shortName=\"(.*?)\" allianceID=\"%s\"" % (allianceID), xml)[0]
-                except IndexError:
-                    return None
-                else:
-                    return {
-                        "allianceID" : int(allianceID),
-                        "allianceName" : allianceName,
-                        "allianceTicker" : allianceTicker
-                    }
+                #{'startDate': '2010-06-01 05:36:00', 'name': 'Goonswarm Federation', 'allianceID': '1354830081',
+                # 'memberCount': '7272', 'shortName': 'CONDI', 'executorCorpID': '667531913'}
+                for allianceRow in allianceList:
+                    if str(allianceID) == allianceRow.attrib["allianceID"]:
+                        result = allianceRow
+                        break
             elif allianceName:
-                try:
-                    allName, allianceTicker, allianceID = re.findall("\<row name=\"(%s)\" shortName=\"(.*?)\" allianceID=\"(\d+)\"" % (allianceName), xml, re.I)[0]
-                except IndexError:
-                    return None
-                else:
-                    return {
-                        "allianceID" : int(allianceID),
-                        "allianceName" : allName,
-                        "allianceTicker" : allianceTicker
-                    }
+                for allianceRow in allianceList:
+                    if allianceName == allianceRow.attrib["name"]:
+                        result = allianceRow
+                        break
             elif allianceTicker:
-                try:
-                    allianceName, Ticker, allianceID = re.findall("\<row name=\"(.*?)\" shortName=\"(%s)\" allianceID=\"(\d+)\"" % (allianceTicker), xml, re.I)[0]
-                except IndexError:
-                    return None
-                else:
-                    return {
-                        "allianceID" : int(allianceID),
-                        "allianceName" : allianceName,
-                        "allianceTicker" : Ticker
-                    }
-            else:
-                return None
+                for allianceRow in allianceList:
+                    if allianceTicker == allianceRow.attrib["shortName"]:
+                        result = allianceRow
+                        break
+
+            if result is not False:
+                allianceID = result.attrib["allianceID"]
+                allianceName = result.attrib["name"]
+                allianceTicker = result.attrib["shortName"]
+                startDate = result.attrib["startDate"]
+                startTime = self._convertEveToUnix(startDate)
+                memberCount = result.attrib["memberCount"]
+                executorCorpID = result.attrib["executorCorpID"]
+                return {
+                    "allianceID" : int(allianceID),
+                    "allianceName" : allianceName,
+                    "allianceTicker" : allianceTicker,
+                    "startDate" : startDate,
+                    "startTime" : startTime,
+                    "memberCount" : int(memberCount),
+                    "executorCorpID" : int(executorCorpID)
+                }
+                
         elif Request.lower() == "getname":
             requesturl = os.path.join(self.API_URL, "eve/CharacterName.xml.aspx")
             if nameID:
                 postdata = {
                     "ids" : nameID
                 }
-                xml = self._getXML(requesturl, Request, postdata)
                 try:
-                    charName, charID = re.findall("\<row name=\"(.*?)\" characterID=\"(\d+)\" \/\>", xml)[0]
-                except IndexError:
+                    xmltree = self._getXML(requesturl, Request, postdata)
+                except APIError:
                     return None
                 else:
+                    result = xmltree.find("result/rowset/row").attrib
                     return {
-                        "Name" : charName,
-                        "ID" : int(charID)
+                        "name" : result["name"],
+                        "ID" : int(result["characterID"])
                     }
         elif Request.lower() == "getid":
             requesturl = os.path.join(self.API_URL, "eve/CharacterID.xml.aspx")
@@ -243,85 +272,98 @@ class API:
                 postdata = {
                     "names" : nameName
                 }
-                xml = self._getXML(requesturl, Request, postdata)
                 try:
-                    charName, charID = re.findall("\<row name=\"(.*?)\" characterID=\"(\d+)\" \/\>", xml)[0]
-                except IndexError:
-                    return None
-                else:
-                    return {
-                        "Name" : charName,
-                        "ID" : int(charID)
-                    }
-        elif Request.lower() == "characterinfo":
-            requesturl = os.path.join(self.API_URL, "eve/CharacterInfo.xml.aspx")
-            def getValue(name):
-                try:
-                    value = xml.split("<%s>" % name)[1].split("</%s>" % name)[0]
-                except IndexError:
-                    return None
-                else:
-                    return value
-                
-            if characterID:
-                postdata = {
-                    "characterID" : characterID
-                }
-                try:
-                    xml = self._getXML(requesturl, Request, postdata)
+                    xmltree = self._getXML(requesturl, Request, postdata)
                 except APIError:
                     return None
                 else:
+                    result = xmltree.find("result/rowset/row").attrib
+                    return result
                     return {
-                        "characterID" : int(getValue("characterID")),
-                        "characterName" : getValue("characterName"),
-                        "race" : getValue("race"),
-                        "bloodline" : getValue("bloodline"),
-                        "corporationID" : int(getValue("corporationID")),
-                        "corporationName" : getValue("corporation"),
-                        "corporationDate" : calendar.timegm(time.strptime(getValue("corporationDate"), "%Y-%m-%d %H:%M:%S")),
-                        "allianceID" : int(getValue("allianceID")),
-                        "allianceName" : getValue("alliance"),
-                        "allianceDate" : calendar.timegm(time.strptime(getValue("allianceDate"), "%Y-%m-%d %H:%M:%S")),
-                        "securityStatus" : float(getValue("securityStatus"))
+                        "name" : result["name"],
+                        "ID" : int(result["characterID"])
                     }
-        elif Request.lower() == "reftypes":
-            requesturl = os.path.join(self.API_URL, "eve/RefTypes.xml.aspx")
-            #cache forever
-            xml = self.CACHE.requestXML(requesturl, {})
-            if not xml:
-                xml = urllib2.urlopen(requesturl).read()
-                self._errorCheck(xml)
-                self.CACHE.insertXML(requesturl, Request, xml, 2147483647.0, {})
+                    
+        elif Request.lower() == "characterinfo":
+            requesturl = os.path.join(self.API_URL, "eve/CharacterInfo.xml.aspx")
             
-            rows = re.finditer("\<row refTypeID=\"(?P<refTypeID>\d+)\" refTypeName=\"(?P<refTypeName>.*?)\" \/\>", xml)
-            refTypes = {}
-            while True:
-                try:
-                    row = rows.next().groupdict()
-                except StopIteration:
-                    break
-                else:
-                    refTypes[int(row["refTypeID"])] = row["refTypeName"]
-            return refTypes
-        elif Request.lower() == "skilltree" and typeID:
-            requesturl = os.path.join(self.API_URL, "eve/SkillTree.xml.aspx")
-            xml = self._getXML(requesturl, Request)
-            
-            split_on = re.search("(\<row typeName=\"(.*?)\" groupID=\"(\d+)\" typeID=\"%s\" published=\"(\d+)\"\>)" % typeID, xml)
-            if not split_on:
+            if characterID and str(characterID) == str(self.CHAR_ID):
+                postdata = {
+                    "characterID" : characterID,
+                    "keyID" : self.KEY_ID,
+                    "vCode" : self.V_CODE,
+                }
+            elif characterID and str(characterID) != str(self.CHAR_ID):
+                postdata = {
+                    "characterID" : characterID
+                }
+            else:
+                return None
+            try:
+                xmltree = self._getXML(requesturl, Request, postdata)
+            except APIError:
                 return None
             else:
-                xml_specific = xml.split(split_on.group())[1].split("</row>")[0]
-                
-                return {
-                    "typeID" : int(typeID),
-                    "typeName" : split_on.group(2),
-                    "primaryAttribute" : xml_specific.split("<primaryAttribute>")[1].split("</primaryAttribute>")[0],
-                    "secondaryAttribute" : xml_specific.split("<secondaryAttribute>")[1].split("</secondaryAttribute>")[0]
-                }
-
-            
+                returnable = {}
+                for xmlRow in xmltree.findall("result/"):
+                    if xmlRow.tag != "rowset":
+                        returnable[xmlRow.tag] = xmlRow.text
+                returnable["corporationHistory"] = [
+                   x.attrib for x in xmltree.findall("result/rowset/row")
+                ]
+                return returnable
+                    
+        elif Request.lower() == "reftypes":
+            requesturl = os.path.join(self.API_URL, "eve/RefTypes.xml.aspx")
+            #cache foreve
+            xmltree = self._getXML(requesturl, Request, {}, permanent=True)
+            refTypes = {}
+            for x in xmltree.findall("result/rowset/row"):
+                refTypes[int(x.attrib["refTypeID"])] = x.attrib["refTypeName"]
+            return refTypes
+        
+        elif Request.lower() == "skilltree":
+            requesturl = os.path.join(self.API_URL, "eve/SkillTree.xml.aspx")
+            xmltree = self._getXML(requesturl, Request)
+            skillTree = {}
+            for skillGroup in xmltree.findall("result/rowset/row"):
+                groupName = skillGroup.attrib["groupName"]
+                groupID = int(skillGroup.attrib["groupID"])
+                for skill in skillGroup.findall("rowset/row"):
+                    skillName = skill.attrib["typeName"]
+                    groupID = int(skill.attrib["groupID"])
+                    skillTypeID = int(skill.attrib["typeID"])
+                    published = bool(skill.attrib["published"])
+                    skillDescription = skill.find("description").text
+                    primaryAttribute_element = skill.find("requiredAttributes/primaryAttribute")
+                    if primaryAttribute_element is not None:
+                        primaryAttribute = primaryAttribute_element.text
+                    else:
+                        primaryAttribute = None
+                    secondaryAttribute_element = skill.find("reqiredAttributes/secondaryAttribute")
+                    if secondaryAttribute_element is not None:
+                        secondaryAttribute = secondaryAttribute_element.text
+                    else:
+                        secondaryAttribute = None
+                    requiredAttributes = []
+                    skillBonusCollection = []
+                    for subtype in skill.findall("rowset/row"):
+                        if subtype.attrib.has_key("typeID"):
+                            requiredAttributes += [subtype.attrib]
+                        elif subtype.attrib.has_key("bonusType"):
+                            skillBonusCollection += [subtype.attrib]
+                    skillTree[skillTypeID] = {
+                        "typeID" : skillTypeID,
+                        "groupID" : groupID,
+                        "groupName" : groupName,
+                        "published" : published,
+                        "description" : skillDescription,
+                        "primaryAttribute" : primaryAttribute,
+                        "secondaryAttribute" : secondaryAttribute,
+                        "requiredAttributes" : requiredAttributes,
+                        "skillBonusCollection" : skillBonusCollection
+                    }
+            return skillTree            
                     
     def Corporation(self, Request, corporationID=None):
         """
@@ -340,35 +382,35 @@ class API:
             | description : returns various corporation info, currently limited to only the name of|
             |               a corporation                                                          |
             | inputs      : corporationID*                                                         |
-            | returns     : dict with key corporationID                                            |
+            | returns     : dict                                                                   |
             +--------------------------------------------------------------------------------------+
             (N) = No API key required
              *  = required input
         """
         if Request.lower() == "publicsheet":
-            if corporationID != "0":
+            if corporationID:
                 requesturl = os.path.join(self.API_URL, "corp/CorporationSheet.xml.aspx")
-                if corporationID:
-                    postdata = {
-                        "corporationID" : corporationID
-                    }
-                else:
-                    return None
+                postdata = {
+                    "corporationID" : corporationID
+                }
                 try:
-                    xml = self._getXML(requesturl, Request, postdata)
+                    xmltree = self._getXML(requesturl, Request, postdata)
                 except APIError:
                     return None
-                
-                corporationName = xml.split("<corporationName>")[1].split("</corporationName>")[0]
-                
-                return {
-                    "corporationID" : corporationID,
-                    "corporationName" : corporationName
-                }
-            else:
-                return None
-                        
-    def Char(self, Request, mailID=None, refID=None):
+                infodict = {}
+                for tag in xmltree.findall("result/*"):
+                    if tag.tag in ["corporationID", "ceoID", "stationID", "allianceID", "taxRate",
+                               "memberCount", "shares"]:
+                        infodict[tag.tag] = int(tag.text)
+                    elif tag.tag == "logo":
+                        infodict["logo"] = dict([(x.tag, x.text) for x in tag.findall("*")])
+                    elif tag.tag == "ticker":
+                        infodict["corporationTicker"] = tag.text
+                    else:
+                        infodict[tag.tag] = tag.text
+                return infodict
+
+    def Char(self, Request, mailID=None, refID=None, listID=None): #needs updating
         """ Methods for character-related data
         
             (NOTE: all times and dates are returned as floats representing the time since the start
@@ -506,23 +548,24 @@ class API:
         """
 
         basepostdata = {
-            "apiKey" : self.API_KEY,
-            "userID" : self.USER_ID,
+            "keyID" : self.KEY_ID,
+            "vCode" : self.V_CODE,
             "characterID" : self.CHAR_ID
         }
 
         if Request.lower() == "balance":
             requesturl = os.path.join(self.API_URL, "char/AccountBalance.xml.aspx")
-            xml = self._getXML(requesturl, Request, basepostdata)
-            row = re.search("\<row accountID=\"(?P<accountID>\d+)\" accountKey=\"(?P<accountKey>\d+)\" balance=\"(?P<balance>\d+\.\d+)\" \/\>", xml)
+            xmltree = self._getXML(requesturl, Request, basepostdata)
+            result = xmltree.find("result/rowset/row")
             return {
-                "accountID" : int(row.group("accountID")),
-                "accountKey" : row.group("accountKey"),
-                "balance" : float(row.group("balance"))
+                "accountID" : int(result.attrib["accountID"]),
+                "accountKey" : result.attrib["accountKey"],
+                "balance" : float(result.attrib["balance"]),
             }
+
         elif Request.lower() == "assets":
             requesturl = os.path.join(self.API_URL, "char/AssetList.xml.aspx")
-            xml = self._getXML(requesturl, Request, basepostdata)
+            xml = self._getXML(requesturl, Request, basepostdata, raw=True)
             assetDict = {}
             rows = re.findall("\<row itemID=\"(\d+)\" locationID=\"(\d+)\" typeID=\"(\d+)\" quantity=\"(\d+)\" flag=\"(\d+)\" singleton=\"(\d+)\" \/\>", xml)
             for row in rows:
@@ -596,7 +639,60 @@ class API:
             return assetDict
         elif Request.lower() == "charsheet":
             requesturl = os.path.join(self.API_URL, "char/CharacterSheet.xml.aspx")
-            xml = self._getXML(requesturl, Request, basepostdata)
+            xmltree = self._getXML(requesturl, Request, basepostdata)
+            
+            data = {}
+            for elem in xmltree.findall("result/*"):
+                if elem.tag in ["characterID", "corporationID", "allianceID", "cloneSkillPoints"]:
+                    data[elem.tag] = int(elem.text)
+                elif elem.tag == "balance":
+                    data[elem.tag] = float(elem.text)
+                elif elem.tag == "attributeEnhancers":
+                    attributeEnhancers = {}
+                    for attributeEnhanced in elem.findall("*"):
+                        augmentatorName = attributeEnhanced.find("augmentatorName").text
+                        augmentatorValue = int(attributeEnhanced.find("augmentatorValue").text)
+                        attributeEnhancers[attributeEnhanced.tag] = {
+                            "augmentatorName" : augmentatorName,
+                            "augmentatorValue" : augmentatorValue,
+                        }
+                    data[elem.tag] = attributeEnhancers
+                elif elem.tag == "attributes":
+                    data[elem.tag] = dict([(x.tag, int(x.text)) for x in elem.findall("*")])
+                elif elem.tag == "DoB":
+                    data[elem.tag] = elem.text
+                    data["DoBTime"] = self._convertEveToUnix(elem.text)
+                elif elem.tag == "rowset":
+                    elemName = elem.attrib["name"]
+                    if elemName == "skills":
+                        skills = {}
+                        totalsp = 0
+                        for row in elem.findall("row"):
+                            skills[int(row.attrib["typeID"])] = {
+                                "typeID" : int(row.attrib["typeID"]),
+                                "skillpoints" : int(row.attrib["skillpoints"]),
+                                "level" : int(row.attrib["level"]),
+                            }
+                            totalsp += int(row.attrib["skillpoints"])
+                        data["skills"] = skills
+                        data["totalskillpoints"] = totalsp
+                    elif elemName == "certificates":
+                        data["certificates"] = [int(x.attrib["certificateID"]) for x in elem.findall("row")]
+                    elif elemName in ["corporationRoles", "corporationRolesAtHQ",
+                                      "corporationRolesAtBase", "corporationRolesAtOther"]:
+                        corpRoles = {}
+                        for row in elem.findall("row"):
+                            corpRoles[int(row.attrib["roleID"])] = {
+                                "roleID" : int(row.attrib["roleID"]),
+                                "roleName" : row.attrib["roleName"],
+                            }
+                        
+                        data[elemName] = corpRoles
+                    elif elemName == "corporationTitles":
+                        data["corporationTitles"] = dict([(int(x.attrib["titleID"]), x.attrib["titleName"]) for x in elem.findall("row")])
+                else:
+                    data[elem.tag] = elem.text
+            return data
             
             def getBasicValue(valueName, xml=xml):
                 try:
@@ -688,7 +784,7 @@ class API:
             return {
                 "characterID" : int(getBasicValue("characterID")),
                 "name" : getBasicValue("name"),
-                "DoB" : calendar.timegm(time.strptime(getBasicValue("DoB"),"%Y-%m-%d %H:%M:%S")),
+                "DoB" : self._convertEveToUnix(getBasicValue("DoB")),
                 "race" : getBasicValue("race"),
                 "bloodLine" : getBasicValue("bloodLine"),
                 "ancestry" : getBasicValue("ancestry"),
@@ -704,459 +800,283 @@ class API:
                 "skills" : skills_dict,
                 "certificates" : certificate_dict
             }
-        elif Request.lower() == "industry":
-            requesturl = os.path.join(self.API_URL, "char/IndustryJobs.xml.aspx")
-            xml = self._getXML(requesturl, Request, basepostdata)
-            
-            regex = re.compile(r"""
-                              \<row\ jobID="(?P<jobID>\d+)"\ #unique ID
-                              assemblyLineID="(?P<assemblyLineID>\d+)"\ #static if station assembly line
-                              containerID="(?P<containerID>\d+)"\ #stationID if in station, itemID of POS module if not (see corporation asset list)
-                              installedItemID="(?P<installedItemID>\d+)"\ #bp itemID (see asset list)
-                              installedItemLocationID="(?P<installedItemLocationID>\d+)"\ 
-                              installedItemQuantity="(?P<installedItemQuantity>\d+)"\ 
-                              installedItemProductivityLevel="(?P<installedItemProductivityLevel>\d+)"\ 
-                              installedItemMaterialLevel="(?P<installedItemMaterialLevel>\d+)"\ 
-                              installedItemLicensedProductionRunsRemaining="(?P<installedItemLicensedProductionRunsRemaining>.*?)"\ 
-                              outputLocationID="(?P<outputLocationID>\d+)"\ 
-                              installerID="(?P<installerID>\d+)"\ 
-                              runs="(?P<runs>\d+)"\ 
-                              licensedProductionRuns="(?P<licensedProductionRuns>\d+)"\ 
-                              installedInSolarSystemID="(?P<installedInSolarSystemID>\d+)"\ 
-                              containerLocationID="(?P<containerLocationID>\d+)"\ 
-                              materialMultiplier="(?P<materialMultiplier>\d+)"\ 
-                              charMaterialMultiplier="(?P<charMaterialMultiplier>\d+\.\d+)"\ 
-                              timeMultiplier="(?P<timeMultiplier>\d+)"\ 
-                              charTimeMultiplier="(?P<charTimeMultiplier>\d+\.\d+)"\ 
-                              installedItemTypeID="(?P<installedItemTypeID>\d+)"\ 
-                              outputTypeID="(?P<outputTypeID>\d+)"\ 
-                              containerTypeID="(?P<containerTypeID>\d+)"\ 
-                              installedItemCopy="(?P<installedItemCopy>\d+)"\ 
-                              completed="(?P<completed>\d+)"\ 
-                              completedSuccessfully="(?P<completedSuccessfully>\d+)"\ 
-                              installedItemFlag="(?P<installedItemFlag>\d+)"\ 
-                              outputFlag="(?P<outputFlag>\d+)"\ 
-                              activityID="(?P<activityID>\d+)"\ 
-                              completedStatus="(?P<completedStatus>\d+)"\ 
-                              installTime="(?P<installTime>\d+-\d+-\d+\ \d+:\d+:\d+)"\ 
-                              beginProductionTime="(?P<beginProductionTime>\d+-\d+-\d+\ \d+:\d+:\d+)"\ 
-                              endProductionTime="(?P<endProductionTime>\d+-\d+-\d+\ \d+:\d+:\d+)"\ 
-                              pauseProductionTime="(?P<pauseProductionTime>\d+-\d+-\d+\ \d+:\d+:\d+)"\ \/\>
-                              """, re.VERBOSE)
-            rows = regex.finditer(xml)
-            return xml, rows, regex
-            industrydict = {}
-            while True:
-                try:
-                    row = rows.next()
-                    row = row.groupdict()
-                except StopIteration:
-                    break
-                else:
-                    industrydict[row["jobID"]] = row
-            return industrydict
+
         elif Request.lower() == "kills":
             requesturl = os.path.join(self.API_URL, "char/Killlog.xml.aspx")
-            xml = self._getXML(requesturl, Request, basepostdata)
-            if "Kills exhausted" in xml:
-                return None
-            #open("output.xml","w").write(xml)
-            #xml = open("output.xml").read()
-            kills = ["<row killID=\"" + x for x in xml.split("<row killID=\"")]
-            generalRE = re.compile("\<row killID=\"(?P<killID>\d+)\" solarSystemID=\"(?P<solarSystemID>\d+)\" killTime=\"(?P<killTime>\d+-\d+-\d+ \d+:\d+:\d+)\" moonID=\"(?P<moonID>\d+)\"\>")
-            victimRE = re.compile("\<victim characterID=\"(?P<characterID>\d+)\" characterName=\"(?P<characterName>.*?)\" corporationID=\"(?P<corporationID>\d+)\" corporationName=\"(?P<corporationName>.*?)\" allianceID=\"(?P<allianceID>\d+)\" allianceName=\"(?P<allianceName>.*?)\" .*?damageTaken=\"(?P<damageTaken>\d+)\" shipTypeID=\"(?P<shipTypeID>\d+)\" \/\>")
-            attackRE = re.compile("\<row characterID=\"(?P<characterID>\d+)\" characterName=\"(?P<characterName>.*?)\" corporationID=\"(?P<corporationID>\d+)\" corporationName=\"(?P<corporationName>.*?)\" allianceID=\"(?P<allianceID>\d+)\" allianceName=\"(?P<allianceName>.*?)\" .*?damageDone=\"(?P<damageDone>\d+)\" finalBlow=\"(?P<finalBlow>\d+)\" weaponTypeID=\"(?P<weaponTypeID>\d+)\" shipTypeID=\"(?P<shipTypeID>\d+)\" \/\>")
-            dropRE = re.compile("\<row typeID=\"(?P<typeID>\d+)\" flag=\"(?P<flag>\d+)\" qtyDropped=\"(?P<qtyDropped>\d+)\" qtyDestroyed=\"(?P<qtyDestroyed>\d+)\"")
-            killDict = {}
-            for kill in kills:
-                try:
-                    generalData = generalRE.search(kill).groupdict()
-                    #{'killID': '14868783', 'solarSystemID': '30002723', 'killTime': '2010-09-29 12:49:00', 'moonID': '0'}
-                except:
-                    pass
-                else:
-                    killID = int(generalData["killID"])
-                    ATTACKERS = []
-                    ATTACK = False
-                    DROPS = {}
-                    DROP = False
-                    CARGO = False
-                    dropno = 0
-                    for line in kill.split("\n"):
-                        if "victim" in line:
-                            try:
-                                victimData = victimRE.search(line).groupdict()
-                            except:
-                                pass
-                        elif "rowset name=\"attackers\"" in line:
-                            ATTACK = True
-                        elif "row characterID" in line and ATTACK:
-                            try:
-                                attackerData = attackRE.search(line).groupdict()
-                            except:
-                                pass
-                            else:
-                                ATTACKERS += [attackerData]
-                        elif "</rowset>" in line and ATTACK:
-                            ATTACK = False
-                        elif "rowset name=\"items\"" in line and not DROP and not CARGO:
-                            DROP = True
-                        elif "</rowset>" in line and DROP and not CARGO:
-                            DROP = False
-                        elif DROP and not CARGO:
-                            if "<rowset name=\"items\"" in line:
-                                CARGO = True
-                            else:
-                                dropno += 1
-                                try:
-                                    dropData = dropRE.search(line).groupdict()
-                                except:
-                                    pass
+            xmltree = self._getXML(requesturl, Request, basepostdata)
+            killData = {}
+            for kill in xmltree.findall("result/rowset/row"):
+                v = kill.find("victim").attrib
+                victim = {
+                    "characterID" : int(v["characterID"]),
+                    "characterName" : v["characterName"],
+                    "corporationID" : int(v["corporationID"]),
+                    "corporationName" : v["corporationName"],
+                    "allianceID" : int(v["allianceID"]),
+                    "allianceName" : v["allianceName"],
+                    "factionID" : int(v["factionID"]),
+                    "factionName" : v["factionName"],
+                    "damageTaken" : int(v["damageTaken"]),
+                    "shipTypeID" : int(v["shipTypeID"]),
+                    "shipTypeName" : self.EVE.getItemNameByID(int(v["shipTypeID"])),
+                }
+                
+                for rowset in kill.findall("rowset"):
+                    if rowset.attrib["name"] == "attackers":
+                        attackers = []
+                        attribs = rowset.attrib["columns"].split(",")
+                        for attacker in rowset.findall("row"):
+                            attackerData = {}
+                            for attrib in attribs:
+                                if attrib in ["characterID", "corporationID", "allianceID",
+                                              "factionID", "damageDone"]:
+                                    attackerData[attrib] = int(attacker.attrib[attrib])
+                                elif attrib == "securityStatus":
+                                    attackerData[attrib] = float(attacker.attrib[attrib])
+                                elif attrib in ["weaponTypeID", "shipTypeID"]:
+                                    attackerData[attrib] = int(attacker.attrib[attrib])
+                                    if attrib == "weaponTypeID":
+                                        attackerData["weaponTypeName"] = self.EVE.getItemNameByID(int(attacker.attrib[attrib]))
+                                    elif attrib == "shipTypeID":
+                                        attackerData["shipTypeName"] = self.EVE.getItemNameByID(int(attacker.attrib[attrib]))
                                 else:
-                                    DROPS[dropno] = dropData
-                        elif CARGO:
-                            if "<row typeID" in line:
-                                try:
-                                    dropData = dropRE.search(line).groupdict()
-                                except:
-                                    pass
-                                else:
-                                    if type(CARGO) != list:
-                                        CARGO = [dropData]
+                                    attackerData[attrib] = attacker.attrib[attrib]
+                            attackers += [attackerData]
+                    elif rowset.attrib["name"] == "items":
+                        items = []
+                        attribs = rowset.attrib["columns"].split(",")
+                        for item in rowset.findall("row"):
+                            itemData = {}
+                            for attrib in attribs:
+                                if attrib in ["qtyDropped", "qtyDestroyed"]:
+                                    itemData[attrib] = int(item.attrib[attrib])
+                                elif attrib == "singleton":
+                                    if item.attrib[attrib] == "2":
+                                        itemData["blueprintCopy"] = True
                                     else:
-                                        CARGO += [dropData]
-                            elif "</rowset>" in line:
-                                DROPS[dropno]["children"] = CARGO
-                                CARGO = False
-                    #victim data
-                    #{'corporationID': '1102238026', 'damageTaken': '286', 'characterName': 'mountainpenguin', 'allianceName': 'Intergalactic Exports Group', 'allianceID': '1076729448', 'shipTypeID': '670', 'corporationName': 'LazyBoyz Band of Recreational Flyers', 'characterID': '1364641301'}
-                    victim_shipTypeName = self.EVE.getItemNameByID(int(victimData["shipTypeID"]))
-                    namedAttackers = []
-                    for attacker in ATTACKERS:
-                        weaponTypeName = self.EVE.getItemNameByID(int(attacker["weaponTypeID"]))
-                        if weaponTypeName == "#system":
-                            weaponTypeName = "Unknown"
-                        shipTypeName = self.EVE.getItemNameByID(int(attacker["shipTypeID"]))
-                        namedAttackers += [{
-                            "corporationID" : int(attacker["corporationID"]),
-                            "damageDone" : int(attacker["damageDone"]),
-                            "weaponTypeID" : int(attacker["weaponTypeID"]),
-                            "weaponTypeName" : self.EVE.getItemNameByID(int(attacker["weaponTypeID"])),
-                            "characterName" : attacker["characterName"],
-                            "allianceName" : attacker["allianceName"],
-                            "finalBlow" : int(attacker["finalBlow"]),
-                            "allianceID" : int(attacker["allianceID"]),
-                            "shipTypeID" : int(attacker["shipTypeID"]),
-                            "shipTypeName" : shipTypeName,
-                            "corporationName" : attacker["corporationName"],
-                            "characterID" : int(attacker["characterID"])
-                        }]
-                    namedDrops = []
-                    for i,v in DROPS.iteritems():
-                        #6 : {'typeID': '3467', 'flag': '5', 'qtyDropped': '0', 'children': [{'typeID': '23594', 'flag': '0', 'qtyDropped': '0', 'qtyDestroyed': '1'}, {'typeID': '2444', 'flag': '0', 'qtyDropped': '0', 'qtyDestroyed': '4'}, {'typeID': '23606', 'flag': '0', 'qtyDropped': '0', 'qtyDestroyed': '1'}, {'typeID': '12093', 'flag': '0', 'qtyDropped': '0', 'qtyDestroyed': '1'}, {'typeID': '12386', 'flag': '0', 'qtyDropped': '0', 'qtyDestroyed': '1'}], 'qtyDestroyed': '1'
-                        typeName = self.EVE.getItemNameByID(int(v["typeID"]))
-                        namedChilds = []
-                        if v.has_key("children"):
-                            children = v["children"]
-                            for child in children:
-                                child_typeName = self.EVE.getItemNameByID(int(child["typeID"]))
-                                namedChilds += [{
-                                    "typeID" : int(child["typeID"]),
-                                    "flag" : int(child["flag"]),
-                                    "qtyDropped" : int(child["qtyDropped"]),
-                                    "qtyDestroyed" : int(child["qtyDestroyed"]),
-                                    "typeName" : child_typeName
-                                }]
-                        namedDrops += [{
-                            "typeID" : int(v["typeID"]),
-                            "flag" : int(v["flag"]),
-                            "qtyDropped" : int(v["qtyDropped"]),
-                            "qtyDestroyed" : int(v["qtyDestroyed"]),
-                            "typeName" : typeName
-                        }]
-                    killDict[int(killID)] = {
-                        #generalData {'killID': '14868783', 'solarSystemID': '30002723', 'killTime': '2010-09-29 12:49:00', 'moonID': '0'}
-                        "killID" : int(killID),
-                        "solarSystemID" : int(generalData["solarSystemID"]),
-                        "solarSystemName" : self.EVE.getSystemNameByID(int(generalData["solarSystemID"])),
-                        "killTime" : calendar.timegm(time.strptime(generalData["killTime"], "%Y-%m-%d %H:%M:%S")),
-                        "shipTypeID" : int(victimData["shipTypeID"]),
-                        "shipTypeName" : victim_shipTypeName,
-                        "attackers" : namedAttackers,
-                        "dropped" : namedDrops
-                    }
-            return killDict
+                                        itemData["blueprintCopy"] = False
+                                elif attrib == "typeID":
+                                    itemData["typeID"] = int(item.attrib["typeID"])
+                                    itemData["typeName"] = self.EVE.getItemNameByID(int(item.attrib["typeID"]))
+                                elif attrib == "flag":
+                                    flag = int(item.attrib[attrib])
+                                    itemData[attrib] = flag
+                                    ### WRITE IN modules.evedb.getFlagNameByID() ###
+                                else:
+                                    itemData[attrib] = item.attrib[attrib]
+                            items += [itemData]
+                killData[int(kill.attrib["killID"])] = {
+                    "killID" : int(kill.attrib["killID"]),
+                    "solarSystemID" : int(kill.attrib["solarSystemID"]),
+                    "killTime" : kill.attrib["killTime"],
+                    "killTime_" : self._convertEveToUnix(kill.attrib["killTime"]),
+                    "victim" : victim,
+                    "attackers" : attackers,
+                    "items" : items,
+                }
+                #return {
+                #    "killID" : int(kill.attrib["killID"]),
+                #    "solarSystemID" : int(kill.attrib["solarSystemID"]),
+                #    "killTime" : kill.attrib["killTime"],
+                #    "killTime_" : self._convertEveToUnix(killTime),
+                #    "victim" : victim
+                #}
+            
+            return killData
+        
         elif Request.lower() == "mail":
             if not mailID:
                 requesturl = os.path.join(self.API_URL, "char/MailMessages.xml.aspx")
-                xml = self._getXML(requesturl, Request, basepostdata)
-                rows = re.finditer("\<row messageID=\"(?P<messageID>\d+)\" senderID=\"(?P<senderID>\d+)\" sentDate=\"(?P<sentDate>\d+-\d+-\d+ \d+:\d+:\d+)\" title=\"(?P<title>.*?)\" toCorpOrAllianceID=\"(?P<toCorpOrAllianceID>.*?)\" toCharacterIDs=\"(?P<toCharacterIDs>.*?)\" toListID=\"(?P<toListID>.*?)\" \/\>", xml)
-                maildict = {}
-                while True:
-                    try:
-                        row = rows.next().groupdict()
-                    except StopIteration:
-                        break
-                    else:
-                        #resolve corp / alliance recipient
-                        if row["toCorpOrAllianceID"] == "":
-                            (corpID, corpName, allianceID, allianceName, allianceTicker) = (None, None, None, None, None)
-                        else:
-                            tCOAID = int(row["toCorpOrAllianceID"])
-                            corpCheck = self.Corporation("publicsheet", tCOAID)
-                            if corpCheck:
-                                corpID = tCOAID
-                                corpName = corpCheck["corporationName"]
-                                allianceID = None
-                                allianceName = None
-                                allianceTicker = None
+                xmltree = self._getXML(requesturl, Request, basepostdata)
+                attribs = xmltree.find("result/rowset").attrib["columns"].split(",")
+                mails = {}
+                for mailMessage in xmltree.findall("result/rowset/row"):
+                    mailData = {}
+                    for attrib in attribs:
+                        if attrib == "messageID":
+                            mailData[attrib] = int(mailMessage.attrib[attrib])
+                        elif attrib == "senderID":
+                            mailData[attrib] = int(mailMessage.attrib[attrib])
+                            mailData["senderName"] = self.Eve("getName", nameID=int(mailMessage.attrib[attrib]))["name"]
+                        elif attrib == "toCorpOrAllianceID":
+                            ID = int(mailMessage.attrib[attrib])
+                            #check if alliance
+                            allianceInfo = self.Eve("alliances", allianceID=ID)
+                            for to in ["allianceID", "allianceName", "allianceTicker", "corpID", "corpName", "corpTicker"]:
+                                mailData[to] = None
+                            if allianceInfo:
+                                mailData["allianceID"] = ID
+                                mailData["allianceName"] = allianceInfo["allianceName"]
+                                mailData["allianceTicker"] = allianceInfo["allianceTicker"]
                             else:
-                                allianceCheck = self.Eve("alliances", allianceID=tCOAID)
-                                if allianceCheck:
-                                    corpID = None
-                                    corpName = None
-                                    allianceID = tCOAID
-                                    allianceName = allianceCheck["allianceName"]
-                                    allianceTicker = allianceCheck["allianceTicker"]
-                                else:
-                                    (corpID, corpName, allianceID, allianceName, allianceTicker) = (None, None, None, None, None)
-                                
-                        #resolve charIDs
-                        toCharIDs = row["toCharacterIDs"]
-                        if toCharIDs == "":
-                            toCharDict = None
+                                #check if corp
+                                corpInfo = self.Corporation("publicsheet", corporationID=ID)
+                                if corpInfo:
+                                    mailData["corpID"] = ID
+                                    mailData["corpName"] = corpInfo["corporationName"]
+                                    mailData["corpTicker"] = corpInfo["corporationTicker"]
+                        elif attrib == "toListID":
+                            listID = mailMessage.attrib[attrib]
+                            if listID:
+                                listInfo = self.Char("mailinglists", listID=int(listID))
+                                mailData["listID"] = listInfo["listID"]
+                                mailData["listName"] = listInfo["displayName"]
+                            else:
+                                mailData["listID"] = None
+                                mailData["listName"] = None
+                        elif attrib == "sentDate":
+                            mailData[attrib] = mailMessage.attrib[attrib]
+                            mailData["sentTime"] = self._convertEveToUnix(mailMessage.attrib[attrib])
                         else:
-                            toCharDict = {}
-                            IDs = toCharIDs.split(",")
-                            for ID in IDs:
-                                charID = int(ID)
-                                charCheck = self.Eve("getName", nameID=charID)
-                                if charCheck:
-                                    charName = charCheck["Name"]
-                                    toCharDict[charID] = {"characterName" : charName}
+                            mailData[attrib] = mailMessage.attrib[attrib]
+                        #messageID,senderID,sentDate,title,toCorpOrAllianceID,
+                        #toCharacterIDs,toListID
+                    return mailData
+                    mails[int(mailMessage.attrib["messageID"])] = mailData
+                return mails
+                        
+                return xmltree
                                 
-                        maildict[int(row["messageID"])] = {
-                            "senderID" : int(row["senderID"]),
-                            "senderName" : self.Eve("getName", nameID=int(row["senderID"]))["Name"],
-                            "sentDate" : calendar.timegm(time.strptime(row["sentDate"], "%Y-%m-%d %H:%M:%S")),
-                            "title" : row["title"],
-                            "corpID" : corpID,
-                            "corpName" : corpName,
-                            "allianceID" : allianceID,
-                            "allianceName" : allianceName,
-                            "allianceTicker" : allianceTicker,
-                            "toCharacters" : toCharDict
-                        }
+                        #maildict[int(row["messageID"])] = {
+                        #    "senderID" : int(row["senderID"]),
+                        #    "senderName" : self.Eve("getName", nameID=int(row["senderID"]))["Name"],
+                        #    "sentDate" : calendar.timegm(time.strptime(row["sentDate"], "%Y-%m-%d %H:%M:%S")),
+                        #    "title" : row["title"],
+                        #    "corpID" : corpID,
+                        #    "corpName" : corpName,
+                        #    "allianceID" : allianceID,
+                        #    "allianceName" : allianceName,
+                        #    "allianceTicker" : allianceTicker,
+                        #    "toCharacters" : toCharDict
+                        #}
                 return maildict
             
             else:
                 postdata = {
-                    "apiKey" : self.API_KEY,
-                    "userID" : self.USER_ID,
+                    "keyID" : self.KEY_ID,
+                    "vCode" : self.V_CODE,
                     "characterID" : self.CHAR_ID,
                     "ids" : mailID
                 }
 
                 requesturl = os.path.join(self.API_URL, "char/MailBodies.xml.aspx")
-                xml = self._getXML(requesturl, "mailbodies", postdata)
-                try:
-                    message = xml.split("<row messageID=\"%s\"><![CDATA[" % mailID)[1].split("]]></row>")[0]
-                except IndexError:
+                xmltree = self._getXML(requesturl, "mailbodies", postdata)
+                message = xmltree.find("result/rowset/row")
+                if message is not None:
+                    return message.text
+        
+        elif Request.lower() == "mailinglists":
+            requesturl = os.path.join(self.API_URL, "char/mailinglists.xml.aspx")
+            xmltree = self._getXML(requesturl, Request, basepostdata)
+        
+            lists_ = xmltree.findall("result/rowset/row")
+            lists = {}
+            for list in lists_:
+                lists[int(list.attrib["listID"])] = {
+                    "listID" : int(list.attrib["listID"]),
+                    "displayName" : list.attrib["displayName"]
+                }
+            if listID:
+                if int(listID) not in lists.keys():
                     return None
                 else:
-                    return message
+                    return lists[listID]
+            else:
+                return lists
+            
+            
         elif Request.lower() == "market":
             requesturl = os.path.join(self.API_URL, "char/MarketOrders.xml.aspx")
-            xml = self._getXML(requesturl, Request, basepostdata)
-            rows = re.finditer("\<row orderID=\"(?P<orderID>\d+)\" charID=\"(?P<charID>\d+)\" stationID=\"(?P<stationID>\d+)\" volEntered=\"(?P<volEntered>\d+)\" volRemaining=\"(?P<volRemaining>\d+)\" minVolume=\"(?P<minVolume>\d+)\" orderState=\"(?P<orderState>\d+)\" typeID=\"(?P<typeID>\d+)\" range=\"(?P<range>\d+)\" accountKey=\"(?P<accountKey>\d+)\" duration=\"(?P<duration>\d+)\" escrow=\"(?P<escrow>\d+\.\d+)\" bid=\"(?P<bid>\d+)\" issued=\"(?P<issued>\d+-\d+-\d+ \d+:\d+:\d+)\" \/\>", xml)
-            returndict = {}
-            while True:
-                try:
-                    row = rows.next().groupdict()
-                except StopIteration:
-                    break
-                else:
-                    returndict[row["orderID"]] = row
-            return returndict
-        elif Request.lower() == "research":
-            requesturl = os.path.join(self.API_URL, "char/Research.xml.aspx")
-            xml = self._getXML(requesturl, Request, basepostdata)
-            print xml
+            xmltree = self._getXML(requesturl, Request, basepostdata)
+            attribs = xmltree.find("result/rowset").attrib["columns"].split(",")
+            orders = {}
+            for order in xmltree.findall("result/rowset/row"):
+                orderData = {}
+                for attrib in attribs:
+                    if attrib in ["escrow", "price"]:
+                        orderData[attrib] = float(order.attrib[attrib])
+                    elif attrib == "bid":
+                        orderData[attrib] = bool(int(order.attrib[attrib]))
+                    elif attrib == "orderState":
+                        orderData[attrib] = int(order.attrib[attrib])
+                        orderLookup = {
+                            "0" : "open/active",
+                            "1" : "closed",
+                            "2" : "expired/fufilled",
+                            "3" : "cancelled",
+                            "4" : "pending",
+                            "5" : "character deleted"
+                        }
+                        orderData["orderStateName"] = orderLookup[order.attrib[attrib]]
+                    elif attrib == "issued":
+                        orderData[attrib] = order.attrib[attrib]
+                        orderData["issuedTime"] = self._convertEveToUnix(order.attrib[attrib])
+                        active_sec = time.time() - orderData["issuedTime"]
+                        duration_sec = int(order.attrib["duration"])*24*60*60
+                        remaining = duration_sec - active_sec
+                        orderData["remainingTime"] = remaining
+                        orderData["remaining"] = functions.convert_to_human(remaining)
+                    elif attrib == "charID":
+                        orderData[attrib] = int(order.attrib[attrib])
+                        orderData["charName"] = self.Eve("getName", nameID=orderData[attrib])["name"]
+                    elif attrib == "range":
+                        orderLookup = {
+                            "-1" : "station",
+                            "0" : "solar system",
+                            "32767" : "region"
+                        }
+                        range = order.attrib[attrib]
+                        orderData[attrib] = int(range)
+                        if range in orderLookup.keys():
+                            orderData["rangeText"] = orderLookup[range]
+                        else:
+                            orderData["rangeText"] = "%s jumps" % range
+                    elif attrib == "stationID":
+                        ID = int(order.attrib[attrib])
+                        orderData[attrib] = ID
+                        orderData["stationName"] = self.Eve("getName", nameID=ID)["name"]
+                    elif attrib == "typeID":
+                        ID = int(order.attrib[attrib])
+                        orderData[attrib] = ID
+                        orderData["typeName"] = self.EVE.getItemNameByID(ID)
+                    else:
+                        orderData[attrib] = int(order.attrib[attrib])
+                orders[int(order.attrib["orderID"])] = orderData
+            return orders
+            
         elif Request.lower() == "currentskill":
             requesturl = os.path.join(self.API_URL, "char/SkillInTraining.xml.aspx")
-            xml = self._getXML(requesturl, Request, basepostdata)
-            def getValue(id):
-                try:
-                    value = re.search("\<%s\>(.*?)\<\/%s\>" % (id, id), xml).group(1)
-                except:
-                    value = None
-                return value
-
-            return {
-                "trainingEndTime" : calendar.timegm(time.strptime(getValue("trainingEndTime"), "%Y-%m-%d %H:%M:%S")),
-                "trainingStartTime" : calendar.timegm(time.strptime(getValue("trainingStartTime"), "%Y-%m-%d %H:%M:%S")),
-                "trainingTypeID" : int(getValue("trainingTypeID")),
-                "trainingStartSP" : int(getValue("trainingStartSP")),
-                "trainingDestinationSP" : int(getValue("trainingDestinationSP")),
-                "trainingToLevel" : int(getValue("trainingToLevel")),
-                "skillInTraining" : getValue("skillInTraining")
-            }
+            xmltree = self._getXML(requesturl, Request, basepostdata)
+            results = {}
+            for result in xmltree.findall("result/*"):
+                if result.tag == "currentTQTime":
+                    pass
+                elif "Time" in result.tag:
+                    results[result.tag.replace("Time","Date")] = result.text
+                    results[result.tag] = self._convertEveToUnix(result.text)
+                else:
+                    results[result.tag] = int(result.text)
+            return results
+            
         elif Request.lower() == "skillqueue":
             requesturl = os.path.join(self.API_URL, "char/SkillQueue.xml.aspx")
-            xml = self._getXML(requesturl, Request, basepostdata)
-            
-            rows = re.finditer("\<row queuePosition=\"(?P<queuePosition>\d+)\" typeID=\"(?P<typeID>\d+)\" level=\"(?P<level>\d+)\" startSP=\"(?P<startSP>\d+)\" endSP=\"(?P<endSP>\d+)\" startTime=\"(?P<startTime>\d+-\d+-\d+ \d+:\d+:\d+)\" endTime=\"(?P<endTime>\d+-\d+-\d+ \d+:\d+:\d+)\"", xml)
-            returndict = {}
-            while True:
-                try:
-                    row = rows.next().groupdict()
-                except StopIteration:
-                    break
-                else:
-                    returndict[int(row["queuePosition"])] = {
-                        "typeID" : int(row["typeID"]),
-                        "typeName" : self.EVE.getItemNameByID(int(row["typeID"])),
-                        "level" : int(row["level"]),
-                        "startSP" : int(row["startSP"]),
-                        "endSP" : int(row["endSP"]),
-                        "startTime" : calendar.timegm(time.strptime(row["startTime"], "%Y-%m-%d %H:%M:%S")),
-                        "endTime" : calendar.timegm(time.strptime(row["endTime"], "%Y-%m-%d %H:%M:%S"))
-                    }
-            return returndict
-        elif Request.lower() == "wallet":
-            requesturl = os.path.join(self.API_URL, "char/WalletJournal.xml.aspx")
-            
-            cached_URLs = self.CACHE.requestURLs("char", Request)
-            if not cached_URLs:
-                lowest_refID = None
-            else:
-                cached_refIDs = []
-                for URL in cached_URLs:
-                    try:
-                        refID = int(URL.split("fromID=")[1])
-                    except IndexError:
-                        pass
-                    else:
-                        cached_refIDs += [refID]
-                
-                if cached_refIDs != []:
-                    cached_refIDs.sort()
-                    lowest_refID = cached_refIDs[0]
-                else:
-                    lowest_refID = None
-            
-            
-            walletdict = {}
-            refTypes = self.Eve("reftypes")
-            
-            def getrows(walletdict, startID=None):
-                if not startID:
-                    postdata = {
-                        "apiKey" : self.API_KEY,
-                        "characterID" : self.CHAR_ID,
-                        "userID" : self.USER_ID,
-                        "rowCount" : 256
-                    }
-                else:
-                    postdata = {
-                        "apiKey" : self.API_KEY,
-                        "characterID" : self.CHAR_ID,
-                        "userID" : self.USER_ID,
-                        "rowCount" : 256,
-                        "fromID" : startID
-                    }
-                try:
-                    xml = self._getXML(requesturl, Request, postdata)
-                except APIError:
-                    print traceback.print_exc()
-                    return (walletdict, None)
-                                
-                rows = re.finditer("\<row date=\"(?P<date>.*?)\" refID=\"(?P<refID>\d+)\" refTypeID=\"(?P<refTypeID>.*?)\" ownerName1=\"(?P<ownerName1>.*?)\" ownerID1=\"(?P<ownerID1>.*?)\" ownerName2=\"(?P<ownerName2>.*?)\" ownerID2=\"(?P<ownerID2>.*?)\" argName1=\"(?P<argName1>.*?)\" argID1=\"(?P<argID1>.*?)\" amount=\"(?P<amount>.*?)\" balance=\"(?P<balance>.*?)\" reason=\"(?P<reason>.*?)\" taxReceiverID=\"(?P<taxReceiverID>.*?)\" taxAmount=\"(?P<taxAmount>.*?)\" \/\>", xml)
-                
-                refIDs = []
-                while True:
-                    try:
-                        row = rows.next().groupdict()
-                    except StopIteration:
-                        if refIDs == []:
-                            return (walletdict, None)
-                        else:
-                            refIDs.sort()
-                            return (walletdict, refIDs[0])
-                        
-                    else:
-                        refIDs += [int(row["refID"])]
-                        if int(row["refID"]) == lowest_refID:
-                            return (walletdict, lowest_refID)
-                        
-                        if row["taxAmount"] != "":
-                            walletdict[int(row["refID"])] = {
-                                "refID" : int(row["refID"]),
-                                "refTypeID" : int(row["refTypeID"]),
-                                "refTypeName" : refTypes[int(row["refTypeID"])],
-                                "date" : calendar.timegm(time.strptime(row["date"], "%Y-%m-%d %H:%M:%S")),
-                                "amount" : float(row["amount"]),
-                                "taxAmount" : float(row["taxAmount"]),
-                                "taxReceiverID" : int(row["taxReceiverID"]),
-                                "taxReceiverName" : self.Eve("getname",nameID=int(row["taxReceiverID"]))["Name"],
-                                "ownerID1" : int(row["ownerID1"]),
-                                "ownerName1" : row["ownerName1"],
-                                "ownerID2" : int(row["ownerID2"]),
-                                "ownerName2" : row["ownerName2"],
-                                "argID1" : int(row["argID1"]),
-                                "argName1" : row["argName1"],
-                                "reason" : row["reason"],
-                                "balance" : row["balance"],
-                            }
-                        else:
-                            walletdict[int(row["refID"])] = {
-                                "refID" : int(row["refID"]),
-                                "refTypeID" : int(row["refTypeID"]),
-                                "refTypeName" : refTypes[int(row["refTypeID"])],
-                                "date" : calendar.timegm(time.strptime(row["date"], "%Y-%m-%d %H:%M:%S")),
-                                "amount" : float(row["amount"]),
-                                "taxAmount" : None,
-                                "taxReceiverID" : None,
-                                "taxReceiverName" : None,
-                                "ownerID1" : int(row["ownerID1"]),
-                                "ownerName1" : row["ownerName1"],
-                                "ownerID2" : int(row["ownerID2"]),
-                                "ownerName2" : row["ownerName2"],
-                                "argID1" : int(row["argID1"]),
-                                "argName1" : row["argName1"],
-                                "reason" : row["reason"],
-                                "balance" : row["balance"],
-                            }
-                        if int(row["refTypeID"]) == 85:
-                            reason = row["reason"]
-                            elements = reason.split(",")
-                            kills = []
-                            for element in elements:
-                                if element != "":
-                                    try:
-                                        NPCid = int(element.split(":")[0])
-                                        NPCName = self.Eve("getname", nameID=NPCid)["Name"]
-                                        count = int(element.split(":")[1])
-                                        kills += [{
-                                            "shipID" : NPCid,
-                                            "shipName" : NPCName,
-                                            "count" : count
-                                        }]
-                                    except ValueError:
-                                        pass
-                            walletdict[int(row["refID"])]["_kills_"] = kills
-                            
-            walletdict, lastid = getrows(walletdict)
-            while lastid != None:
-                walletdict, lastid = getrows(walletdict, lastid)
-                
-            return walletdict
-        elif Request.lower() == "transacts":
-            requesturl = os.path.join(self.API_URL, "char/WalletTransactions.xml.aspx")
-            xml = self._getXML(requesturl, Request, basepostdata)
-            print xml
-            #1000 results
-            #can use beforeTransID=TransID to see more
+            xmltree = self._getXML(requesturl, Request, basepostdata)
+            returnable = {}
+            for queued in xmltree.findall("result/rowset/row"):
+                queuePos = int(queued.attrib["queuePosition"])
+                returnable[queuePos] = {
+                    "queuePosition" : queuePos,
+                    "typeID" : int(queued.attrib["typeID"]),
+                    "typeName" : self.EVE.getItemNameByID(int(queued.attrib["typeID"])),
+                    "level" : int(queued.attrib["level"]),
+                    "startSP" : int(queued.attrib["startSP"]),
+                    "endSP" : int(queued.attrib["endSP"]),
+                    "startTime" : self._convertEveToUnix(queued.attrib["startTime"]),
+                    "startDate" : queued.attrib["startTime"],
+                    "endTime" : self._convertEveToUnix(queued.attrib["endTime"]),
+                    "endDate" : queued.attrib["endTime"]
+                }
+            return returnable
             
     def Account(self, Request):
         """ Methods for retrieving account-related data
@@ -1187,109 +1107,40 @@ class API:
         if Request.lower() == "characters":
             requesturl = os.path.join(self.API_URL, "account/Characters.xml.aspx")
             postdata = {
-                "apiKey" : self.API_KEY,
-                "userID" : self.USER_ID
+                "keyID" : self.KEY_ID,
+                "vCode" : self.V_CODE
             }
-            xml = self._getXML(requesturl, Request, postdata)
+        
+            xmltree = self._getXML(requesturl, Request, postdata)
+            returnable = {}
+            for x in xmltree.findall("result/rowset/row"):
+                returnable[x.attrib["name"]] = {
+                    "corporationName" : x.attrib["corporationName"],
+                    "corporationID" : int(x.attrib["corporationID"]),
+                    "name" : x.attrib["name"],
+                    "characterID" : int(x.attrib["characterID"]),
+                }
+            return returnable
 
-            #parse xml
-            result = xml.split("<result>")[1].split("</result>")[0]
-            splitline = re.search("(\<rowset.*?\>)", result).group(1)
-            result = result.split(splitline)[1].split("</rowset>")[0].strip()
-            rows = [x.strip() for x in result.split("<row")[1:]]
-            chardict = {}
-            for row in rows:
-                if self.DEBUG:
-                    print row
-                name = ""
-                value = ""
-                NAME = True
-                VALUE = False
-                STRING = False
-                tempdict = {}
-                for char in row:
-                    if char == "=" and not STRING:
-                        if NAME:
-                            if self.DEBUG:
-                                print "name:",name
-                            NAME = False
-                            VALUE = True
-                            STRING = False
-                    elif char == "\"":
-                        if STRING:
-                            STRING = False
-                        else:
-                            STRING = True
-                    elif char == " " and not STRING:
-                        if not NAME:
-                            if self.DEBUG:
-                                print "value:",value
-                            NAME = True
-                            VALUE = False
-                            STRING = False
-                            if value[0] == "\"" or value[0] == "'":
-                                value = value[1:-1]
-                            else:
-                                try:
-                                    if "." in value:
-                                        value = float(value)
-                                    else:
-                                        value = int(value)
-                                except:
-                                    pass
-                            tempdict[name] = value
-                            name = ""
-                            value = ""
-
-                    if char == " " and not STRING:
-                        pass
-                    elif char == "=" and not STRING:
-                        pass
-                    else:
-                        if NAME:
-                            name += char
-                        elif VALUE:
-                            value += char
-                chardict[tempdict["name"]] = tempdict
-            return chardict
         elif Request.lower() == "status":
             requesturl = os.path.join(self.API_URL, "account/AccountStatus.xml.aspx")
             postdata = {
-                "apiKey" : self.API_KEY,
-                "userID" : self.USER_ID
+                "keyID" : self.KEY_ID,
+                "vCode" : self.V_CODE,
             }
-            xml = self._getXML(requesturl, Request, postdata)
-            result = xml.split("<result>")[1].split("</result>")[0].strip()
-            def getTag(tag):
-                return result.split("<%s>" % tag)[1].split("</%s>" % tag)[0].strip()
-            createDate = getTag("createDate")
-            paidUntil = getTag("paidUntil")
-            logonCount = int(getTag("logonCount"))
-            logonMinutes = int(getTag("logonMinutes"))
-
-            createDate_unix = calendar.timegm(time.strptime(createDate, "%Y-%m-%d %H:%M:%S"))
-            paidUntil_unix = calendar.timegm(time.strptime(paidUntil, "%Y-%m-%d %H:%M:%S"))
-            #logged_on = ""
-            #if logonMinutes >= 10080:
-            #    weeks = logonMinutes / 10080
-            #    logged_on += "%i weeks " % weeks
-            #    logonMinutes -= weeks * 10080
-            #if logonMinutes >= 1440:
-            #    days = logonMinutes / 1440
-            #    logged_on += "%i days " % days
-            #    logonMinutes -= days * 1440
-            #if logonMinutes >= 60:
-            #    hours = logonMinutes / 60
-            #    logged_on += "%i hours " % hours
-            #    logonMinutes -= hours * 60
-            #logged_on += "%i minutes" % logonMinutes
-
+            
+            xmltree = self._getXML(requesturl, Request, postdata)
+            
             return {
-                "createDate" : createDate_unix,
-                "paidUntil" : paidUntil_unix,
-                "logonCount" : logonCount,
-                "logonMinutes" : logonMinutes
+                "paidUntil" : xmltree.find("result/paidUntil").text,
+                "createDate" : xmltree.find("result/createDate").text,
+                "logonCount" : int(xmltree.find("result/logonCount").text),
+                "logonMinutes" : int(xmltree.find("result/logonMinutes").text),
+                "paidUntilTime" : self._convertEveToUnix(xmltree.find("result/paidUntil").text),
+                "createTime" : self._convertEveToUnix(xmltree.find("result/createDate").text),
+                "logonMinutesHuman" : functions.convert_to_human(int(xmltree.find("result/logonMinutes").text)*60),
             }
+            
     def Map(self, Request, systemname):
         """
             Methods for map-related data
@@ -1323,75 +1174,89 @@ class API:
             (N) = no API key required
              *  = required input
         """
+        solarSystemID_str = self.EVE.getSystemIDByName(systemname)
+        if solarSystemID_str:
+            solarSystemID = int(solarSystemID_str)
+        else:
+            return None
+        
         if Request.lower() == "jumps":
             requesturl = os.path.join(self.API_URL, "map/Jumps.xml.aspx")
-            xml = self._getXML(requesturl, Request)
-            print xml
+            #solarSystemID_str
+            xmltree = self._getXML(requesturl, Request)
+            for system in xmltree.findall("result/rowset/row"):
+                if int(system.attrib["solarSystemID"]) == solarSystemID:
+                    return {
+                        "shipJumps" : int(system.attrib["shipJumps"]),
+                        "solarSystemID" : int(system.attrib["solarSystemID"]),
+                        "solarSystemName" : self.EVE.getSystemNameByID(solarSystemID)
+                    }
 
         if Request.lower() == "kills":
-            solarSystemID_str = self.EVE.getSystemIDByName(systemname)
-            if solarSystemID_str:
-                requesturl = os.path.join(self.API_URL, "map/Kills.xml.aspx")
-                xml = self._getXML(requesturl, Request)
-                solarSystemID = int(solarSystemID_str)
-                try:
-                    shipKills, factionKills, podKills = re.findall("\<row solarSystemID=\"%i\" shipKills=\"(\d+)\" factionKills=\"(\d+)\" podKills=\"(\d+)\" \/\>" % (solarSystemID), xml)[0]
-                except IndexError:
+            requesturl = os.path.join(self.API_URL, "map/Kills.xml.aspx")
+            xmltree = self._getXML(requesturl, Request)
+            for system in xmltree.findall("result/rowset/row"):
+                if int(system.attrib["solarSystemID"]) == solarSystemID:
                     return {
-                        "solarSystemID" : solarSystemID,
+                        "solarSystemID" : int(system.attrib["solarSystemID"]),
                         "solarSystemName" : self.EVE.getSystemNameByID(solarSystemID),
-                        "shipKills" : 0,
-                        "podKills" : 0,
-                        "npcKills" : 0
+                        "shipKills" : int(system.attrib["shipKills"]),
+                        "factionKills" : int(system.attrib["factionKills"]),
+                        "podKills" : int(system.attrib["podKills"])
                     }
-                else:
-                    return {
-                        "solarSystemID" : solarSystemID,
-                        "solarSystemName" : self.EVE.getSystemNameByID(solarSystemID),
-                        "shipKills" : int(shipKills),
-                        "podKills" : int(podKills),
-                        "npcKills" : int(factionKills)
-                    }
+            return {
+                "solarSystemID" : solarSystemID,
+                "solarSystemName" : self.EVE.getSystemNameByID(solarSystemID),
+                "shipKills" : 0,
+                "podKills" : 0,
+                "npcKills" : 0
+            }
 
         if Request.lower() == "sov":
-            solarSystemID_str = self.EVE.getSystemIDByName(systemname.upper())
-            if solarSystemID_str:
-                requesturl = os.path.join(self.API_URL, "map/Sovereignty.xml.aspx")
-                xml = self._getXML(requesturl, Request)
-                solarSystemID = int(solarSystemID_str)
-                try:
-                    allianceID, factionID, solarSystemName, corporationID = re.findall("\<row solarSystemID=\"%i\" allianceID=\"(\d+)\" factionID=\"(\d+)\" solarSystemName=\"(.*?)\" corporationID=\"(\d+)\" \/\>" % (solarSystemID), xml)[0]
-                except IndexError:
-                    return None
-                else:
-                    if allianceID != "0" and corporationID != "0":
-                        corporationName = self.Corporation("publicsheet", corporationID)["corporationName"]
-                        allianceInfo = self.Eve("alliances", int(allianceID))
-                        allianceName = allianceInfo["allianceName"]
-                        allianceTicker = allianceInfo["allianceTicker"]
+            requesturl = os.path.join(self.API_URL, "map/Sovereignty.xml.aspx")
+            xmltree = self._getXML(requesturl, Request)
+            for system in xmltree.findall("result/rowset/row"):
+                if int(system.attrib["solarSystemID"]) == solarSystemID:
+                    if system.attrib["allianceID"] != "0":
+                        allianceInfo = self.Eve("alliances", allianceID=int(system.attrib["allianceID"]))
+                        corporationInfo = self.Corporation("publicsheet", int(system.attrib["corporationID"]))
                         return {
-                            "solarSystemID" : int(solarSystemID),
-                            "solarSystemName" : solarSystemName,
-                            "allianceID" : int(allianceID),
-                            "allianceName" : allianceName,
-                            "allianceTicker" : allianceTicker,
+                            "allianceName" : allianceInfo["allianceName"],
+                            "allianceID" : int(system.attrib["allianceID"]),
+                            "allianceTicker" : allianceInfo["allianceTicker"],
+                            "solarSystemID" : solarSystemID,
+                            "solarSystemName" : self.EVE.getSystemNameByID(solarSystemID),
                             "factionID" : None,
                             "factionName" : None,
-                            "corporationID" : int(corporationID),
-                            "corporationName" : corporationName
+                            "corporationID" : int(system.attrib["corporationID"]),
+                            "corporationName" : corporationInfo["corporationName"],
+                            "corporationTicker" : corporationInfo["corporationTicker"],
+                        }
+                    elif system.attrib["factionID"] != "0":
+                        return {
+                            "allianceName" : None,
+                            "allianceID" : None,
+                            "allianceTicker" : None,
+                            "solarSystemID" : solarSystemID,
+                            "solarSystemName" : self.EVE.getSystemNameByID(solarSystemID),
+                            "factionID" : int(system.attrib["factionID"]),
+                            "factionName" : self.EVE.getFactionNameByID(system.attrib["factionID"]),
+                            "corporationID" : None,
+                            "corporationName" : None,
+                            "corporationTicker" : None,
                         }
                     else:
-                        factionName = self.EVE.getFactionNameByID(factionID)
                         return {
-                            "solarSystemID" : int(solarSystemID),
-                            "solarSystemName" : solarSystemName,
-                            "allianceID" : None,
                             "allianceName" : None,
+                            "allianceID" : None,
                             "allianceTicker" : None,
-                            "factionID" : int(factionID),
-                            "factionName" : factionName,
+                            "solarSystemID" : solarSystemID,
+                            "solarSystemName" : self.EVE.getSystemNameByID(solarSystemID),
+                            "factionID" : None,
+                            "factionName" : None,
                             "corporationID" : None,
-                            "corporationName" : None
+                            "corporationName" : None,
+                            "corporationTicker" : None,
                         }
 
     def EveCentral(self, Request, itemID, regionID=None):
@@ -1446,16 +1311,14 @@ class API:
 
         if Request.lower() == "status":
             requesturl = os.path.join(self.API_URL, "server/ServerStatus.xml.aspx")
-            xml = urllib2.urlopen(requesturl).read()
-            status = re.search("\<serverOpen\>(.*?)\<\/serverOpen\>", xml).group(1)
-            servertime_string = re.search("\<currentTime\>(.*?)\<\/currentTime\>", xml).group(1)
-            if status == "True":
+            xmltree = etree.parse(StringIO.StringIO(urllib2.urlopen(requesturl).read()))
+            serverOpen = xmltree.find("result/serverOpen").text
+            if serverOpen == "True":
                 status = "Online"
             else:
                 status = "Offline"
-            online = int(re.search("\<onlinePlayers\>(\d+)\<\/onlinePlayers\>", xml).group(1))
             return {
                 "status" : status,
-                "online" : online,
-                "time" : servertime_string
+                "online" : int(xmltree.find("result/onlinePlayers").text),
+                "time" : xmltree.find("currentTime").text
             }
