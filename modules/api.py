@@ -72,10 +72,10 @@ class API:
             --------------------------------------------------------------------------------------------
             all arguments are optional
         """
-        if not keyID or not vCode:
-            raise APIError(0, "keyID and/or vCode not specified")
-        if not charid and not characterName:
-            raise APIError(1, "Character not specified")
+        #if not keyID or not vCode:
+        #    raise APIError(0, "keyID and/or vCode not specified")
+        #if not charid and not characterName:
+        #    raise APIError(1, "Character not specified")
         self.KEY_ID = self.keyID = keyID
         self.V_CODE = self.vCode = vCode
         self.API_URL = "http://api.eve-online.com"
@@ -87,7 +87,7 @@ class API:
             chardict = self.Account("characters")
             if chardict and characterName in chardict.keys():
                 self.CHAR_ID = chardict[characterName]["characterID"]
-        else:
+        elif charid:
             self.CHAR_ID = int(charid)
         
     def _convertEveToUnix(self, timestamp):
@@ -132,6 +132,8 @@ class API:
             ------------------------------------------
             * = required
         """
+        if type(xmltree) != etree.ElementTree:
+            xmltree = etree.parse(StringIO.StringIO(xmltree))
         if xmltree.find("error") is not None:
             error = xmltree.find("error")
             raise APIError(error.attrib["code"], error.text)
