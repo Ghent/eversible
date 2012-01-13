@@ -33,13 +33,13 @@ class CACHE:
     def __init__(self):
         pass
         
-    def insertRSSDate(self, feedName, date):
+    def insertRSS(self, feedName, url):
         conn = sqlite3.connect("var/cache/cache.db")
         cursor = conn.cursor()
         try:
             cursor.execute("""
                            CREATE TABLE rss
-                           (feedName text, date real)
+                           (feedName text, url text)
                            """)
         except sqlite3.OperationalError:
             pass
@@ -50,13 +50,13 @@ class CACHE:
                        """, (feedName,))
         cursor.execute("""
                        INSERT INTO rss
-                       (feedName, date)
+                       (feedName, url)
                        VALUES (?, ?)
-                       """, (feedName, date))
+                       """, (feedName, url))
         conn.commit()
         cursor.close()
         conn.close()
-    def getRSSDate(self, feedName):
+    def getRSSUrl(self, feedName):
         conn = sqlite3.connect("var/cache/cache.db")
         cursor = conn.cursor()
         try:
