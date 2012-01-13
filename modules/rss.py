@@ -42,20 +42,26 @@ class RSS:
             "Devblog" : "http://www.eveonline.com/feed/rdfdevblog.asp",
         }
         self.LASTUPDATE = {
-            "Announcements" : self.CACHE.getRSSDate("Announcements"),
-            "Alliances" : self.CACHE.getRSSDate("Alliances"),
-            "Devblog" : self.CACHE.getRSSDate("Devblog")
+            "Announcements" : self.CACHE.getRSS("Announcements"), # (url, updatetime)
+            "Alliances" : self.CACHE.getRSS("Alliances"),
+            "Devblog" : self.CACHE.getRSS("Devblog")
         }
 
     def checkFeed(self, feedName):
         feed = feedparser.parse(self.RSSFEEDS[feedName])
         lastupdate = 0
+        lasturl = None
         newitems = []
         for item in feed["items"]:
             date = calendar.timegm(time.strptime(item.date, "%Y-%m-%dT%H:%M+00:00"))
-            if date > self.LASTUPDATE[feedName]:
-                if date > lastupdate:
-                    lastupdate = date
+            url = item.link
+            try:
+                if date > self.LASTUPDATE[feedName][1] and url != self.LASTUPDATE[feedName][0]:
+                    if date > lastupdate:
+                        lastupdate = date
+                        lasturl = url
+                    newitems += [item]
+            except TypeError:
                 newitems += [item]
 
         item_dict = {}
@@ -66,8 +72,8 @@ class RSS:
                 "link" : item.link
             }
         if newitems:
-            self.LASTUPDATE[feedName] = lastupdate
-            self.CACHE.insertRSSDate(feedName, lastupdate)
+            self.LASTUPDATE[feedName] = (lasturl, lastupdate)
+            self.CACHE.insertRSS(feedName, lasturl, lastupdate)
 
         return item_dict
 
