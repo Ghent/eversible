@@ -96,7 +96,7 @@ class API:
             return calendar.timegm(time.strptime(timestamp, "%Y-%m-%d %H:%M:%S"))
         except:
             return None
-    def _getXML(self, requesturl, Request, postdata={}, permanent=False, raw=False):
+    def _getXML(self, requesturl, Request, postdata={}, permanent=False, raw=False, cacheTime=None):
         """
             Request XML for a given URL, associated with POST data
             
@@ -113,8 +113,10 @@ class API:
         xml = self.CACHE.requestXML(requesturl, postdata)
         if not xml:
             xml = urllib2.urlopen(requesturl, urllib.urlencode(postdata)).read()
+            if not cacheTime:
+                cacheTime = self._getCachedUntil(xml)
             if not permanent:
-                self.CACHE.insertXML(requesturl, Request, xml, self._getCachedUntil(xml), postdata)
+                self.CACHE.insertXML(requesturl, Request, xml, cacheTime, postdata)
             else:
                 self.CACHE.insertXML(requesturl, Request, xml, 2147483647.0, postdata)
         if raw:
@@ -214,7 +216,7 @@ class API:
         """
         if Request.lower() == "alliances":
             requesturl = os.path.join(self.API_URL, "eve/AllianceList.xml.aspx")
-            xmltree = self._getXML(requesturl, Request)
+            xmltree = self._getXML(requesturl, Request.lower())
             allianceList = xmltree.findall("result/rowset/row")
             result = False
             if allianceID:
@@ -260,7 +262,7 @@ class API:
                     "ids" : nameID
                 }
                 try:
-                    xmltree = self._getXML(requesturl, Request, postdata)
+                    xmltree = self._getXML(requesturl, Request.lower(), postdata)
                 except APIError:
                     return None
                 else:
@@ -276,7 +278,7 @@ class API:
                     "names" : nameName
                 }
                 try:
-                    xmltree = self._getXML(requesturl, Request, postdata)
+                    xmltree = self._getXML(requesturl, Request.lower(), postdata)
                 except APIError:
                     return None
                 else:
@@ -303,7 +305,7 @@ class API:
             else:
                 return None
             try:
-                xmltree = self._getXML(requesturl, Request, postdata)
+                xmltree = self._getXML(requesturl, Request.lower(), postdata)
             except APIError:
                 return None
             else:
@@ -319,7 +321,7 @@ class API:
         elif Request.lower() == "reftypes":
             requesturl = os.path.join(self.API_URL, "eve/RefTypes.xml.aspx")
             #cache foreve
-            xmltree = self._getXML(requesturl, Request, {}, permanent=True)
+            xmltree = self._getXML(requesturl, Request.lower(), {}, permanent=True)
             refTypes = {}
             for x in xmltree.findall("result/rowset/row"):
                 refTypes[int(x.attrib["refTypeID"])] = x.attrib["refTypeName"]
@@ -327,7 +329,7 @@ class API:
         
         elif Request.lower() == "skilltree":
             requesturl = os.path.join(self.API_URL, "eve/SkillTree.xml.aspx")
-            xmltree = self._getXML(requesturl, Request)
+            xmltree = self._getXML(requesturl, Request.lower())
             skillTree = {}
             for skillGroup in xmltree.findall("result/rowset/row"):
                 groupName = skillGroup.attrib["groupName"]
@@ -400,7 +402,7 @@ class API:
                     "corporationID" : corporationID
                 }
                 try:
-                    xmltree = self._getXML(requesturl, Request, postdata)
+                    xmltree = self._getXML(requesturl, Request.lower(), postdata)
                 except APIError:
                     return None
                 infodict = {}
@@ -561,7 +563,7 @@ class API:
 
         if Request.lower() == "balance":
             requesturl = os.path.join(self.API_URL, "char/AccountBalance.xml.aspx")
-            xmltree = self._getXML(requesturl, Request, basepostdata)
+            xmltree = self._getXML(requesturl, Request.lower(), basepostdata)
             result = xmltree.find("result/rowset/row")
             return {
                 "accountID" : int(result.attrib["accountID"]),
@@ -571,7 +573,7 @@ class API:
 
         elif Request.lower() == "assets":
             requesturl = os.path.join(self.API_URL, "char/AssetList.xml.aspx")
-            xml = self._getXML(requesturl, Request, basepostdata, raw=True)
+            xml = self._getXML(requesturl, Request.lower(), basepostdata, raw=True)
             assetDict = {}
             rows = re.findall("\<row itemID=\"(\d+)\" locationID=\"(\d+)\" typeID=\"(\d+)\" quantity=\"(\d+)\" flag=\"(\d+)\" singleton=\"(\d+)\" \/\>", xml)
             for row in rows:
@@ -645,7 +647,7 @@ class API:
             return assetDict
         elif Request.lower() == "charsheet":
             requesturl = os.path.join(self.API_URL, "char/CharacterSheet.xml.aspx")
-            xmltree = self._getXML(requesturl, Request, basepostdata)
+            xmltree = self._getXML(requesturl, Request.lower(), basepostdata)
             
             data = {}
             for elem in xmltree.findall("result/*"):
@@ -809,7 +811,7 @@ class API:
 
         elif Request.lower() == "kills":
             requesturl = os.path.join(self.API_URL, "char/Killlog.xml.aspx")
-            xmltree = self._getXML(requesturl, Request, basepostdata)
+            xmltree = self._getXML(requesturl, Request.lower(), basepostdata)
             killData = {}
             for kill in xmltree.findall("result/rowset/row"):
                 v = kill.find("victim").attrib
@@ -893,7 +895,7 @@ class API:
         elif Request.lower() == "mail":
             if not mailID:
                 requesturl = os.path.join(self.API_URL, "char/MailMessages.xml.aspx")
-                xmltree = self._getXML(requesturl, Request, basepostdata)
+                xmltree = self._getXML(requesturl, Request.lower(), basepostdata, cacheTime=time.time()+5*60)
                 attribs = xmltree.find("result/rowset").attrib["columns"].split(",")
                 mails = {}
                 for mailMessage in xmltree.findall("result/rowset/row"):
@@ -905,25 +907,10 @@ class API:
                             mailData[attrib] = int(mailMessage.attrib[attrib])
                             mailData["senderName"] = self.Eve("getName", nameID=int(mailMessage.attrib[attrib]))["name"]
                         elif attrib == "toCorpOrAllianceID":
-                            for to in ["allianceID", "allianceName", "allianceTicker", "corpID", "corpName", "corpTicker"]:
-                                mailData[to] = None
                             if mailMessage.attrib[attrib] == "":
                                 pass
                             else:
-                                ID = int(mailMessage.attrib[attrib])
-                                #check if alliance
-                                allianceInfo = self.Eve("alliances", allianceID=ID)
-                                if allianceInfo:
-                                    mailData["allianceID"] = ID
-                                    mailData["allianceName"] = allianceInfo["allianceName"]
-                                    mailData["allianceTicker"] = allianceInfo["allianceTicker"]
-                                else:
-                                    #check if corp
-                                    corpInfo = self.Corporation("publicsheet", corporationID=ID)
-                                    if corpInfo:
-                                        mailData["corpID"] = ID
-                                        mailData["corpName"] = corpInfo["corporationName"]
-                                        mailData["corpTicker"] = corpInfo["corporationTicker"]
+                                mailData["toCorpOrAlliance"] = mailMessage.attrib[attrib]
                         elif attrib == "toCharacterIDs":
                             val = mailMessage.attrib[attrib]
                             if val == "":
@@ -965,7 +952,7 @@ class API:
         
         elif Request.lower() == "mailinglists":
             requesturl = os.path.join(self.API_URL, "char/mailinglists.xml.aspx")
-            xmltree = self._getXML(requesturl, Request, basepostdata)
+            xmltree = self._getXML(requesturl, Request.lower(), basepostdata)
         
             lists_ = xmltree.findall("result/rowset/row")
             lists = {}
@@ -985,7 +972,7 @@ class API:
             
         elif Request.lower() == "market":
             requesturl = os.path.join(self.API_URL, "char/MarketOrders.xml.aspx")
-            xmltree = self._getXML(requesturl, Request, basepostdata)
+            xmltree = self._getXML(requesturl, Request.lower(), basepostdata)
             attribs = xmltree.find("result/rowset").attrib["columns"].split(",")
             orders = {}
             for order in xmltree.findall("result/rowset/row"):
@@ -1044,7 +1031,7 @@ class API:
             
         elif Request.lower() == "currentskill":
             requesturl = os.path.join(self.API_URL, "char/SkillInTraining.xml.aspx")
-            xmltree = self._getXML(requesturl, Request, basepostdata)
+            xmltree = self._getXML(requesturl, Request.lower(), basepostdata)
             results = {}
             for result in xmltree.findall("result/*"):
                 if result.tag == "currentTQTime":
@@ -1058,7 +1045,7 @@ class API:
             
         elif Request.lower() == "skillqueue":
             requesturl = os.path.join(self.API_URL, "char/SkillQueue.xml.aspx")
-            xmltree = self._getXML(requesturl, Request, basepostdata)
+            xmltree = self._getXML(requesturl, Request.lower(), basepostdata)
             returnable = {}
             for queued in xmltree.findall("result/rowset/row"):
                 queuePos = int(queued.attrib["queuePosition"])
@@ -1109,7 +1096,7 @@ class API:
                 "vCode" : self.V_CODE
             }
         
-            xmltree = self._getXML(requesturl, Request, postdata)
+            xmltree = self._getXML(requesturl, Request.lower(), postdata)
             returnable = {}
             for x in xmltree.findall("result/rowset/row"):
                 returnable[x.attrib["name"]] = {
@@ -1127,7 +1114,7 @@ class API:
                 "vCode" : self.V_CODE,
             }
             
-            xmltree = self._getXML(requesturl, Request, postdata)
+            xmltree = self._getXML(requesturl, Request.lower(), postdata)
             
             return {
                 "paidUntil" : xmltree.find("result/paidUntil").text,
@@ -1181,7 +1168,7 @@ class API:
         if Request.lower() == "jumps":
             requesturl = os.path.join(self.API_URL, "map/Jumps.xml.aspx")
             #solarSystemID_str
-            xmltree = self._getXML(requesturl, Request)
+            xmltree = self._getXML(requesturl, Request.lower())
             for system in xmltree.findall("result/rowset/row"):
                 if int(system.attrib["solarSystemID"]) == solarSystemID:
                     return {
@@ -1192,7 +1179,7 @@ class API:
 
         if Request.lower() == "kills":
             requesturl = os.path.join(self.API_URL, "map/Kills.xml.aspx")
-            xmltree = self._getXML(requesturl, Request)
+            xmltree = self._getXML(requesturl, Request.lower())
             for system in xmltree.findall("result/rowset/row"):
                 if int(system.attrib["solarSystemID"]) == solarSystemID:
                     return {
@@ -1212,7 +1199,7 @@ class API:
 
         if Request.lower() == "sov":
             requesturl = os.path.join(self.API_URL, "map/Sovereignty.xml.aspx")
-            xmltree = self._getXML(requesturl, Request)
+            xmltree = self._getXML(requesturl, Request.lower())
             for system in xmltree.findall("result/rowset/row"):
                 if int(system.attrib["solarSystemID"]) == solarSystemID:
                     if system.attrib["allianceID"] != "0":
