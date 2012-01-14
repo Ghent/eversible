@@ -82,6 +82,7 @@ class API:
         self.DEBUG = debug
         self.EVE = evedb.DUMP()
         self.CACHE = cache.CACHE()
+        self.CHAR_ID = None
         if not charid and characterName:
             #get CHAR_ID from API
             chardict = self.Account("characters")
@@ -342,7 +343,7 @@ class API:
                         primaryAttribute = primaryAttribute_element.text
                     else:
                         primaryAttribute = None
-                    secondaryAttribute_element = skill.find("reqiredAttributes/secondaryAttribute")
+                    secondaryAttribute_element = skill.find("requiredAttributes/secondaryAttribute")
                     if secondaryAttribute_element is not None:
                         secondaryAttribute = secondaryAttribute_element.text
                     else:
@@ -356,6 +357,7 @@ class API:
                             skillBonusCollection += [subtype.attrib]
                     skillTree[skillTypeID] = {
                         "typeID" : skillTypeID,
+                        "typeName" : skillName,
                         "groupID" : groupID,
                         "groupName" : groupName,
                         "published" : published,
@@ -365,6 +367,8 @@ class API:
                         "requiredAttributes" : requiredAttributes,
                         "skillBonusCollection" : skillBonusCollection
                     }
+                    if typeID and str(skillTypeID) == str(typeID):
+                        return skillTree[skillTypeID]
             return skillTree            
                     
     def Corporation(self, Request, corporationID=None):
@@ -901,22 +905,31 @@ class API:
                             mailData[attrib] = int(mailMessage.attrib[attrib])
                             mailData["senderName"] = self.Eve("getName", nameID=int(mailMessage.attrib[attrib]))["name"]
                         elif attrib == "toCorpOrAllianceID":
-                            ID = int(mailMessage.attrib[attrib])
-                            #check if alliance
-                            allianceInfo = self.Eve("alliances", allianceID=ID)
                             for to in ["allianceID", "allianceName", "allianceTicker", "corpID", "corpName", "corpTicker"]:
                                 mailData[to] = None
-                            if allianceInfo:
-                                mailData["allianceID"] = ID
-                                mailData["allianceName"] = allianceInfo["allianceName"]
-                                mailData["allianceTicker"] = allianceInfo["allianceTicker"]
+                            if mailMessage.attrib[attrib] == "":
+                                pass
                             else:
-                                #check if corp
-                                corpInfo = self.Corporation("publicsheet", corporationID=ID)
-                                if corpInfo:
-                                    mailData["corpID"] = ID
-                                    mailData["corpName"] = corpInfo["corporationName"]
-                                    mailData["corpTicker"] = corpInfo["corporationTicker"]
+                                ID = int(mailMessage.attrib[attrib])
+                                #check if alliance
+                                allianceInfo = self.Eve("alliances", allianceID=ID)
+                                if allianceInfo:
+                                    mailData["allianceID"] = ID
+                                    mailData["allianceName"] = allianceInfo["allianceName"]
+                                    mailData["allianceTicker"] = allianceInfo["allianceTicker"]
+                                else:
+                                    #check if corp
+                                    corpInfo = self.Corporation("publicsheet", corporationID=ID)
+                                    if corpInfo:
+                                        mailData["corpID"] = ID
+                                        mailData["corpName"] = corpInfo["corporationName"]
+                                        mailData["corpTicker"] = corpInfo["corporationTicker"]
+                        elif attrib == "toCharacterIDs":
+                            val = mailMessage.attrib[attrib]
+                            if val == "":
+                                mailData["toCharacterIDs"] = []
+                            else:
+                                mailData["toCharacterIDs"] = val
                         elif attrib == "toListID":
                             listID = mailMessage.attrib[attrib]
                             if listID:
@@ -933,25 +946,8 @@ class API:
                             mailData[attrib] = mailMessage.attrib[attrib]
                         #messageID,senderID,sentDate,title,toCorpOrAllianceID,
                         #toCharacterIDs,toListID
-                    return mailData
                     mails[int(mailMessage.attrib["messageID"])] = mailData
                 return mails
-                        
-                return xmltree
-                                
-                        #maildict[int(row["messageID"])] = {
-                        #    "senderID" : int(row["senderID"]),
-                        #    "senderName" : self.Eve("getName", nameID=int(row["senderID"]))["Name"],
-                        #    "sentDate" : calendar.timegm(time.strptime(row["sentDate"], "%Y-%m-%d %H:%M:%S")),
-                        #    "title" : row["title"],
-                        #    "corpID" : corpID,
-                        #    "corpName" : corpName,
-                        #    "allianceID" : allianceID,
-                        #    "allianceName" : allianceName,
-                        #    "allianceTicker" : allianceTicker,
-                        #    "toCharacters" : toCharDict
-                        #}
-                return maildict
             
             else:
                 postdata = {
