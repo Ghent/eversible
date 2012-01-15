@@ -183,7 +183,7 @@ class Scheduler:
                     for url, expireTime, requestName in rows:
                         if time.time() > expireTime:
                             #remove old entry
-                            self.CACHE.requestXML(url, postdata=None)
+                            CACHE.requestXML(url, postdata=None)
                             xml = urllib2.urlopen(url).read()
                             #check for error
                             try:
