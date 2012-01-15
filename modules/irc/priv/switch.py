@@ -1,5 +1,28 @@
 #!/usr/bin/python
 
+"""
+    Copyright (C) 2011-2012 eve-irc.net
+ 
+    This file is part of EVErsible.
+    EVErsible is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Foobar is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License.
+    If not, see <http://www.gnu.org/licenses/>.
+
+    AUTHORS:
+     mountainpenguin <pinguino.de.montana@googlemail.com>
+     Ghent           <ghentgames@gmail.com>
+     petllama        <petllama@gmail.com>
+"""
+
 from modules import users
 
 def index(connection, event, config):
@@ -19,9 +42,10 @@ def index(connection, event, config):
         else:
             if switchTo.lower() == details["characterName"].lower():
                 connection.privmsg(sourceNick, "You're already identified as %s!" % switchTo)
+                return
             if switchTo:
                 #check if alt is valid
-                response = USERS.lookupAlt(details["apiKey"], details["userID"], details["characterName"], switchTo)
+                response = USERS.lookupAlt(details["vCode"], details["keyID"], details["characterName"], switchTo)
                 if not response:
                     connection.privmsg(sourceNick, "The character \x033\x02\x02%s\x03\x02\x02 hasn't been registered under your account" % switchTo)
                 else:
@@ -30,7 +54,7 @@ def index(connection, event, config):
                         connection.privmsg(sourceNick, "You have successfully switched characters to \x039\x02\x02%s\x03\x02\x02" % switchTo)
             else:
                 #list alts
-                alts = USERS.lookForAlts(details["apiKey"], details["userID"])
+                alts = USERS.lookForAlts(details["vCode"], details["keyID"])
                 if not alts:
                     connection.privmsg(sourceNick, "You appear to have no alts, this is almost certainly an error")
                 else:

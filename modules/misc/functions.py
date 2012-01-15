@@ -2,6 +2,28 @@
 #
 # vim: filetype=python tabstop=4 expandtab:
 
+"""
+    Copyright (C) 2011-2012 eve-irc.net
+ 
+    This file is part of EVErsible.
+    EVErsible is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Foobar is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License.
+    If not, see <http://www.gnu.org/licenses/>.
+
+    AUTHORS:
+     mountainpenguin <pinguino.de.montana@googlemail.com>
+     Ghent           <ghentgames@gmail.com>
+     petllama        <petllama@gmail.com>
+"""
 
 from modules import evedb
 import re
@@ -33,7 +55,8 @@ def parseIRCBBCode(string):
             green, dark_green, red, light_red, dark_red,
             purple, dark_purple, yellow, dark_yellow,
             light_yellow, light_green, cyan, dark_cyan,
-            light_blue, light_purple, light_grey, silver
+            light_cyan, light_blue, light_purple, light_grey,
+            silver
 
         N.B. dark variants are the same as colours with no
              shade specified
@@ -47,7 +70,7 @@ def parseIRCBBCode(string):
         "dark_blue" : "2",
         "green" : "3",
         "dark_green" : "3",
-        "red" : "4",
+        "red" : "5",
         "light_red" : "4",
         "dark_red" : "5",
         "purple" : "6",
@@ -58,6 +81,7 @@ def parseIRCBBCode(string):
         "light_green" : "9",
         "cyan" : "10",
         "dark_cyan" : "10",
+        "light_cyan" : "11",
         "light_blue" : "12",
         "light_purple" : "13",
         "light_grey" : "14",
@@ -105,13 +129,13 @@ def security(systemID=None, systemInfo=None):
         systemInfo = EVEDB.getSystemInfoByID(systemID)
     security = systemInfo["security"]
     if security >= 0.5:
-        sec = "\x033\x02\x02%.01f\x03" % security
+        sec = "[colour=green]%.01f[/colour]" % security
     elif security < 0.5 and security > 0.0:
-        sec = "\x037\x02\x02%.01f\x03" % security
+        sec = "[colour=yellow]%.01f[/colour]" % security
     else:
-        sec = "\x035\x02\x02%.02f\x03" % security
+        sec = "[colour=red]%.02f[/colour]" % security
 
-    return sec
+    return parseIRCBBCode(sec)
 
 def findSecurity(systemName):
     EVEDB = evedb.DUMP()
@@ -125,14 +149,7 @@ def findSecurity(systemName):
     if sysInfo == None:
         return None
 
-    security = sysInfo["security"]
-    if security >= 0.5:
-        sec = "(\x033\x02\x02%.01f\x03)" % security
-    elif security < 0.5 and security > 0.0:
-        sec = "(\x037\x02\x02%.01f\x03)" % security
-    else:
-        sec = "(\x035\x02\x02%.02f\x03)" % security
-    return sec
+    return security(systemInfo=sysInfo)
 
 def findName(name, list, count):
     EVEDB = evedb.DUMP()

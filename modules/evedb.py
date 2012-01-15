@@ -2,6 +2,28 @@
 #
 # vim: filetype=python tabstop=4 expandtab:
 
+"""
+    Copyright (C) 2011-2012 eve-irc.net
+ 
+    This file is part of EVErsible.
+    EVErsible is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Foobar is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License.
+    If not, see <http://www.gnu.org/licenses/>.
+
+    AUTHORS:
+     mountainpenguin <pinguino.de.montana@googlemail.com>
+     Ghent           <ghentgames@gmail.com>
+     petllama        <petllama@gmail.com>
+"""
 
 import os
 import sys
@@ -198,8 +220,8 @@ class DUMP:
         self.cursor.execute("""
                             SELECT *
                             FROM invTypes
-                            WHERE typeID='%s'
-                            """ % ID)
+                            WHERE typeID=?
+                            """, (ID,))
         row = self.cursor.fetchone()
         if not row:
             return None
@@ -225,8 +247,8 @@ class DUMP:
         self.cursor.execute("""
                             SELECT typeID, effectID, isDefault
                             FROM dgmTypeEffects
-                            WHERE typeID='%s'
-                            """ % typeID)
+                            WHERE typeID=?
+                            """, (typeID,))
         results = []
         while True:
             try:
@@ -251,8 +273,8 @@ class DUMP:
         self.cursor.execute("""
                             SELECT *
                             FROM dgmEffects
-                            WHERE effectID='%s'
-                            """ % effectID)
+                            WHERE effectID=?
+                            """, (effectID,))
         while True:
             try:
                 row = self.cursor.next()
@@ -281,6 +303,7 @@ class DUMP:
                     "fittingUsageChanceAttributeID" : row[25]
                 }
     def getTypeAttributesByID(self, typeID):
+        return
         self.cursor.execute()
             #typeID ->
             #    dgmTypeEffects : typeID, effectID, isDefault
@@ -315,8 +338,8 @@ class DUMP:
     def getItemNameByID(self, ID):
         self.cursor.execute("""SELECT typeID,typeName
                             FROM invTypes
-                            WHERE typeID='%s'
-                            """ % ID)
+                            WHERE typeID=?
+                            """, (ID,))
         row = self.cursor.fetchone()
         if row:
             return row[1]
@@ -326,8 +349,8 @@ class DUMP:
     def getItemIDByName(self, name):
         self.cursor.execute("""SELECT typeID,typeName
                             FROM invTypes
-                            WHERE typeName LIKE '%s'
-                            """ % name)
+                            WHERE typeName LIKE ?
+                            """, (name,))
         row = self.cursor.fetchone()
         if row:
             return row[0]
@@ -338,8 +361,8 @@ class DUMP:
         self.cursor.execute("""
                             SELECT solarSystemID,solarSystemName
                             FROM mapSolarSystems
-                            WHERE solarSystemID='%s'
-                            """ % systemID)
+                            WHERE solarSystemID=?
+                            """, (systemID,))
         row = self.cursor.fetchone()
         if row:
             return row[1]
@@ -350,8 +373,8 @@ class DUMP:
         self.cursor.execute("""
                             SELECT solarSystemID,solarSystemName
                             FROM mapSolarSystems
-                            WHERE solarSystemName LIKE '%s'
-                            """ % systemname)
+                            WHERE solarSystemName LIKE ?
+                            """, (systemname,))
         row = self.cursor.fetchone()
         if row:
             return row[0]
@@ -362,8 +385,8 @@ class DUMP:
         self.cursor.execute("""
                             SELECT solarSystemID,solarSystemName
                             FROM mapSolarSystems
-                            WHERE solarSystemName LIKE '%s'
-                            """ % systemname)
+                            WHERE solarSystemName LIKE ?
+                            """, (systemname,))
         row = self.cursor.fetchone()
         if row:
             return row[1]
@@ -374,8 +397,8 @@ class DUMP:
         self.cursor.execute("""
                             SELECT constellationID, constellationName
                             FROM mapConstellations
-                            WHERE constellationID='%s'
-                            """ % ID)
+                            WHERE constellationID=?
+                            """, (ID,))
         row = self.cursor.fetchone()
         if row:
             return row[1]
@@ -386,8 +409,8 @@ class DUMP:
         self.cursor.execute("""
                             SELECT regionID, regionName
                             FROM mapRegions
-                            WHERE regionID='%s'
-                            """ % ID)
+                            WHERE regionID=?
+                            """, (ID,))
         row = self.cursor.fetchone()
         if row:
             return row[1]
@@ -398,8 +421,8 @@ class DUMP:
         self.cursor.execute("""
                             SELECT regionID, regionName
                             FROM mapRegions
-                            WHERE regionName LIKE '%s'
-                            """ % regionname)
+                            WHERE regionName LIKE ?
+                            """, (regionname,))
         row = self.cursor.fetchone()
         if row:
             return row[1]
@@ -410,8 +433,8 @@ class DUMP:
         self.cursor.execute("""
                             SELECT regionID, regionName
                             FROM mapRegions
-                            WHERE regionName LIKE '%s'
-                            """ % regionname)
+                            WHERE regionName LIKE ?
+                            """, (regionname,))
         row = self.cursor.fetchone()
         if row:
             return row[0]
@@ -421,8 +444,8 @@ class DUMP:
     def getFactionNameByID(self, factionID):
         self.cursor.execute("""SELECT factionID,factionName
                             FROM chrFactions
-                            WHERE factionID='%s'
-                            """ % factionID)
+                            WHERE factionID=?
+                            """, (factionID,))
         row = self.cursor.fetchone()
         if row:
             return row[1]
@@ -433,8 +456,8 @@ class DUMP:
         self.cursor.execute("""
                             SELECT solarSystemID,solarSystemName,security,securityClass,regionID,constellationID
                             FROM mapSolarSystems
-                            WHERE solarSystemID='%s'
-                            """ % systemID)
+                            WHERE solarSystemID=?
+                            """, (systemID,))
         row = self.cursor.fetchone()
         if row:
             return {
@@ -454,8 +477,8 @@ class DUMP:
         self.cursor.execute("""
                             SELECT solarSystemID,solarSystemName,security,securityClass,regionID,constellationID
                             FROM mapSolarSystems
-                            WHERE solarSystemName LIKE '%s'
-                            """ % systemname)
+                            WHERE solarSystemName LIKE ?
+                            """, (systemname,))
         row = self.cursor.fetchone()
         if row:
             return {
@@ -475,8 +498,8 @@ class DUMP:
         self.cursor.execute("""
                             SELECT typeID,materialTypeID,quantity
                             FROM invTypeMaterials
-                            WHERE typeID='%s'
-                            """ % typeID
+                            WHERE typeID=?
+                            """, (typeID,)
                             )
         results = self.cursor.fetchall()
         materials = {}

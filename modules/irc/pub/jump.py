@@ -2,12 +2,32 @@
 #
 # vim: filetype=python tabstop=4 expandtab:
 
+"""
+    Copyright (C) 2011-2012 eve-irc.net
+ 
+    This file is part of EVErsible.
+    EVErsible is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
 
-from modules import api
+    Foobar is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License.
+    If not, see <http://www.gnu.org/licenses/>.
+
+    AUTHORS:
+     mountainpenguin <pinguino.de.montana@googlemail.com>
+     Ghent           <ghentgames@gmail.com>
+     petllama        <petllama@gmail.com>
+"""
+
 from modules import evedb
 from modules.misc import functions
 
-API = api.API()
 DB = evedb.DUMP()
 jumpCapableID = [22440, 22428, 22430, 22436, 28352, 23757, 23915, 24483, 23911, 19724, 19722, 19726, 19720, 28848, 28850, 28846, 28844, 23919, 22852, 23913, 23917, 11567, 671, 3764, 23773]
 
@@ -48,10 +68,10 @@ def index(connection, event, config):
             connection.privmsg(event.target(), "JF level not within acceptable ranges"
                 )
         elif DB.getSystemInfoByID(responseSystemFromID)["security"] >= 0.5:
-            connection.privmsg(event.target(), "System of Origin must be > 0.0"
+            connection.privmsg(event.target(), functions.parseIRCBBCode("Origin system security must be less than [b][colour=red]0.5[/colour][/b]")
                 )
         elif DB.getSystemInfoByID(responseSystemToID)["security"] >= 0.5:
-            connection.privmsg(event.target(), "Destination sytem must be > 0.0"
+            connection.privmsg(event.target(), functions.parseIRCBBCode("Destination system security must be less than [b][colour=red]0.5[/colour][/b]")
                 )
 
         else:

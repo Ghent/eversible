@@ -2,6 +2,28 @@
 #
 # vim: filetype=python tabstop=4 expandtab:
 
+"""
+    Copyright (C) 2011-2012 eve-irc.net
+ 
+    This file is part of EVErsible.
+    EVErsible is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Foobar is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License.
+    If not, see <http://www.gnu.org/licenses/>.
+
+    AUTHORS:
+     mountainpenguin <pinguino.de.montana@googlemail.com>
+     Ghent           <ghentgames@gmail.com>
+     petllama        <petllama@gmail.com>
+"""
 
 import sqlite3
 import urllib
@@ -11,50 +33,50 @@ class CACHE:
     def __init__(self):
         pass
         
-    def insertRSSDate(self, feedName, date):
+    def insertRSS(self, feedName, url, date):
         conn = sqlite3.connect("var/cache/cache.db")
         cursor = conn.cursor()
         try:
             cursor.execute("""
                            CREATE TABLE rss
-                           (feedName text, date real)
+                           (feedName text, url text, date real)
                            """)
         except sqlite3.OperationalError:
             pass
         
         cursor.execute("""
                        DELETE FROM rss
-                       WHERE feedName='%s'
-                       """ % feedName)
+                       WHERE feedName= ?
+                       """, (feedName,))
         cursor.execute("""
                        INSERT INTO rss
-                       (feedName, date)
-                       VALUES ("%s","%s")
-                       """ % (feedName, date))
+                       (feedName, url, date)
+                       VALUES (?, ?, ?)
+                       """, (feedName, url, date))
         conn.commit()
         cursor.close()
         conn.close()
-    def getRSSDate(self, feedName):
+    def getRSS(self, feedName):
         conn = sqlite3.connect("var/cache/cache.db")
         cursor = conn.cursor()
         try:
             cursor.execute("""
-                        SELECT date
+                        SELECT *
                         FROM rss
-                        WHERE feedName='%s'
-                        """ % feedName)
+                        WHERE feedName= ?
+                        """, (feedName,))
         except sqlite3.OperationalError:
             cursor.close()
             conn.close()
-            return None
+            return (None, 0.0)
         else:
             row = cursor.fetchone()
             cursor.close()
             conn.close()
             if row:
-                return float(row[0])
+                return (row[1], float(row[2]))
             else:
-                return None
+                return (None, 0.0)
         
     def getTableNames(self):
         conn = sqlite3.connect("var/cache/cache.db")
@@ -83,19 +105,18 @@ class CACHE:
         try:
             cursor.execute("""
                             CREATE TABLE %s
-                            (requestName text, url text, expireTime real, xml blob)
+                            (requestName text, url text, expireTime real, xml text)
                             """ % (table)
                             )
         except sqlite3.OperationalError:
             pass
         
         cursor.execute("""
-                            INSERT INTO %s
+                            INSERT OR ABORT INTO %s
                             (requestName, url, expireTime, xml)
-                            VALUES ("%s", "%s", %f, ?)
-                            """ % (table, requestname, url, expireTime),
-                            [buffer(xml)]
-                            )
+                            VALUES (?, ?, ?, ?)
+                        """ % (table), (requestname, url, expireTime, xml)
+        )
         conn.commit()
         cursor.close()
         conn.close()
@@ -106,8 +127,8 @@ class CACHE:
         cursor.execute("""
                        SELECT url
                        FROM %s
-                       WHERE requestName='%s'
-                       """ % (table.lower(), requestName.lower()))
+                       WHERE requestName=?
+                       """ % (table.lower()), (requestName.lower(),))
         results = cursor.fetchall()
         if results:
             return [str(x[0]) for x in results]
@@ -128,7 +149,7 @@ class CACHE:
         table = requesturl.split("/")[3]
         requestname = requesturl.split("/")[4].split(".")[0]
         try:
-            cursor.execute("SELECT requestName, url, expireTime, xml FROM %s WHERE url='%s'" % (table, url))
+            cursor.execute("SELECT requestName, url, expireTime, xml FROM %s WHERE url=?" % (table), (url,))
         except sqlite3.OperationalError:
             shutdown(None)
         else:
@@ -140,8 +161,8 @@ class CACHE:
                     cursor.execute("""
                                         DELETE
                                         FROM %s
-                                        WHERE url='%s'
-                                        """ % (table, url)
+                                        WHERE url=?
+                                        """ % (table), (url,)
                                        )
                     conn.commit()
                     shutdown(None)

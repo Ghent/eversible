@@ -1,20 +1,47 @@
 #!/usr/bin/env python
 
-import time
+"""
+    Copyright (C) 2011-2012 eve-irc.net
+ 
+    This file is part of EVErsible.
+    EVErsible is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Foobar is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License.
+    If not, see <http://www.gnu.org/licenses/>.
+
+    AUTHORS:
+     mountainpenguin <pinguino.de.montana@googlemail.com>
+     Ghent           <ghentgames@gmail.com>
+     petllama        <petllama@gmail.com>
+"""
+
+# python modules
+import calendar
+import operator
+import os
 import random
-import string
-from modules import api
-from modules import cache
+import re
 import sqlite3
+import string
+import sys
+import time
+import traceback
 import urllib
 import urllib2
-import sys
-from modules import users
-import os
-import calendar
-import re
+
+# EVErsible modules
+from modules import api
+from modules import cache
 from modules import rss
-import traceback
+from modules import users
 from modules.misc import functions
         
 class Scheduler:
@@ -62,18 +89,15 @@ class Scheduler:
                 API = None
                 mailXML = None
                 nick = hostname.split("!")[0]
-                API = self.USERS.retrieveUserByHostname(hostname)["apiObject"]
-                requesturl = os.path.join(API.API_URL, "char/MailMessages.xml.aspx")
-                postdata = {
-                    "apiKey" : API.API_KEY,
-                    "userID" : API.USER_ID,
-                    "characterID" : API.CHAR_ID,
-                }
-                mailXML = self.CACHE.requestXML(requesturl, postdata, deleteOld=False)
-                if not mailXML:
-                    mailXML = urllib2.urlopen(requesturl, urllib.urlencode(postdata)).read()
+                resp = self.USERS.retrieveUserByHostname(hostname)
+                if resp:
+                    API = resp["apiObject"]
+                else:
+                    print "No api object for id: %s, hostname: %s" % (id, hostname)
+                    continue
+                mails = API.Char("mail")
                 
-                
+                ##############################################################
                 if API.CHAR_ID in self.MAIL_RECORD.keys():
                     latest_time = self.MAIL_RECORD[API.CHAR_ID]["sentTime"]
                     latest_id = self.MAIL_RECORD[API.CHAR_ID]["messageID"]
@@ -93,25 +117,24 @@ class Scheduler:
                 new_latest_id = None
                 
                 newIDs = []
-                rows = re.finditer("\<row messageID=\"(?P<messageID>\d+)\" senderID=\"(?P<senderID>\d+)\" sentDate=\"(?P<sentDate>\d+-\d+-\d+ \d+:\d+:\d+)\" title=\"(?P<title>.*?)\" toCorpOrAllianceID=\"(?P<toCorpOrAllianceID>.*?)\" toCharacterIDs=\"(?P<toCharacterIDs>.*?)\" toListID=\"(?P<toListID>.*?)\" \/\>", mailXML)
-                #cycle through
                 count = 0
-                while True:
-                    try:
-                        row = rows.next().groupdict()
-                    except StopIteration:
+                
+                mailList = sorted(mails.items(), key=lambda x: x[1]["sentTime"], reverse=True)
+                for mailID, row in mailList:
+#>>> mails.keys()
+#['corpTicker', 'toCharacterIDs', 'listName', 'sentTime', 'title', 'corpID', 'allianceTicker', 'senderID', 'allianceID', 'listID', 'allianceName', 'sentDate', 'messageID', 'corpName', 'senderName']
+                    messageID = row["messageID"]
+                    sentDate = row["sentTime"]
+                    if count <= 5:
+                        count += 1
+                    if count > 5:
                         break
-                    else:
-                        messageID = int(row["messageID"])
-                        sentDate = calendar.timegm(time.strptime(row["sentDate"], "%Y-%m-%d %H:%M:%S"))
-                        if count < 5:
-                            count += 1
-                        
-                        if sentDate > latest_time:
-                            if sentDate > new_latest_time:
-                                new_latest_time = sentDate
-                                new_latest_id = messageID
-                            newIDs += [messageID]
+                    
+                    if sentDate > latest_time:
+                        if sentDate > new_latest_time:
+                            new_latest_time = sentDate
+                            new_latest_id = messageID
+                        newIDs += [messageID]
                 if newIDs:
                     newIDs_len = len(newIDs)
                     self.connection.notice(nick, functions.parseIRCBBCode("You have [colour=red]%i[/colour] new mails" % newIDs_len))
@@ -145,7 +168,7 @@ class Scheduler:
             API = api.API()
             tablenames = self.CACHE.getTableNames()
             
-            conn = sqlite3.connect("var/eve/cache/cache.db")
+            conn = sqlite3.connect("var/cache/cache.db")
             cursor = conn.cursor()
             
             for tablename in tablenames:
