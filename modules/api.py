@@ -1063,6 +1063,8 @@ class API:
                     "endDate" : queued.attrib["endTime"]
                 }
             return returnable
+        elif Request.lower() == "wallet":
+            pass
             
     def Account(self, Request):
         """ Methods for retrieving account-related data
@@ -1187,7 +1189,7 @@ class API:
                         "solarSystemID" : int(system.attrib["solarSystemID"]),
                         "solarSystemName" : self.EVE.getSystemNameByID(solarSystemID),
                         "shipKills" : int(system.attrib["shipKills"]),
-                        "factionKills" : int(system.attrib["factionKills"]),
+                        "npcKills" : int(system.attrib["factionKills"]),
                         "podKills" : int(system.attrib["podKills"])
                     }
             return {
