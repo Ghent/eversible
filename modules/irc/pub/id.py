@@ -36,9 +36,10 @@ def index(connection, event, config):
         connection.privmsg(event.target(),
             "Syntax is: %sid [itemName]" % config["bot"]["prefix"])
     else:
-        responseItemName = DB.getItemIDByName(idSearch)
-    if not responseItemName:
+        responseItemID = DB.getItemIDByName(idSearch)
+    if not responseItemID:
             connection.privmsg(event.target(), "Item '%s' is unknown to me"
                 % idSearch)
     else:
-        connection.privmsg(event.target(), "\x02ID of %s\x02: \x1f%s\x1f" % (idSearch, responseItemName))
+        responseItemName = DB.getItemNameByID(responseItemID)
+        connection.privmsg(event.target(), "\x02ID of %s\x02: \x1f%s\x1f" % (responseItemName, responseItemID))
