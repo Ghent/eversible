@@ -25,12 +25,9 @@
      petllama        <petllama@gmail.com>
 """
 
-from modules import evedb
 from modules.misc import functions
 
-EVE = evedb.DUMP()
-
-def index(connection, event, config):
+def index(connection, event, config, EVE, userdb):
     dotlan = "http://evemaps.dotlan.net/route/"
 
     try:

@@ -31,9 +31,8 @@ from modules.misc import functions
 
 
 API = api.API()
-EVE = evedb.DUMP()
 
-def index(connection,event,config):
+def index(connection,event,config,EVE,userdb):
     try:
         systemName = event.arguments()[0].split()[1]
     except IndexError:

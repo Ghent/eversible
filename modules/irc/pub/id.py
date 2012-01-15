@@ -25,11 +25,7 @@
      petllama        <petllama@gmail.com>
 """
 
-from modules import evedb
-
-DB = evedb.DUMP()
-
-def index(connection, event, config):
+def index(connection, event, config, DB, userdb):
     try:
        idSearch = event.arguments()[0].split(None, 1)[1]
     except (IndexError, ValueError):

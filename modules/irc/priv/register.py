@@ -23,9 +23,7 @@
      petllama        <petllama@gmail.com>
 """
 
-from modules import users
-
-def index(connection, event, config):
+def index(connection, event, config, evedb, USERS):
     """
         SYNTAX: register [character name] [user ID] [API key] [password]
     """
@@ -39,7 +37,6 @@ def index(connection, event, config):
     except IndexError:
         connection.privmsg(sourceNick, "Syntax is: %sregister [character name] [ID] [verification code] [password]" % config["bot"]["prefix"])
     else:
-        USERS = users.DB()
         response = USERS.createUser(keyID, vCode, characterName, password, sourceHostname)
         if not response[0]:
             connection.privmsg(sourceNick, "Your registration failed with error: %s" % response[1])

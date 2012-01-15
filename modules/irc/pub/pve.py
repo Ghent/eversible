@@ -29,15 +29,11 @@ import locale
 import time
 import re
 
-from modules import users
 from modules import api
-from modules import evedb
-DUMP = evedb.DUMP()
-USERS = users.DB()
 
 from modules.misc import functions
 
-def index(connection, event, config):
+def index(connection, event, config, DUMP, USERS):
     locale.setlocale(locale.LC_ALL, config["core"]["locale"])
     sourceHostName = event.source()
     sourceNick = event.source().split("!")[0]
