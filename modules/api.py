@@ -1064,7 +1064,88 @@ class API:
                 }
             return returnable
         elif Request.lower() == "wallet":
-            pass
+            requesturl = os.path.join(self.API_URL, "char/WalletJournal.xml.aspx")
+            
+            cached_URLs = self.CACHE.requestURLs("char", Request.lower())
+            if not cached_URLs:
+                lowest_refID = None
+            else:
+                cached_refIDs = []
+                for URL in cached_URLs:
+                    try:
+                        refID = int(URL.split("fromID=")[1])
+                    except IndexError:
+                        pass
+                    else:
+                        cached_refIDs += [refID]
+                if cached_refIDs != []:
+                    cached_refIDs.sort()
+                    lowest_refID = cached_refIDs[0]
+                else:
+                    lowest_refID = None
+            
+            walletData = {}
+            refTypes = self.Eve("reftypes")
+            
+            def getBatch(walletData, startID=None, aligned=False):
+                postdata = {
+                    "keyID" : self.KEY_ID,
+                    "vCode" : self.V_CODE,
+                    "characterID" : self.CHAR_ID,
+                    "rowCount" : 256,
+                }
+                if startID:
+                    postdata["fromID"] = startID
+                
+                xmltree = self._getXML(requesturl, Request.lower(), postdata)
+                
+                refIDs = []
+                attribs = xmltree.find("result/rowset").attrib["columns"].split(",")
+                allrows = xmltree.findall("result/rowset/row")
+                for row in allrows:
+                    refID = int(row.attrib["refID"])
+                    if refID in cached_refIDs and not aligned:
+                        return (walletData, refID, True)
+                        
+                    refIDs += [refID]
+                    
+                    refTypeID = int(row.attrib["refTypeID"])
+                    refTypeName = refTypes[refTypeID]
+                    rowData = {
+                        "refTypeName" : refTypeName
+                    }
+                    for attrib in attribs:
+                        value = row.attrib[attrib]
+                        if attrib in ["refID", "refTypeID", "ownerID1", "ownerID2", "argID1", "taxReceiverID"]:
+                            if value != "":
+                                rowData[attrib] = int(value)
+                            else:
+                                rowData[attrib] = None
+                        elif attrib in ["amount", "balance", "taxAmount"]:
+                            if value != "":
+                                rowData[attrib] = float(value)
+                            else:
+                                rowData[attrib] = None
+                        elif attrib == "date":
+                            rowData[attrib] = value
+                            rowData["time"] = self._convertEveToUnix(value)
+                        else:
+                            if value != "":
+                                rowData[attrib] = value
+                            else:
+                                rowData[attrib] = None
+                    walletData[rowData["refID"]] = rowData
+                if not refIDs:
+                    return (walletData, None, aligned)
+                return (walletData, sorted(refIDs)[0], aligned)
+            
+            walletData, lastID, aligned = getBatch(walletData)
+            while lastID != None:
+                walletData, lastID, aligned = getBatch(walletData, lastID, aligned)
+            
+            return walletData
+                
+            
             
     def Account(self, Request):
         """ Methods for retrieving account-related data
