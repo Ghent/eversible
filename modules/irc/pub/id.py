@@ -25,20 +25,17 @@
      petllama        <petllama@gmail.com>
 """
 
-from modules import evedb
-
-DB = evedb.DUMP()
-
-def index(connection, event, config):
+def index(connection, event, config, DB, userdb):
     try:
        idSearch = event.arguments()[0].split(None, 1)[1]
     except (IndexError, ValueError):
         connection.privmsg(event.target(),
             "Syntax is: %sid [itemName]" % config["bot"]["prefix"])
     else:
-        responseItemName = DB.getItemIDByName(idSearch)
-    if not responseItemName:
+        responseItemID = DB.getItemIDByName(idSearch)
+    if not responseItemID:
             connection.privmsg(event.target(), "Item '%s' is unknown to me"
                 % idSearch)
     else:
-        connection.privmsg(event.target(), "\x02ID of %s\x02: \x1f%s\x1f" % (idSearch, responseItemName))
+        responseItemName = DB.getItemNameByID(responseItemID)
+        connection.privmsg(event.target(), "\x02ID of %s\x02: \x1f%s\x1f" % (responseItemName, responseItemID))

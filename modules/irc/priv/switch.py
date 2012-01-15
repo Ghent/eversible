@@ -23,9 +23,7 @@
      petllama        <petllama@gmail.com>
 """
 
-from modules import users
-
-def index(connection, event, config):
+def index(connection, event, config, evedb, USERS):
     sourceHostname = event.source()
     sourceNick = event.source().split("!")[0]
     try:
@@ -33,9 +31,7 @@ def index(connection, event, config):
     except IndexError:
         switchTo = None
     else:
-        USERS = users.DB()
         #check if identified
-        
         details = USERS.retrieveUserByHostname(sourceHostname)
         if not details:
             connection.privmsg(sourceNick, "You must be identified to use this command")

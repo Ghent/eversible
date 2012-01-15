@@ -25,5 +25,5 @@
 
 from modules.misc import functions
 
-def index(connection, event, config):
+def index(connection, event, config, evedb, users):
     print config

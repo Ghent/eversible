@@ -23,17 +23,15 @@
      petllama        <petllama@gmail.com>
 """
 
-from modules import users
 from modules import api
 import time
 import traceback
 from modules.misc import functions
 
-def index(connection,event, config):
+def index(connection,event, config, evedb, USERS):
     #requires limited api key
     
     #check identify
-    USERS = users.DB()
     sourceHostName = event.source()
     sourceNick = event.source().split("!")[0]
     

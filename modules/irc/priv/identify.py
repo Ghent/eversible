@@ -23,9 +23,7 @@
      petllama        <petllama@gmail.com>
 """
 
-from modules import users
-
-def index(connection,event, config):
+def index(connection,event, config, evedb, USERS):
     """ SYNTAX identify [character name] [password] """
     sourceHostName = event.source()
     sourceNick = event.source().split("!")[0]
@@ -35,7 +33,6 @@ def index(connection,event, config):
     except IndexError:
         connection.privmsg(sourceNick, "Correct syntax: %sidentify [character name] [password]" % config["bot"]["prefix"])
     else:
-        USERS = users.DB()
         if USERS.testIdentity(characterName, password, sourceHostName):
             connection.privmsg(sourceNick, "You have successfully identified")
         else:

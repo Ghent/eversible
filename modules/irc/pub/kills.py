@@ -28,14 +28,12 @@
 import locale
 
 from modules import api
-from modules import evedb
 from modules.misc import functions
 
 
 API = api.API()
-EVE = evedb.DUMP()
 
-def index(connection, event, config):
+def index(connection, event, config, EVE, userdb):
     locale.setlocale(locale.LC_ALL, config["core"]["locale"])
     try:
         systemName = event.arguments()[0].split()[1]

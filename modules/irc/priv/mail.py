@@ -23,7 +23,6 @@
      petllama        <petllama@gmail.com>
 """
 
-from modules import users
 from modules import api
 import time
 import traceback
@@ -31,9 +30,7 @@ import re
 from modules.misc import functions
 import cgi
 
-def index(connection,event, config):
-    USERS = users.DB()
-    
+def index(connection,event, config, evedb, USERS):
     sourceHostName = event.source()
     sourceNick = event.source().split("!")[0]
     

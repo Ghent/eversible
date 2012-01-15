@@ -28,9 +28,7 @@
 
 from modules import evedb
 
-EVE = evedb.DUMP()
-
-def index(connection, event, config):
+def index(connection, event, config, EVE, userdb):
     return
 
     try:

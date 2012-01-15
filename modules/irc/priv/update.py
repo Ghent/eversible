@@ -23,12 +23,10 @@
      petllama        <petllama@gmail.com>
 """
 
-from modules import users
 from modules import api
 import traceback
-USERS = users.DB()
 
-def index(connection, event, config):
+def index(connection, event, config, evedb, USERS):
     """
         Changes saved settings for your registered user
         SYNTAX: update [char name] [keyID] [vCode] [old password] (new password)

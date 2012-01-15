@@ -31,70 +31,58 @@ import time
 
 class CACHE:
     def __init__(self):
-        pass
+        self.conn = sqlite3.connect("var/cache/cache.db")
+        self.cursor = self.conn.cursor()
         
     def insertRSS(self, feedName, url, date):
-        conn = sqlite3.connect("var/cache/cache.db")
-        cursor = conn.cursor()
         try:
-            cursor.execute("""
+            self.cursor.execute("""
                            CREATE TABLE rss
                            (feedName text, url text, date real)
                            """)
         except sqlite3.OperationalError:
             pass
         
-        cursor.execute("""
+        self.cursor.execute("""
                        DELETE FROM rss
                        WHERE feedName= ?
                        """, (feedName,))
-        cursor.execute("""
+        self.cursor.execute("""
                        INSERT INTO rss
                        (feedName, url, date)
                        VALUES (?, ?, ?)
                        """, (feedName, url, date))
-        conn.commit()
-        cursor.close()
-        conn.close()
+        self.conn.commit()
+        
     def getRSS(self, feedName):
-        conn = sqlite3.connect("var/cache/cache.db")
-        cursor = conn.cursor()
         try:
-            cursor.execute("""
+            self.cursor.execute("""
                         SELECT *
                         FROM rss
                         WHERE feedName= ?
                         """, (feedName,))
         except sqlite3.OperationalError:
-            cursor.close()
-            conn.close()
             return (None, 0.0)
         else:
-            row = cursor.fetchone()
-            cursor.close()
-            conn.close()
+            row = self.cursor.fetchone()
+            
+            
             if row:
                 return (row[1], float(row[2]))
             else:
                 return (None, 0.0)
         
     def getTableNames(self):
-        conn = sqlite3.connect("var/cache/cache.db")
-        cursor = conn.cursor()
-        cursor.execute("""
+        self.cursor.execute("""
                SELECT name
                FROM sqlite_master
                WHERE type='table'
                ORDER BY name
                """)
-        tablenames = [str(x[0]) for x in cursor.fetchall()]
-        cursor.close()
-        conn.close()
+        tablenames = [str(x[0]) for x in self.cursor.fetchall()]
         return tablenames
 
     def insertXML(self, requesturl, Request, xml, expireTime, postdata={}):
-        conn = sqlite3.connect("var/cache/cache.db")
-        cursor = conn.cursor()
         if postdata:
             url = requesturl + "?" + urllib.urlencode(postdata)
         else:
@@ -103,7 +91,7 @@ class CACHE:
         requestname = Request.lower()
 
         try:
-            cursor.execute("""
+            self.cursor.execute("""
                             CREATE TABLE %s
                             (requestName text, url text, expireTime real, xml text)
                             """ % (table)
@@ -111,37 +99,30 @@ class CACHE:
         except sqlite3.OperationalError:
             pass
         
-        cursor.execute("""
+        self.cursor.execute("""
                             INSERT OR ABORT INTO %s
                             (requestName, url, expireTime, xml)
                             VALUES (?, ?, ?, ?)
                         """ % (table), (requestname, url, expireTime, xml)
         )
-        conn.commit()
-        cursor.close()
-        conn.close()
+        self.conn.commit()
     
     def requestURLs(self, table, requestName):
-        conn = sqlite3.connect("var/cache/cache.db")
-        cursor = conn.cursor()
-        cursor.execute("""
+        self.cursor.execute("""
                        SELECT url
                        FROM %s
                        WHERE requestName=?
                        """ % (table.lower()), (requestName.lower(),))
-        results = cursor.fetchall()
+        results = self.cursor.fetchall()
         if results:
             return [str(x[0]) for x in results]
         else:
             return None
+        
     def requestXML(self, requesturl, postdata={}, deleteOld=True):
         def shutdown(returnable):
-            conn.commit()
-            cursor.close()
-            conn.close()
+            self.conn.commit()
             return returnable
-        conn = sqlite3.connect("var/cache/cache.db")
-        cursor = conn.cursor()
         if postdata:
             url = requesturl + "?" + urllib.urlencode(postdata)
         else:
@@ -149,26 +130,23 @@ class CACHE:
         table = requesturl.split("/")[3]
         requestname = requesturl.split("/")[4].split(".")[0]
         try:
-            cursor.execute("SELECT requestName, url, expireTime, xml FROM %s WHERE url=?" % (table), (url,))
+            self.cursor.execute("SELECT requestName, url, expireTime, xml FROM %s WHERE url=?" % (table), (url,))
         except sqlite3.OperationalError:
             shutdown(None)
         else:
-            row = cursor.fetchone()
+            row = self.cursor.fetchone()
             if row:
                 expireTime = row[2]
                 if time.time() > expireTime and deleteOld:
                     #remove row
-                    cursor.execute("""
+                    self.cursor.execute("""
                                         DELETE
                                         FROM %s
                                         WHERE url=?
                                         """ % (table), (url,)
                                        )
-                    conn.commit()
+                    self.conn.commit()
                     shutdown(None)
                 else:
                     xml = str(row[3])
-                    cursor.close()
-                    conn.close()
                     return xml
-        

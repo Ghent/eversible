@@ -84,12 +84,13 @@ class Scheduler:
     def mailCheck(self):
         #get identified users
         try:
-            loggedInHostnames = self.USERS.getHostnames()
+            USERS = users.DB()
+            loggedInHostnames = USERS.getHostnames()
             for id, hostname in loggedInHostnames.iteritems():
                 API = None
                 mailXML = None
                 nick = hostname.split("!")[0]
-                resp = self.USERS.retrieveUserByHostname(hostname)
+                resp = USERS.retrieveUserByHostname(hostname)
                 if resp:
                     API = resp["apiObject"]
                 else:
@@ -102,7 +103,7 @@ class Scheduler:
                     latest_time = self.MAIL_RECORD[API.CHAR_ID]["sentTime"]
                     latest_id = self.MAIL_RECORD[API.CHAR_ID]["messageID"]
                 else:
-                    result = self.USERS.getMessageID(API.CHAR_ID)
+                    result = USERS.getMessageID(API.CHAR_ID)
                     if result:
                         self.MAIL_RECORD[API.CHAR_ID] = {}
                         self.MAIL_RECORD[API.CHAR_ID]["sentTime"] = result[1]
@@ -154,7 +155,7 @@ class Scheduler:
                         self.connection.notice(nick, functions.parseIRCBBCode("First %i ids are: [b]%s[/b]" % (count, "[/b], [b]".join(ids))))
                         
                     #insert new data into users
-                    self.USERS.insertMessageID(API.CHAR_ID, new_latest_id, new_latest_time)
+                    USERS.insertMessageID(API.CHAR_ID, new_latest_id, new_latest_time)
                     self.MAIL_RECORD[API.CHAR_ID] = {
                         "messageID" : new_latest_id,
                         "sentTime" : new_latest_time
@@ -166,7 +167,8 @@ class Scheduler:
     def checkAPIurls(self):
         try:
             API = api.API()
-            tablenames = self.CACHE.getTableNames()
+            CACHE = cache.CACHE()
+            tablenames = CACHE.getTableNames()
             
             conn = sqlite3.connect("var/cache/cache.db")
             cursor = conn.cursor()
@@ -181,7 +183,7 @@ class Scheduler:
                     for url, expireTime, requestName in rows:
                         if time.time() > expireTime:
                             #remove old entry
-                            self.CACHE.requestXML(url, postdata=None)
+                            CACHE.requestXML(url, postdata=None)
                             xml = urllib2.urlopen(url).read()
                             #check for error
                             try:
@@ -191,7 +193,7 @@ class Scheduler:
                                 pass
                             else:
                                 new_expireTime = API._getCachedUntil(xml)
-                                self.CACHE.insertXML(url, requestName, xml, new_expireTime, postdata=None)
+                                CACHE.insertXML(url, requestName, xml, new_expireTime, postdata=None)
         except:
             print "Error in scheduler thread (checkAPIurls):"
             traceback.print_exc()

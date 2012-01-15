@@ -28,10 +28,9 @@
 from modules import evedb
 from modules.misc import functions
 
-DB = evedb.DUMP()
 jumpCapableID = [22440, 22428, 22430, 22436, 28352, 23757, 23915, 24483, 23911, 19724, 19722, 19726, 19720, 28848, 28850, 28846, 28844, 23919, 22852, 23913, 23917, 11567, 671, 3764, 23773]
 
-def index(connection, event, config):
+def index(connection, event, config, DB, userdb):
     try:
         shipName = event.arguments()[0].split()[1]
         lvlJDC = int(event.arguments()[0].split()[2])
