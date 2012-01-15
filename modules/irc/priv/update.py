@@ -31,7 +31,7 @@ USERS = users.DB()
 def index(connection, event, config):
     """
         Changes saved settings for your registered user
-        SYNTAX: update [char name] [user ID] [new API key] [old password] (new password)
+        SYNTAX: update [char name] [keyID] [vCode] [old password] (new password)
     """
     #check user
     sourceHostname = event.source()
@@ -45,36 +45,26 @@ def index(connection, event, config):
     else:
         #get args
         try:
-            charName = event.arguments()[0].split()[1]
-            userID = event.arguments()[0].split()[2]
-            apiKey = event.arguments()[0].split()[3]
-            password = event.arguments()[0].split()[4]
+            charName = " ".join(event.arguments()[0].split()[1:-2])
+            keyID = event.arguments()[0].split()[-2]
+            vCode = event.arguments()[0].split()[-1]
         except IndexError:
-            connection.privmsg(sourceNick, "SYNTAX: %supdate [char name] [user ID] [new API key] [old password] (new password)" % config["bot"]["prefix"])
+            connection.privmsg(sourceNick, "SYNTAX: %supdate [char name] [keyID] [new vCode]" % config["bot"]["prefix"])
         else:
+            #check details are correct
             try:
-                new_password = event.arguments()[0].split()[5]
-            except IndexError:
-                new_password = password
-            
-            #verify password
-            if not USERS.verifyPassword(charName, password):
-                connection.privmsg(sourceNick, "Incorrect password")
+                API = api.API(keyID=keyID, vCode=vCode, characterName=charName)
+                API.Account("characters")
+            except api.APIError:
+                connection.privmsg(sourceNick, "Update failed with error: %s" % " ".join(traceback.format_exc().splitlines()[-1].split()[1:]))
             else:
-                #check details are correct
-                try:
-                    API = api.API(userid=userID, apikey=apiKey, characterName=charName)
-                    API.Account("characters")
-                except api.APIError:
-                    connection.privmsg(sourceNick, "Update failed with error: %s" % " ".join(traceback.format_exc().splitlines()[-1].split()[1:]))
+                response = USERS.updateUser(charName, keyID, vCode, sourceHostname)
+                
+                if response[0]:
+                    USERS.removeHostname(sourceHostname)
+                    USERS.addHostname(charName, sourceHostname)
+                    connection.privmsg(sourceNick, "Your information was updated successfully")
                 else:
-                    response = USERS.updateUser(charName, userID, password, apiKey, new_password, sourceHostname)
-                    
-                    if response[0]:
-                        USERS.removeHostname(sourceHostname)
-                        USERS.addHostname(charName, sourceHostname)
-                        connection.privmsg(sourceNick, "Your information was updated successfully")
-                    else:
-                        connection.privmsg(sourceNick, "Update failed with error: %s" % response[1])
-                    #characterName, userID, password, new_apiKey, new_password, hostname
+                    connection.privmsg(sourceNick, "Update failed with error: %s" % response[1])
+                #characterName, userID, password, new_apiKey, new_password, hostname
             

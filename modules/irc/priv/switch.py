@@ -42,9 +42,10 @@ def index(connection, event, config):
         else:
             if switchTo.lower() == details["characterName"].lower():
                 connection.privmsg(sourceNick, "You're already identified as %s!" % switchTo)
+                return
             if switchTo:
                 #check if alt is valid
-                response = USERS.lookupAlt(details["apiKey"], details["userID"], details["characterName"], switchTo)
+                response = USERS.lookupAlt(details["vCode"], details["keyID"], details["characterName"], switchTo)
                 if not response:
                     connection.privmsg(sourceNick, "The character \x033\x02\x02%s\x03\x02\x02 hasn't been registered under your account" % switchTo)
                 else:
@@ -53,7 +54,7 @@ def index(connection, event, config):
                         connection.privmsg(sourceNick, "You have successfully switched characters to \x039\x02\x02%s\x03\x02\x02" % switchTo)
             else:
                 #list alts
-                alts = USERS.lookForAlts(details["apiKey"], details["userID"])
+                alts = USERS.lookForAlts(details["vCode"], details["keyID"])
                 if not alts:
                     connection.privmsg(sourceNick, "You appear to have no alts, this is almost certainly an error")
                 else:

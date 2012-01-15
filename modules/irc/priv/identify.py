@@ -30,8 +30,8 @@ def index(connection,event, config):
     sourceHostName = event.source()
     sourceNick = event.source().split("!")[0]
     try:
-        characterName = event.arguments()[0].split()[1]
-        password = event.arguments()[0].split()[2]
+        characterName = " ".join(event.arguments()[0].split()[1:-1])
+        password = event.arguments()[0].split()[-1]
     except IndexError:
         connection.privmsg(sourceNick, "Correct syntax: %sidentify [character name] [password]" % config["bot"]["prefix"])
     else:

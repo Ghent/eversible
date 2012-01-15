@@ -44,11 +44,11 @@ def index(connection,event, config):
     else:
         characterName = response["characterName"]
         characterID = response["characterID"]
-        userID = response["userID"]
-        apiKey = response["apiKey"]
+        keyID = response["keyID"]
+        apiKey = response["vCode"]
         
         try:
-            API = api.API(userid=userID, apikey=apiKey, charid=characterID)
+            API = response["apiObject"]
             skillqueue = API.Char("skillqueue")
         except api.APIError:
             connection.privmsg(sourceNick, "There was an error with the API: %s" % " ".join(traceback.format_exc().splitlines()[-1].split()[1:]))

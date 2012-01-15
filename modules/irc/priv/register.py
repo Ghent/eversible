@@ -32,15 +32,15 @@ def index(connection, event, config):
     sourceHostname = event.source()
     sourceNick = event.source().split("!")[0]
     try:
-        characterName = event.arguments()[0].split()[1]
-        userID = event.arguments()[0].split()[2]
-        apiKey = event.arguments()[0].split()[3]
-        password = event.arguments()[0].split()[4]
+        characterName = " ".join(event.arguments()[0].split()[1:-3])
+        keyID = event.arguments()[0].split()[-3]
+        vCode = event.arguments()[0].split()[-2]
+        password = event.arguments()[0].split()[-1]
     except IndexError:
-        connection.privmsg(sourceNick, "Syntax is: %sregister [character name] [user ID] [API key] [password]" % config["bot"]["prefix"])
+        connection.privmsg(sourceNick, "Syntax is: %sregister [character name] [ID] [verification code] [password]" % config["bot"]["prefix"])
     else:
         USERS = users.DB()
-        response = USERS.createUser(apiKey, userID, characterName, password, sourceHostname)
+        response = USERS.createUser(keyID, vCode, characterName, password, sourceHostname)
         if not response[0]:
             connection.privmsg(sourceNick, "Your registration failed with error: %s" % response[1])
         else:
