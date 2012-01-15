@@ -283,7 +283,6 @@ class API:
                     return None
                 else:
                     result = xmltree.find("result/rowset/row").attrib
-                    return result
                     return {
                         "name" : result["name"],
                         "ID" : int(result["characterID"])
@@ -910,13 +909,13 @@ class API:
                             if mailMessage.attrib[attrib] == "":
                                 pass
                             else:
-                                mailData["toCorpOrAlliance"] = mailMessage.attrib[attrib]
+                                mailData["toCorpOrAlliance"] = int(mailMessage.attrib[attrib])
                         elif attrib == "toCharacterIDs":
                             val = mailMessage.attrib[attrib]
                             if val == "":
                                 mailData["toCharacterIDs"] = []
                             else:
-                                mailData["toCharacterIDs"] = val
+                                mailData["toCharacterIDs"] = [int(x) for x in val.split(",")]
                         elif attrib == "toListID":
                             listID = mailMessage.attrib[attrib]
                             if listID:
