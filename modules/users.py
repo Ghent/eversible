@@ -120,71 +120,75 @@ class DB:
         return dict(results)
 
     def createUser(self, keyID, vCode, characterName, password, hostname, hashpassword=None):
-        API = api.API(keyID=keyID, vCode=vCode, characterName=characterName)
-        if API.CHAR_ID:
-            characters = API.Account("characters")
-            if not hashpassword:
-                hashpassword = hashlib.md5(password).hexdigest()
-            conn = sqlite3.connect("var/users/eversible.db")
-            cursor = conn.cursor()
-            
-            randomid = "".join([
-                random.choice(string.ascii_letters + string.digits) for x in range(20)
-            ])
-            
-            #first check if user exists
-            def alreadyexists(characterName, keyID):
-                cursor.execute("""
-                               SELECT id,characterName,keyID
-                               FROM users
-                               WHERE characterName = ?
-                               AND keyID = ?
-                               """, (characterName, keyID)
-                              )
-                check = cursor.fetchone()
-                if check:
-                    return (False, 'Entry already exists')
-                else:
-                    return (True, '')
-                    
-            response = alreadyexists(characterName, keyID)
-            if not response[0]:
-                return response
-            
-            cursor.execute("""
-                           INSERT INTO users
-                           (id, characterName, characterID, keyID, vCode, password)
-                           VALUES (?, ?, ?, ?, ?, ?)
-                           """, (randomid, characterName, API.CHAR_ID, keyID, vCode, hashpassword)
-                          )
-            
-            #add alternate characters also
-            for characterName_alt in characters.keys():
-                if alreadyexists(characterName_alt, keyID)[0]:
-                    randomid_alt = "".join([random.choice(string.ascii_letters + string.digits) for x in range(20)])
-                    charID_alt = characters[characterName_alt]["characterID"]
-                    
-                    cursor.execute("""
-                                   INSERT INTO users
-                                   (id, characterName, characterID, keyID, vCode, password)
-                                   VALUES (?, ?, ?, ?, ?, ?)
-                                   """,(randomid_alt, characterName_alt, charID_alt, keyID, vCode, hashpassword)
-                                  )
-                    
-            self.removeHostname(hostname)
-            
-            cursor.execute("""
-                           INSERT INTO hostnames
-                           (id, hostname)
-                           VALUES (?, ?)
-                           """, (randomid, hostname)
-                          )
-            conn.commit()
-            cursor.close()
-            conn.close()
-            return (True,'')
+        try:
+            API = api.API(keyID=keyID, vCode=vCode, characterName=characterName)
+        except api.APIError as error:
+            return (False, error)
         else:
-            return (False,'Invalid details')
+            if API.CHAR_ID:
+                characters = API.Account("characters")
+                if not hashpassword:
+                    hashpassword = hashlib.md5(password).hexdigest()
+                conn = sqlite3.connect("var/users/eversible.db")
+                cursor = conn.cursor()
+                
+                randomid = "".join([
+                    random.choice(string.ascii_letters + string.digits) for x in range(20)
+                ])
+                
+                #first check if user exists
+                def alreadyexists(characterName, keyID):
+                    cursor.execute("""
+                                   SELECT id,characterName,keyID
+                                   FROM users
+                                   WHERE characterName = ?
+                                   AND keyID = ?
+                                   """, (characterName, keyID)
+                                  )
+                    check = cursor.fetchone()
+                    if check:
+                        return (False, 'Entry already exists')
+                    else:
+                        return (True, '')
+                        
+                response = alreadyexists(characterName, keyID)
+                if not response[0]:
+                    return response
+                
+                cursor.execute("""
+                               INSERT INTO users
+                               (id, characterName, characterID, keyID, vCode, password)
+                               VALUES (?, ?, ?, ?, ?, ?)
+                               """, (randomid, characterName, API.CHAR_ID, keyID, vCode, hashpassword)
+                              )
+                
+                #add alternate characters also
+                for characterName_alt in characters.keys():
+                    if alreadyexists(characterName_alt, keyID)[0]:
+                        randomid_alt = "".join([random.choice(string.ascii_letters + string.digits) for x in range(20)])
+                        charID_alt = characters[characterName_alt]["characterID"]
+                        
+                        cursor.execute("""
+                                       INSERT INTO users
+                                       (id, characterName, characterID, keyID, vCode, password)
+                                       VALUES (?, ?, ?, ?, ?, ?)
+                                       """,(randomid_alt, characterName_alt, charID_alt, keyID, vCode, hashpassword)
+                                      )
+                        
+                self.removeHostname(hostname)
+                
+                cursor.execute("""
+                               INSERT INTO hostnames
+                               (id, hostname)
+                               VALUES (?, ?)
+                               """, (randomid, hostname)
+                              )
+                conn.commit()
+                cursor.close()
+                conn.close()
+                return (True,'')
+            else:
+                return (False,'Invalid details')
             
     def lookForAlts(self, vCode, keyID):
         conn = sqlite3.connect("var/users/eversible.db")
