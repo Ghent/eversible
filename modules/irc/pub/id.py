@@ -25,11 +25,8 @@
      petllama        <petllama@gmail.com>
 """
 
-from modules import api
 from modules import evedb
 
-
-API = api.API()
 DB = evedb.DUMP()
 
 def index(connection, event, config):
@@ -44,6 +41,4 @@ def index(connection, event, config):
             connection.privmsg(event.target(), "Item '%s' is unknown to me"
                 % idSearch)
     else:
-        connection.privmsg(event.target(),
-			   "\x02ID of %s\x02: \x1f%s\x1f"
-			   % (idSearch, responseItemName))
+        connection.privmsg(event.target(), "\x02ID of %s\x02: \x1f%s\x1f" % (idSearch, responseItemName))
