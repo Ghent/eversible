@@ -2,12 +2,35 @@
 #
 # vim: filetype=python tabstop=4 expandtab:
 
+"""
+    Copyright (C) 2011-2012 eve-irc.net
+ 
+    This file is part of EVErsible.
+    EVErsible is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Foobar is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License.
+    If not, see <http://www.gnu.org/licenses/>.
+
+    AUTHORS:
+     mountainpenguin <pinguino.de.montana@googlemail.com>
+     Ghent           <ghentgames@gmail.com>
+     petllama        <petllama@gmail.com>
+"""
 
 from optparse import OptionParser
 import ConfigParser
 import pdb
-import irc.bot
-import evedb
+from modules.irc import bot
+from modules import evedb
+import sys
 
 __version__ = "0.0.2"
 
@@ -40,7 +63,8 @@ if __name__ == "__main__":
     # Check to see if a valid EVE db exists
     database = evedb.testEveDB()
     if not database:
-        print "WARNING: your static database is not up to date"
+        print "Exiting ..."
+        sys.exit(0)
 
     # Start the IRC bot
-    irc.bot.start(config, database)
+    bot.start(config, database)
