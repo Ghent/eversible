@@ -29,6 +29,7 @@ import random
 import string
 import hashlib
 import traceback
+import time
 
 class DB:
     def __init__(self):
@@ -113,26 +114,17 @@ class DB:
                        """)
         
         results = cursor.fetchall()
-        
         cursor.close()
         conn.close()
         
-        result_dict = {}
-        for result in results:
-            result_dict[result[0]] = result[1]
-            
-        return result_dict
+        return dict(results)
 
-    def createUser(self, keyID, vCode, characterName, password, hostname):
-        API = api.API(keyID=keyID, vCode=vCode, charid=None)
-        try:
+    def createUser(self, keyID, vCode, characterName, password, hostname, hashpassword=None):
+        API = api.API(keyID=keyID, vCode=vCode, characterName=characterName)
+        if API.CHAR_ID:
             characters = API.Account("characters")
-        except api.APIError:
-            return (False, " ".join(traceback.format_exc().splitlines()[-1].split()[1:]))
-        hashpassword = hashlib.md5(password).hexdigest()
-
-        if characterName in characters.keys():
-            charID = characters[characterName]["characterID"]
+            if not hashpassword:
+                hashpassword = hashlib.md5(password).hexdigest()
             conn = sqlite3.connect("var/users/eversible.db")
             cursor = conn.cursor()
             
@@ -163,7 +155,7 @@ class DB:
                            INSERT INTO users
                            (id, characterName, characterID, keyID, vCode, password)
                            VALUES (?, ?, ?, ?, ?, ?)
-                           """, (randomid, characterName, charID, keyID, vCode, hashpassword)
+                           """, (randomid, characterName, API.CHAR_ID, keyID, vCode, hashpassword)
                           )
             
             #add alternate characters also
@@ -255,7 +247,7 @@ class DB:
                            SELECT id, hostname
                            FROM hostnames
                            WHERE hostname=?
-                           """, (hostname))
+                           """, (hostname,))
             
         except sqlite3.OperationalError:
             cursor.close()
@@ -276,7 +268,7 @@ class DB:
                                SELECT id, characterName, characterID, keyID, vCode
                                FROM users
                                WHERE id=?
-                               """, (user_id)
+                               """, (user_id,)
                               )
             except sqlite3.OperationalError:
                 cursor.close()
@@ -314,13 +306,13 @@ class DB:
         cursor.close()
         conn.close()
         
-    def updateUser(self, characterName, keyID, password, new_vCode, new_password, hostname):
+    def updateUser(self, characterName, keyID, new_vCode, hostname):
         conn = sqlite3.connect("var/users/eversible.db")
         cursor = conn.cursor()
-        hashpassword = hashlib.md5(password).hexdigest()
         try:
+            #id, characterName, characterID, keyID, vCode, password
             cursor.execute("""
-                           SELECT id, characterName, keyID, vCode
+                           SELECT id, characterName, keyID, vCode, password
                            FROM users
                            WHERE
                            characterName=?
@@ -344,14 +336,13 @@ class DB:
                     cursor.execute("""
                                    DELETE
                                    FROM users
-                                   WHERE characterName=?
-                                   """, (altName,)
+                                   WHERE characterName = ?
+                                   """, (altName[0],)
                                   )
                 except sqlite3.OperationalError:
-                    pass
+                    traceback.print_exc()
             conn.commit()
-            
-            response = self.createUser(new_vCode, keyID, characterName, new_password, hostname)
+            response = self.createUser(keyID, new_vCode, characterName, None, hostname, hashpassword=result[4])
             cursor.close()
             conn.close()
             return response
@@ -364,7 +355,7 @@ class DB:
                            DELETE
                            FROM hostnames
                            WHERE hostname=?
-                           """, hostname)
+                           """, (hostname,))
         except sqlite3.OperationalError:
             pass
         conn.commit()
@@ -440,7 +431,7 @@ class DB:
         
         #get associated id
         cursor.execute("""
-                       SELECT id,characterName,vCode,keyID
+                       SELECT id,characterName
                        FROM users
                        WHERE characterName=?
                        """, (characterName,))
