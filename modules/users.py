@@ -127,7 +127,7 @@ class DB:
                                    SELECT id,characterName,keyID
                                    FROM users
                                    WHERE characterName = ?
-                                   """, (characterName, keyID)
+                                   """, (characterName,)
                                   )
                     check = self.cursor.fetchone()
                     if check:
