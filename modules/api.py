@@ -896,7 +896,7 @@ class API:
         elif Request.lower() == "mail":
             if not mailID:
                 requesturl = os.path.join(self.API_URL, "char/MailMessages.xml.aspx")
-                xmltree = self._getXML(requesturl, Request.lower(), basepostdata, cacheTime=time.time()+5*60)
+                xmltree = self._getXML(requesturl, Request.lower(), basepostdata)
                 attribs = xmltree.find("result/rowset").attrib["columns"].split(",")
                 mails = {}
                 for mailMessage in xmltree.findall("result/rowset/row"):
