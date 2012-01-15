@@ -72,28 +72,61 @@ class DUMP:
             sys.exit(0)
             
     def _getDatabase(self, currentDB, targetFile):
-        SRC_URI = "http://zofu.no-ip.de/"
-        print "Searching http://zofu.no-ip.de"
-        SRC_FILES = re.findall("<li>.*? <a href=\"(.*?)\/\">(.*?)<\/a><\/li>", urllib2.urlopen(SRC_URI).read())
-        for src_file in SRC_FILES:
-            if src_file[0] == src_file[1] and src_file[0] == currentDB:
-                print "Found correct release %s" % src_file[0]
-                SRC_FILE_URI = "%s%s" % (SRC_URI, src_file[1])
-                SQLITE_FILES = re.findall("<a href=\"(.*?)\">%s-sqlite3-v(\d+).*?<\/a>" % (currentDB), urllib2.urlopen(SRC_FILE_URI).read())
-                SQLITE_FILE_HREF = None
-                SQLITE_FILE_VERSION = 0
-                try:
-                    for sqlite_file_href, sqlite_file_version in SQLITE_FILES:
-                        if int(sqlite_file_version) > SQLITE_FILE_VERSION:
-                            SQLITE_FILE_HREF = sqlite_file_href
-                            SQLITE_FILE_VERSION = sqlite_file_version
-                except:
-                    pass
-                if not SQLITE_FILE_HREF:
-                    print "Couldn't find file, exiting ..."
-                    sys.exit(0)
-                
-                SQLITE_FILE_URI = "%s/%s" % (SRC_FILE_URI, SQLITE_FILE_HREF)
+        
+        def srchZofu():
+            SRC_URI = "http://zofu.no-ip.de/"
+            print "Searching http://zofu.no-ip.de"
+            SRC_FILES = re.findall("<li>.*? <a href=\"(.*?)\/\">(.*?)<\/a><\/li>", urllib2.urlopen(SRC_URI).read())
+            for src_file in SRC_FILES:
+                if src_file[0] == src_file[1] and src_file[0] == currentDB:
+                    print "Found correct release %s" % src_file[0]
+                    SRC_FILE_URI = "%s%s" % (SRC_URI, src_file[1])
+                    SQLITE_FILES = re.findall("<a href=\"(.*?)\">%s-sqlite3-v(\d+).*?<\/a>" % (currentDB), urllib2.urlopen(SRC_FILE_URI).read())
+                    SQLITE_FILE_HREF = None
+                    SQLITE_FILE_VERSION = 0
+                    try:
+                        for sqlite_file_href, sqlite_file_version in SQLITE_FILES:
+                            if int(sqlite_file_version) > SQLITE_FILE_VERSION:
+                                SQLITE_FILE_HREF = sqlite_file_href
+                                SQLITE_FILE_VERSION = sqlite_file_version
+                    except:
+                        pass
+                    if not SQLITE_FILE_HREF:
+                        return (None, None)
+                    
+                    SQLITE_FILE_URI = "%s/%s" % (SRC_FILE_URI, SQLITE_FILE_HREF)
+                    return (SQLITE_FILE_URI, SQLITE_FILE_HREF)
+            return (None, None)
+        def srchMP():
+            SRC_URI = "https://mountainpenguin.org.uk/evedb"
+            print "Searching mountainpenguin.org.uk"
+            SRC_FILES = re.findall("<tr><td class=\"n\"><a href=\"(.*?)\">(.*?)-sqlite3.*?</a>", urllib2.urlopen(SRC_URI).read())
+            SQLITE_FILE_HREF = None
+            SQLITE_FILE_VERSION = 0
+            try:
+                for sqlite_file_href, sqlite_file_name in SRC_FILES:
+                    if sqlite_file_name == currentDB:
+                        SQLITE_FILE_HREF = sqlite_file_href
+                        break
+            except:
+                pass
+            
+            if not SQLITE_FILE_HREF:
+                return (None, None)
+            
+            SQLITE_FILE_URI = "%s/%s" % (SRC_URI, SQLITE_FILE_HREF)
+            return (SQLITE_FILE_URI, SQLITE_FILE_HREF)
+            #<tr><td class="n"><a href="cruc101-sqlite3-v1.db.bz2">cruc101-sqlite3-v1.db.bz2</a></td><td class="m">2011-Dec-06 15:47:01</td><td class="s">76.0M</td><td class="t">application/x-bzip</td></tr>
+                    
+        SQLITE_FILE_URI, SQLITE_FILE_HREF = srchMP()
+        if not SQLITE_FILE_URI:
+            print "Couldn't find release on mountainpenguin.org.uk"
+            SQLITE_FILE_URI, SQLITE_FILE_HREF = srchZofu()
+        if not SQLITE_FILE_URI:
+            print "Couldn't find release on zofu.no-ip.de"
+            print "Exiting..."
+            sys.exit()
+        else:
         ###debug###
         #if True:
         #    if True:
