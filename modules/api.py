@@ -406,9 +406,11 @@ class API:
                     return None
                 infodict = {}
                 for tag in xmltree.findall("result/*"):
-                    if tag.tag in ["corporationID", "ceoID", "stationID", "allianceID", "taxRate",
+                    if tag.tag in ["corporationID", "ceoID", "stationID", "allianceID",
                                "memberCount", "shares"]:
                         infodict[tag.tag] = int(tag.text)
+                    elif tag.tag == "taxRate":
+                        infodict[tag.tag] = float(tag.text)
                     elif tag.tag == "logo":
                         infodict["logo"] = dict([(x.tag, x.text) for x in tag.findall("*")])
                     elif tag.tag == "ticker":
