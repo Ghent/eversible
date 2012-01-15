@@ -27,9 +27,12 @@ from modules import api
 import time
 import traceback
 from modules.misc import functions
+from modules import users
 
-def index(connection,event, config, evedb, USERS):
+def index(connection,event, config):
     #requires limited api key
+    
+    USERS = users.DB()
     
     #check identify
     sourceHostName = event.source()

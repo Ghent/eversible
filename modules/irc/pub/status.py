@@ -32,7 +32,7 @@ from modules.misc import functions
 
 API = api.API()
 
-def index(connection, event, config, evedb, userdb):
+def index(connection, event, config):
     locale.setlocale(locale.LC_ALL, config["core"]["locale"])
     serverstatus = API.Server("status")
     status = serverstatus["status"]

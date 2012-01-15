@@ -32,12 +32,13 @@ from modules.misc import functions
 
 API = api.API()
 
-def index(connection,event,config,EVE,userdb):
+def index(connection,event,config):
     try:
         systemName = event.arguments()[0].split()[1]
     except IndexError:
         connection.privmsg(event.target(), "Syntax is: %ssov [system name]" % config["bot"]["prefix"])
     else:
+        EVE = evedb.DUMP()
         sovInfo = API.Map("sov",systemName)
         if sovInfo:
             #update API to return system security, regionName and constellationName

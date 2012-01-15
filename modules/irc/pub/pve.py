@@ -30,15 +30,18 @@ import time
 import re
 
 from modules import api
+from modules import evedb
+from modules import users
 
 from modules.misc import functions
 
-def index(connection, event, config, DUMP, USERS):
+def index(connection, event, config):
     locale.setlocale(locale.LC_ALL, config["core"]["locale"])
     sourceHostName = event.source()
     sourceNick = event.source().split("!")[0]
 
     #check if identified
+    USERS = users.DB()
     APItest = USERS.retrieveUserByHostname(sourceHostName)
 
     if not APItest:
@@ -47,7 +50,7 @@ def index(connection, event, config, DUMP, USERS):
         connection.privmsg(event.target(), "User \x034\x02'%s'\x03\x02 not recognised" % sourceNick)
     else:
         API = APItest["apiObject"]
-        
+        DUMP = evedb.DUMP()
         #syntax: pve daterange [system]
         # e.g. : pve 1w F9O-U9
         

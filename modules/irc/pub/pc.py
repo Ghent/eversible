@@ -26,11 +26,13 @@
 """
 
 from modules import api
+from modules import evedb
 
 API = api.API()
 
-def index(connection, event, config, DB, userdb):
-
+def index(connection, event, config):
+    DB = evedb.DUMP()
+    
     try:
         dataIn = event.arguments()[0].split(' ', 1)[1].split(' - ')
         itemName = dataIn[0]

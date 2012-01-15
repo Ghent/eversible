@@ -23,10 +23,15 @@
      petllama        <petllama@gmail.com>
 """
 
-def index(connection, event, config, evedb, USERS):
+from modules import users
+
+def index(connection, event, config):
     """
         SYNTAX: register [character name] [user ID] [API key] [password]
     """
+    
+    USERS = users.DB()
+    
     sourceHostname = event.source()
     sourceNick = event.source().split("!")[0]
     try:

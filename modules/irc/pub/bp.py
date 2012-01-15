@@ -28,7 +28,7 @@
 
 from modules import evedb
 
-def index(connection, event, config, EVE, userdb):
+def index(connection, event, config):
     return
 
     try:
@@ -36,6 +36,7 @@ def index(connection, event, config, EVE, userdb):
     except IndexError:
         connection.privmsg(event.target(), "Syntax is: %sbp [item name]" % config["bot"]["prefix"])
     else:
+        EVE = evedb.DUMP()
         itemID = EVE.getItemIDByName(itemName_user)
         materials = EVE.getMaterialsByTypeID(itemID)
         itemName = EVE.getItemNameByID(itemID)

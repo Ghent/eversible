@@ -39,10 +39,8 @@ from modules.irc.lib import irclib
 
 from modules.misc import functions
 from modules import evedb
-from modules import users
 
 
-USERS = users.DB()
 publicCommands = {}
 privateCommands = {}
 
@@ -77,7 +75,6 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
         self.DATABASE = database
 
         self.EVE_DATABASE = evedb.DUMP()
-        self.USER_DATABASE = users.DB()
 
         if config["internal"]["verbose"] == "True":
             irclib.DEBUG = True
@@ -109,7 +106,8 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
             if privateCommands.has_key(event.arguments()[0].split()[0][1:].upper() + "_priv"):
                 if self.DATABASE:
                     try:
-                        privateCommands[event.arguments()[0].split()[0][1:].upper() + "_priv"].index(connection,event, self.config, self.EVE_DATABASE, self.USER_DATABASE)
+                        #privateCommands[event.arguments()[0].split()[0][1:].upper() + "_priv"].index(connection,event, self.config, self.EVE_DATABASE, self.USER_DATABASE)
+                        thread.start_new_thread(privateCommands[event.arguments()[0].split()[0][1:].upper() + "_priv"].index, (connection,event,self.config))
                     except:
                         tb = traceback.format_exc()
                         if self.DEBUG_LEVEL == 0:
@@ -133,7 +131,8 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
             if publicCommands.has_key(event.arguments()[0].split()[0][1:].upper() + "_pub"):
                 if self.DATABASE:
                     try:
-                        publicCommands[event.arguments()[0].split()[0][1:].upper() + "_pub"].index(connection, event, self.config, self.EVE_DATABASE, self.USER_DATABASE)
+                        #publicCommands[event.arguments()[0].split()[0][1:].upper() + "_pub"].index(connection, event, self.config, self.EVE_DATABASE, self.USER_DATABASE)
+                        thread.start_new_thread(publicCommands[event.arguments()[0].split()[0][1:].upper() + "_pub"].index, (connection, event, self.config))
                     except:
                         tb = traceback.format_exc()
                         if self.DEBUG_LEVEL == 0:
