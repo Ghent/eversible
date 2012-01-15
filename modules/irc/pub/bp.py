@@ -28,10 +28,11 @@
 
 from modules import evedb
 
-
 EVE = evedb.DUMP()
 
 def index(connection, event, config):
+    return
+
     try:
         itemName_user = event.arguments()[0].split()[1]
     except IndexError:
