@@ -31,7 +31,7 @@ import time
 
 class CACHE:
     def __init__(self):
-        self.conn = sqlite3.connect("var/cache/cache.db")
+        self.conn = sqlite3.connect("var/cache/cache.db", check_same_thread=False)
         self.cursor = self.conn.cursor()
         
     def insertRSS(self, feedName, url, date):
