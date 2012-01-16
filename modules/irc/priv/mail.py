@@ -29,13 +29,10 @@ import traceback
 import re
 from modules.misc import functions
 import cgi
-from modules import users
 
-def index(connection,event, config):
+def index(connection,event, config, evedb, USERS):
     sourceHostName = event.source()
     sourceNick = event.source().split("!")[0]
-    
-    USERS = users.DB()
     
     try:
         mailID = event.arguments()[0].split()[1]

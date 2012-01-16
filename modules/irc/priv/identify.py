@@ -23,13 +23,10 @@
      petllama        <petllama@gmail.com>
 """
 
-from modules import users
-
-def index(connection,event, config):
+def index(connection,event, config, evedb, USERS):
     """ SYNTAX identify [character name] [password] """
     sourceHostName = event.source()
     sourceNick = event.source().split("!")[0]
-    USERS = users.DB()
     try:
         characterName = " ".join(event.arguments()[0].split()[1:-1])
         password = event.arguments()[0].split()[-1]

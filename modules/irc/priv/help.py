@@ -25,6 +25,6 @@
      petllama        <petllama@gmail.com>
 """
 
-def index(connection, event, config):
+def index(connection, event, config, evedb, userdb):
     #required
     pass

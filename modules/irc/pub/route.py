@@ -26,9 +26,8 @@
 """
 
 from modules.misc import functions
-from modules import evedb
 
-def index(connection, event, config):
+def index(connection, event, config, EVE, userdb):
     dotlan = "http://evemaps.dotlan.net/route/"
 
     try:
@@ -42,7 +41,6 @@ def index(connection, event, config):
         connection.privmsg(event.target(),
             "           [ ] = required items      ( ) = optional items     * case insensitive")
     else:
-        EVE = evedb.DUMP()
         originID = EVE.getSystemIDByName(origin)
         endpointID = EVE.getSystemIDByName(endpoint)
         if not originID:

@@ -27,7 +27,7 @@
      petllama        <petllama@gmail.com>
 """
 
-def index(connection, event, config):
+def index(connection, event, config, evedb, userdb):
     try:
         helpID = event.arguments()[0].split()[1]
     except (IndexError, ValueError):

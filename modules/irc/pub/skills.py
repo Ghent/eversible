@@ -27,10 +27,8 @@ from modules import api
 import time
 import traceback
 from modules.misc import functions
-from modules import users
 
-def index(connection,event, config):
-    USERS = users.DB()
+def index(connection,event, config, evedb, USERS):
     #requires limited api key
     
     #check identify

@@ -25,16 +25,12 @@
 
 from modules import api
 import traceback
-from modules import users
 
-def index(connection, event, config):
+def index(connection, event, config, evedb, USERS):
     """
         Changes saved settings for your registered user
         SYNTAX: update [char name] [keyID] [vCode] [old password] (new password)
     """
-    
-    USERS = users.DB()
-    
     #check user
     sourceHostname = event.source()
     sourceNick = event.source().split("!")[0]

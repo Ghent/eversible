@@ -29,18 +29,17 @@ import locale
 
 from modules import api
 from modules.misc import functions
-from modules import evedb
+
 
 API = api.API()
 
-def index(connection, event, config):
+def index(connection, event, config, EVE, userdb):
     locale.setlocale(locale.LC_ALL, config["core"]["locale"])
     try:
         systemName = event.arguments()[0].split()[1]
     except IndexError:
         connection.privmsg(event.target(), "Syntax is: %skills [system name]" % config["bot"]["prefix"])
     else:
-        EVE = evedb.DUMP()
         response = API.Map("kills", systemName)
         if not response:
             connection.privmsg(event.target(), "System '%s' is unknown to me" % systemName)
