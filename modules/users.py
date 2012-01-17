@@ -33,7 +33,7 @@ import time
 
 class DB:
     def __init__(self):
-        self.conn = sqlite3.connect("var/users/eversible.db")
+        self.conn = sqlite3.connect("var/users/eversible.db", check_same_thread=False)
         self.cursor = self.conn.cursor()
         #test if users / hostnames tables exist
         try:
