@@ -26,8 +26,6 @@
 """
 
 
-from modules import evedb
-
 def index(connection, event, config, EVE, userdb):
     return
 

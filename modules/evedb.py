@@ -57,7 +57,7 @@ def testEveDB():
 class DUMP:
     def __init__(self):
         try:
-            conn = sqlite3.connect("var/eve/current.db")
+            conn = sqlite3.connect("var/eve/current.db", check_same_thread=False)
             self.cursor = conn.cursor()
         except sqlite3.OperationalError:
             currentLink = os.readlink("var/eve/current.db")

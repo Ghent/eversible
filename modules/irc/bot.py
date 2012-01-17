@@ -109,7 +109,8 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
             if privateCommands.has_key(event.arguments()[0].split()[0][1:].upper() + "_priv"):
                 if self.DATABASE:
                     try:
-                        privateCommands[event.arguments()[0].split()[0][1:].upper() + "_priv"].index(connection,event, self.config, self.EVE_DATABASE, self.USER_DATABASE)
+                        #privateCommands[event.arguments()[0].split()[0][1:].upper() + "_priv"].index(connection,event, self.config, self.EVE_DATABASE, self.USER_DATABASE)
+                        thread.start_new_thread(privateCommands[event.arguments()[0].split()[0][1:].upper() + "_priv"].index, (connection,event,self.config, self.EVE_DATABASE, self.USER_DATABASE))
                     except:
                         tb = traceback.format_exc()
                         if self.DEBUG_LEVEL == 0:
@@ -133,7 +134,8 @@ class EVErsibleBot(ircbot.SingleServerIRCBot):
             if publicCommands.has_key(event.arguments()[0].split()[0][1:].upper() + "_pub"):
                 if self.DATABASE:
                     try:
-                        publicCommands[event.arguments()[0].split()[0][1:].upper() + "_pub"].index(connection, event, self.config, self.EVE_DATABASE, self.USER_DATABASE)
+                        #publicCommands[event.arguments()[0].split()[0][1:].upper() + "_pub"].index(connection, event, self.config, self.EVE_DATABASE, self.USER_DATABASE)
+                        thread.start_new_thread(publicCommands[event.arguments()[0].split()[0][1:].upper() + "_pub"].index, (connection, event, self.config, self.EVE_DATABASE, self.USER_DATABASE))
                     except:
                         tb = traceback.format_exc()
                         if self.DEBUG_LEVEL == 0:
